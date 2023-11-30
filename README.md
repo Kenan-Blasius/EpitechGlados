@@ -1,1 +1,5 @@
 # GLaDOS
+
+## Workflows
+
+### `build`
