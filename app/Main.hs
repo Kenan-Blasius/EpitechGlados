@@ -73,37 +73,72 @@ tokenListToSexpr (x:xs) = x : tokenListToSexpr xs
 
 -- INFO: Convert SExpr to AST
 sexprToAst :: [Token] -> AST
-sexprToAst [] = AST []
--- TODO If token
-sexprToAst (ListToken (IfToken : xs) : _) = do
-    let (cond, rest) = getSubList xs
-    let (expr1, rest2) = getSubList rest
-    let (expr2, _) = getSubList rest2
-    IfAST (sexprToAst cond) (sexprToAst expr1) (sexprToAst expr2)
-
--- TODO Define token
-sexprToAst (ListToken (DefineToken : xs) : _) = do
+sexprToAst [] = DeadLeafAST
+-- ! If token
+sexprToAst (IfToken : xs) = do
+    let (cond, expr1, expr2) = (head xs, head (tail xs), head (tail (tail xs)))
+    let cond2 = case cond of
+            ListToken x -> x
+            _ -> [cond]
+    let expr12 = case expr1 of
+            ListToken x -> x
+            _ -> [expr1]
+    let expr22 = case expr2 of
+            ListToken x -> x
+            _ -> [expr2]
+    IfAST (sexprToAst cond2) (sexprToAst expr12) (sexprToAst expr22)
+-- ! Define token
+sexprToAst (DefineToken : xs) = do
     let (name, rest) = (head xs, tail xs)
     let (expr, _) = getSubList rest
-    DefineAST (show name) (sexprToAst expr)
-
--- TODO Lambda token
-sexprToAst (ListToken (LambdaToken : xs) : _) = do
-    let (args, body) = ([head xs], tail xs)
-    LambdaAST (sexprToAst args) (sexprToAst body)
-
--- Int token
-sexprToAst (ListToken (IntToken x : _) : _) = do
-    IntAST x
--- Symbol token
-sexprToAst (ListToken (SymbolToken x : _) : _) = do
-    SymbolAST x
--- List token
+    AST [DefineAST (show name) (sexprToAst expr)]
+-- ! Lambda token
+sexprToAst (LambdaToken : xs) = do
+    let (args, body) = (head xs, tail xs)
+    let args2 = case args of
+            ListToken x -> x
+            _ -> [args]
+    LambdaAST (sexprToAst args2) (sexprToAst body)
+-- ! Int token
+sexprToAst (IntToken x : ListToken y : _) = do
+    AST [IntAST x, sexprToAst y]
+sexprToAst (IntToken x : xs) = do
+    AST [IntAST x] <> sexprToAst xs
+-- ! Symbol token
+sexprToAst (SymbolToken x : ListToken y : _) = do
+    AST [SymbolAST x, sexprToAst y]
+sexprToAst (SymbolToken x : xs) = do
+    AST [SymbolAST x] <> sexprToAst xs
+-- ! List token
 sexprToAst (ListToken (x : xs) : ys) = do
-    sexprToAst (ListToken (x : xs) : ys)
--- Other token
+    AST [sexprToAst (x : xs)] <> sexprToAst ys
+-- ! Other token
 sexprToAst (_ : xs) = do
     sexprToAst xs
+
+-- INFO: Draw AST as a folder tree structure
+indent :: Int -> String
+indent 0 = ""
+indent n = "|   " ++ indent (n - 1)
+
+printAST :: AST -> String
+printAST ast = printASTIndented 0 ast
+    where
+        printASTIndented :: Int -> AST -> String
+        printASTIndented depth DeadLeafAST = indent depth ++ "DeadLeafAST\n"
+        printASTIndented depth (IntAST value) = indent depth ++ "IntAST " ++ show value ++ "\n"
+        printASTIndented depth (SymbolAST name) = indent depth ++ "SymbolAST " ++ name ++ "\n"
+        printASTIndented depth (DefineAST name expr) =
+            indent depth ++ "DefineAST " ++ name ++ "\n" ++ printASTIndented (depth + 1) expr
+        printASTIndented depth (LambdaAST args body) =
+            indent depth ++ "LambdaAST\n" ++ printASTIndented (depth + 1) args ++ printASTIndented (depth + 1) body
+        printASTIndented depth (IfAST cond expr1 expr2) =
+            indent depth ++ "IfAST\n" ++
+                printASTIndented (depth + 1) cond ++
+                printASTIndented (depth + 1) expr1 ++
+                printASTIndented (depth + 1) expr2
+        printASTIndented depth (AST astList) =
+            indent depth ++ "AST\n" ++ concatMap (printASTIndented (depth + 1)) astList
 
 -- INFO: Main function
 main :: IO ()
@@ -124,7 +159,7 @@ main = do
             putStrLn $ show $ tokenListToSexpr tokenList
             putStrLn "------------------------------------"
             let sexpr = tokenListToSexpr tokenList
-            putStrLn $ show $ sexprToAst sexpr
+            putStrLn $ printAST $ sexprToAst sexpr
             putStrLn "------------------------------------"
         _ -> do
             putStrLn "No file given as an argument"
