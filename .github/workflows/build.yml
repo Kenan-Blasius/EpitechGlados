@@ -5,37 +5,23 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout the code
-        uses: actions/checkout@v2
+      - name: 💽 Install OS Packages
+        uses: mstksg/get-package@v1
+        with:
+          apt-get: libgmp-dev
 
-      - name: Set up Haskell
-        run: |
-          sudo apt-get -y update
-          sudo apt-get -y install ghc
-          sudo apt-get -y install haskell-stack
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v1
 
-      - name: Build and Test
+      - name: 🧰 Setup Stack
+        uses: mstksg/setup-stack@v1
+
+      - name: 📸 Build Snapshot
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          stack setup
+          stack --no-terminal test --bench --only-snapshot
+      - name: 🔨 Build & Test
+        run: |
           make
           make test
-
-      # - name: Set up build environment
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y make
-      #     sudo apt-get install -y haskell-stack
-      #     stack upgrade
-      #   shell: bash
-
-      # - name: Build the project
-      #   run: |
-      #     make
-      #   working-directory: ${{ github.workspace }}
-
-      # - name: Run tests
-      #   run: |
-      #     make test
-      #   working-directory: ${{ github.workspace }}
