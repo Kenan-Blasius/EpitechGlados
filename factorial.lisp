@@ -1,4 +1,4 @@
-(define x 51435)
+(define x "51435")
 
 (define factorial
     (lambda (n)

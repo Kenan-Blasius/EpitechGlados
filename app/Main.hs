@@ -27,6 +27,9 @@ parseLine str = do
                     [OpenParenthesis] ++ parseLine ys
                 (')':ys) -> do
                     [CloseParenthesis] ++ parseLine ys
+                ('\"':ys) -> do
+                    let (quoteStr, rest) = span (/= '\"') ys
+                    [SymbolToken quoteStr] ++ parseLine (tail rest)
                 (y:ys) | y `elem` ['0'..'9'] -> do
                     [IntToken (read [y])] ++ parseLine ys
                 (y:ys) -> do
