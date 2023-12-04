@@ -11,10 +11,10 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up Haskell
-        uses: actions/setup-haskell@v1
-        with:
-          ghc-version: "9.2.5"
-          stack-version: "2.9.1"
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install ghc=9.2.5-1build1
+          sudo apt-get -y install haskell-stack
 
       - name: Build and Test
         run: |
