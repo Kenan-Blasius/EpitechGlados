@@ -2,6 +2,7 @@ module Main (main) where
 
 import System.Environment
 import Types
+import Debug.Trace
 
 -- INFO: Create token list
 parseLine :: String -> [Token]
@@ -105,26 +106,54 @@ sexprToAst (ListToken (x : xs) : ys) = do
 sexprToAst (_ : xs) = do
     sexprToAst xs
 
+-- DefineAST "factorial" (LambdaAST (SymbolAST "n") (IfAST (SymbolAST "=") (AST []) (AST [])))
+
+evalAST :: AST -> Maybe AST
+-- evalAST x | trace ("evalAST " ++ show x) True = Nothing
+-- evalAST (AST []) = Nothing
+-- evalAST x | trace ("evalAST " ++ show x) True = Nothing
+evalAST (AST (x:xs)) = do
+    evalAST x
+    evalAST (AST xs)
+evalAST x | trace ("evalAST " ++ show x) True = Nothing
+evalAST (IfAST cond expr1 expr2) = do
+    case evalAST cond of
+        Just (IntAST 0) -> do
+            evalAST expr2
+        Just (IntAST _) -> do
+            evalAST expr1
+        _ -> do
+            Nothing
+evalAST (DefineAST name expr) = do
+    Nothing
+evalAST (LambdaAST args body) = do
+    Nothing
+evalAST (IntAST x) = do
+    Just (IntAST x)
+evalAST (SymbolAST x) = do
+    Nothing
+
 -- INFO: Main function
 main :: IO ()
 main = do
-    -- Run the file given as an argument
     args <- getArgs
     case args of
         [filename] -> do
             putStrLn $ "Running file: " ++ filename
             contents <- readFile filename
             file <- return $ File (lines contents)
-            putStrLn "------------------------------------"
-            putStrLn $ show file
-            putStrLn "------------------------------------"
-            putStrLn $ show $ parseFile file
-            putStrLn "------------------------------------"
+            -- putStrLn "------------------------------------"
+            -- putStrLn $ show file
+            -- putStrLn "------------------------------------"
+            -- putStrLn $ show $ parseFile file
+            -- putStrLn "------------------------------------"
             let tokenList = parseFile file
-            putStrLn $ show $ tokenListToSexpr tokenList
-            putStrLn "------------------------------------"
+            -- putStrLn $ show $ tokenListToSexpr tokenList
+            -- putStrLn "------------------------------------"
             let sexpr = tokenListToSexpr tokenList
-            putStrLn $ show $ sexprToAst sexpr
+            -- putStrLn $ show $ sexprToAst sexpr
             putStrLn "------------------------------------"
+            let ast = sexprToAst sexpr
+            putStrLn $ show $ evalAST ast
         _ -> do
             putStrLn "No file given as an argument"
