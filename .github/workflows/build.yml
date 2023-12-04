@@ -13,7 +13,7 @@ jobs:
       - name: Set up build environment
         run: |
           sudo apt-get update
-          sudo apt install haskell-stack
+          sudo apt install -y haskell-stack
         shell: bash
 
       - name: Build the project
