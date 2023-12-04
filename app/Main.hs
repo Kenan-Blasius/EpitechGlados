@@ -123,7 +123,6 @@ main :: IO ()
 main = do
 --     -- Hardcoded test
 --     let ast = IfAST (AST [SymbolAST ">=", SymbolAST "103", IntAST 103]) (AST [SymbolAST "True"]) (AST [IntAST 0])
-            AST [IfAST (AST [SymbolAST "=",IntAST 1,SymbolAST "\"",IntAST 1,SymbolAST "\""]) (AST [IntAST 2]) (AST [IntAST 1])]
 --     putStrLn $ "AST: " ++ printAST ast
 --     putStrLn $ "Result: " ++ printAST (evalAST ast)
 
@@ -149,7 +148,7 @@ main = do
             putStrLn $ show $ tokenListToSexpr tokenList
             putStrLn "------------------------------------"
             let sexpr = tokenListToSexpr tokenList
-            putStrLn $ show $ sexprToAst sexpr
+            putStrLn $ printAST $ sexprToAst sexpr
             putStrLn "------------------------------------"
             let ast = sexprToAst sexpr
             putStrLn $ show $ evalAST ast
