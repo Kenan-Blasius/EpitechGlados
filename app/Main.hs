@@ -75,55 +75,65 @@ tokenListToSexpr (x:xs) = x : tokenListToSexpr xs
 
 -- INFO: Convert SExpr to AST
 sexprToAst :: [Token] -> AST
-sexprToAst [] = AST []
--- TODO If token
-sexprToAst (ListToken (IfToken : xs) : _) = do
-    let (cond, rest) = getSubList xs
-    let (expr1, rest2) = getSubList rest
-    let (expr2, _) = getSubList rest2
-    IfAST (sexprToAst cond) (sexprToAst expr1) (sexprToAst expr2)
-
--- TODO Define token
-sexprToAst (ListToken (DefineToken : xs) : _) = do
+sexprToAst [] = DeadLeafAST
+-- ! If token
+sexprToAst (IfToken : xs) = do
+    let (cond, expr1, expr2) = (head xs, head (tail xs), head (tail (tail xs)))
+    let cond2 = case cond of
+            ListToken x -> x
+            _ -> [cond]
+    let expr12 = case expr1 of
+            ListToken x -> x
+            _ -> [expr1]
+    let expr22 = case expr2 of
+            ListToken x -> x
+            _ -> [expr2]
+    IfAST (sexprToAst cond2) (sexprToAst expr12) (sexprToAst expr22)
+-- ! Define token
+sexprToAst (DefineToken : xs) = do
     let (name, rest) = (head xs, tail xs)
     let (expr, _) = getSubList rest
-    DefineAST (show name) (sexprToAst expr)
-
--- TODO Lambda token
-sexprToAst (ListToken (LambdaToken : xs) : _) = do
-    let (args, body) = ([head xs], tail xs)
-    LambdaAST (sexprToAst args) (sexprToAst body)
-
--- Int token
-sexprToAst (ListToken (IntToken x : _) : _) = do
-    IntAST x
--- Symbol token
-sexprToAst (ListToken (SymbolToken x : _) : _) = do
-    SymbolAST x
--- List token
+    AST [DefineAST (show name) (sexprToAst expr)]
+-- ! Lambda token
+sexprToAst (LambdaToken : xs) = do
+    let (args, body) = (head xs, tail xs)
+    let args2 = case args of
+            ListToken x -> x
+            _ -> [args]
+    LambdaAST (sexprToAst args2) (sexprToAst body)
+-- ! Int token
+sexprToAst (IntToken x : ListToken y : _) = do
+    AST [IntAST x, sexprToAst y]
+sexprToAst (IntToken x : xs) = do
+    AST [IntAST x] <> sexprToAst xs
+-- ! Symbol token
+sexprToAst (SymbolToken x : ListToken y : _) = do
+    AST [SymbolAST x, sexprToAst y]
+sexprToAst (SymbolToken x : xs) = do
+    AST [SymbolAST x] <> sexprToAst xs
+-- ! List token
 sexprToAst (ListToken (x : xs) : ys) = do
-    sexprToAst (ListToken (x : xs) : ys)
--- Other token
+    AST [sexprToAst (x : xs)] <> sexprToAst ys
+-- ! Other token
 sexprToAst (_ : xs) = do
     sexprToAst xs
-
 
 -- INFO: Main function
 main :: IO ()
 main = do
-    -- Hardcoded test
-    let ast = IfAST (AST [SymbolAST ">=", SymbolAST "103", IntAST 103]) (AST [SymbolAST "True"]) (AST [IntAST 0])
-    putStrLn $ "AST: " ++ printAST ast
-    putStrLn $ "Result: " ++ printAST (evalAST ast)
+--     -- Hardcoded test
+--     let ast = IfAST (AST [SymbolAST ">=", SymbolAST "103", IntAST 103]) (AST [SymbolAST "True"]) (AST [IntAST 0])
+            AST [IfAST (AST [SymbolAST "=",IntAST 1,SymbolAST "\"",IntAST 1,SymbolAST "\""]) (AST [IntAST 2]) (AST [IntAST 1])]
+--     putStrLn $ "AST: " ++ printAST ast
+--     putStrLn $ "Result: " ++ printAST (evalAST ast)
 
 
-{-
 -- Kenan's code
-AST: IfAST (SymbolAST "=") (IntAST 0) (IntAST 2)
-evalAST IfAST (SymbolAST "=") (IntAST 0) (IntAST 2)
-evalAST SymbolAST "="
-Symbol: =
-Result: Nothing
+-- AST: IfAST (SymbolAST "=") (IntAST 0) (IntAST 2)
+-- evalAST IfAST (SymbolAST "=") (IntAST 0) (IntAST 2)
+-- evalAST SymbolAST "="
+-- Symbol: =
+-- Result: Nothing
     args <- getArgs
     case args of
         [filename] -> do
@@ -145,4 +155,3 @@ Result: Nothing
             putStrLn $ show $ evalAST ast
         _ -> do
             putStrLn "No file given as an argument"
--}

@@ -69,3 +69,14 @@ printAST ast = printASTIndented 0 ast
                 printASTIndented (depth + 1) expr2
         printASTIndented depth (AST astList) =
             indent depth ++ "AST\n" ++ concatMap (printASTIndented (depth + 1)) astList
+
+-- Overload the ++ operator for AST
+instance Semigroup AST where
+    -- Adding a dead leaf to an AST is the same as adding nothing
+    DeadLeafAST <> x = x
+    x <> DeadLeafAST = x
+    -- Adding two AST is the same as adding a list of AST
+    AST x <> AST y = AST (x ++ y)
+    AST x <> y = AST (x ++ [y])
+    x <> AST y = AST ([x] ++ y)
+    x <> y = AST ([x, y])
