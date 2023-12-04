@@ -18,7 +18,8 @@ jobs:
 
       - name: Build the project
         run: |
-          stack upgrade
+          stack --version
+          stack setup
           stack build
         working-directory: ${{ github.workspace }}
 
