@@ -13,7 +13,7 @@ jobs:
       - name: Set up Haskell
         run: |
           sudo apt-get -y update
-          sudo apt-get -y install ghc=9.2.5-1build1
+          sudo apt-get -y install ghc
           sudo apt-get -y install haskell-stack
 
       - name: Build and Test
