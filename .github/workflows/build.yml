@@ -5,26 +5,23 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: 💽 Install OS Packages
-        uses: actions/cache@v1
-        with:
-          apt-get: libgmp-dev
 
-      - name: 📥 Checkout repository
+    steps:
+      - name: Checkout the code
         uses: actions/checkout@v2
 
-      - name: Set up Haskell
-        uses: actions/setup-haskell@v2
-        with:
-          ghc-version: "8.10.7"
-          cabal-version: "3.4.0.0"
+      - name: Set up build environment
+        run: |
+          sudo apt-get update
+          sudo apt install haskell-stack
+        shell: bash
 
-      - name: 📸 Build Snapshot
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Build the project
         run: |
-          stack --no-terminal test --bench --only-snapshot
-      - name: 🔨 Build & Test
+          stack build
+        working-directory: ${{ github.workspace }}
+
+      - name: Run tests
         run: |
-          make
-          make test
+          stack test --no-terminal
+        working-directory: ${{ github.workspace }}
