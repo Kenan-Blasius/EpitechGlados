@@ -106,54 +106,89 @@ sexprToAst (ListToken (x : xs) : ys) = do
 sexprToAst (_ : xs) = do
     sexprToAst xs
 
--- DefineAST "factorial" (LambdaAST (SymbolAST "n") (IfAST (SymbolAST "=") (AST []) (AST [])))
+indent :: Int -> String
+indent 0 = ""
+indent n = "|   " ++ indent (n - 1)
 
-evalAST :: AST -> Maybe AST
--- evalAST x | trace ("evalAST " ++ show x) True = Nothing
--- evalAST (AST []) = Nothing
--- evalAST x | trace ("evalAST " ++ show x) True = Nothing
-evalAST (AST (x:xs)) = do
-    evalAST x
-    evalAST (AST xs)
-evalAST x | trace ("evalAST " ++ show x) True = Nothing
-evalAST (IfAST cond expr1 expr2) = do
+printAST :: AST -> String
+printAST ast = printASTIndented 0 ast
+    where
+        printASTIndented :: Int -> AST -> String
+        printASTIndented depth DeadLeafAST = indent depth ++ "DeadLeafAST\n"
+        printASTIndented depth (IntAST value) = indent depth ++ "IntAST " ++ show value ++ "\n"
+        printASTIndented depth (SymbolAST name) = indent depth ++ "SymbolAST " ++ name ++ "\n"
+        printASTIndented depth (DefineAST name expr) =
+            indent depth ++ "DefineAST " ++ name ++ "\n" ++ printASTIndented (depth + 1) expr
+        printASTIndented depth (LambdaAST args body) =
+            indent depth ++ "LambdaAST\n" ++ printASTIndented (depth + 1) args ++ printASTIndented (depth + 1) body
+        printASTIndented depth (IfAST cond expr1 expr2) =
+            indent depth ++ "IfAST\n" ++
+                printASTIndented (depth + 1) cond ++
+                printASTIndented (depth + 1) expr1 ++
+                printASTIndented (depth + 1) expr2
+        printASTIndented depth (AST astList) =
+            indent depth ++ "AST\n" ++ concatMap (printASTIndented (depth + 1)) astList
+
+evalAST :: AST -> AST
+evalAST (AST []) = DeadLeafAST
+evalAST (AST (SymbolAST "=" : x : y : _)) =
+    trace ("SymbolAST =: " ++ show x ++ " " ++ show y) $
+    case (evalAST x, evalAST y) of
+        (IntAST x', IntAST y') ->
+            trace ("SymbolAST =: " ++ show x' ++ " " ++ show y') $
+            if x' == y' then IntAST 1 else IntAST 0
+        _ -> trace ("SymbolAST =: " ++ show x ++ " " ++ show y) DeadLeafAST
+evalAST (AST (x:xs)) =
+    trace ("AST: " ++ show x) $ evalAST x
+evalAST (IfAST cond expr1 expr2) =
+    trace ("IfAST: Condition = " ++ printAST cond) $
     case evalAST cond of
-        Just (IntAST 0) -> do
-            evalAST expr2
-        Just (IntAST _) -> do
-            evalAST expr1
-        _ -> do
-            Nothing
-evalAST (DefineAST name expr) = do
-    Nothing
-evalAST (LambdaAST args body) = do
-    Nothing
-evalAST (IntAST x) = do
-    Just (IntAST x)
-evalAST (SymbolAST x) = do
-    Nothing
+        IntAST 0 -> trace "IfAST: Condition is 0, evaluating expr2" $ evalAST expr2
+        IntAST _ -> trace "IfAST: Condition is non-zero, evaluating expr1" $ evalAST expr1
+        _ -> trace "IfAST: Condition is not an integer, returning DeadLeafAST" DeadLeafAST
+evalAST (DefineAST name expr) =
+    trace ("Defining: " ++ name) $ evalAST expr
+evalAST (LambdaAST args body) =
+    trace ("Lambda: " ++ printAST args) $ evalAST body
+evalAST (IntAST x) = IntAST x
+evalAST (SymbolAST x) =
+    trace ("Symbol: " ++ x) DeadLeafAST
 
 -- INFO: Main function
 main :: IO ()
 main = do
+    -- Hardcoded test
+    let ast = IfAST (AST [SymbolAST "=", IntAST 0, IntAST 1]) (AST [IntAST 1]) (AST [IntAST 2])
+    putStrLn $ "AST: " ++ printAST ast
+    putStrLn $ "Result: " ++ printAST (evalAST ast)
+
+
+{-
+-- Kenan's code
+AST: IfAST (SymbolAST "=") (IntAST 0) (IntAST 2)
+evalAST IfAST (SymbolAST "=") (IntAST 0) (IntAST 2)
+evalAST SymbolAST "="
+Symbol: =
+Result: Nothing
     args <- getArgs
     case args of
         [filename] -> do
             putStrLn $ "Running file: " ++ filename
             contents <- readFile filename
             file <- return $ File (lines contents)
-            -- putStrLn "------------------------------------"
-            -- putStrLn $ show file
-            -- putStrLn "------------------------------------"
-            -- putStrLn $ show $ parseFile file
-            -- putStrLn "------------------------------------"
+            putStrLn "------------------------------------"
+            putStrLn $ show file
+            putStrLn "------------------------------------"
+            putStrLn $ show $ parseFile file
+            putStrLn "------------------------------------"
             let tokenList = parseFile file
-            -- putStrLn $ show $ tokenListToSexpr tokenList
-            -- putStrLn "------------------------------------"
+            putStrLn $ show $ tokenListToSexpr tokenList
+            putStrLn "------------------------------------"
             let sexpr = tokenListToSexpr tokenList
-            -- putStrLn $ show $ sexprToAst sexpr
+            putStrLn $ show $ sexprToAst sexpr
             putStrLn "------------------------------------"
             let ast = sexprToAst sexpr
             putStrLn $ show $ evalAST ast
         _ -> do
             putStrLn "No file given as an argument"
+-}
