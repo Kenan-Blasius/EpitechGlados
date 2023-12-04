@@ -2,49 +2,18 @@ name: Build and Test Stack project
 
 on: [push]
 
-# jobs:
-#   build:
-#     runs-on: ubuntu-latest
-
-#     steps:
-#       - uses: actions/checkout@v3
-
-#       - name: Set up build environment
-#         run: |
-#           sudo apt-get update
-#           sudo apt install -y haskell-stack
-#         shell: bash
-
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        ghc: ["8.8.3", "8.10.5"]
-        cabal: ["2.4.1.0", "3.0.0.0"]
-        os: [ubuntu-latest]
-        resolver: [lts-3.22, lts-17, lts-18, lts]
-        exclude:
-          # GHC 8.8+ only works with cabal v3+
-          - ghc: 8.8.3
-            cabal: 2.4.1.0
-    name: ${{ matrix.resolver }} (${{ matrix.ghc }}/${{ matrix.cabal }})
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Check out
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-      - name: Setup Haskell
-        uses: haskell/actions/setup@v1
-        with:
-          ghc-version: ${{ matrix.ghc }}
-          cabal-version: ${{ matrix.cabal }}
-          enable-stack: true
-
-      - name: Versions
+      - name: Set up build environment
         run: |
-          stack --version
-          cabal --version
-          ghc --version
+          sudo apt-get update
+          sudo apt install -y haskell-stack
+        shell: bash
 
       - name: Build the project
         run: |
