@@ -14,6 +14,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt install -y haskell-stack
+          stack setup
         shell: bash
 
       - name: Build the project
