@@ -3,6 +3,7 @@ module Main (main) where
 import System.Environment
 import Types
 import Debug.Trace
+import Eval
 
 -- INFO: Create token list
 parseLine :: String -> [Token]
@@ -106,59 +107,12 @@ sexprToAst (ListToken (x : xs) : ys) = do
 sexprToAst (_ : xs) = do
     sexprToAst xs
 
-indent :: Int -> String
-indent 0 = ""
-indent n = "|   " ++ indent (n - 1)
-
-printAST :: AST -> String
-printAST ast = printASTIndented 0 ast
-    where
-        printASTIndented :: Int -> AST -> String
-        printASTIndented depth DeadLeafAST = indent depth ++ "DeadLeafAST\n"
-        printASTIndented depth (IntAST value) = indent depth ++ "IntAST " ++ show value ++ "\n"
-        printASTIndented depth (SymbolAST name) = indent depth ++ "SymbolAST " ++ name ++ "\n"
-        printASTIndented depth (DefineAST name expr) =
-            indent depth ++ "DefineAST " ++ name ++ "\n" ++ printASTIndented (depth + 1) expr
-        printASTIndented depth (LambdaAST args body) =
-            indent depth ++ "LambdaAST\n" ++ printASTIndented (depth + 1) args ++ printASTIndented (depth + 1) body
-        printASTIndented depth (IfAST cond expr1 expr2) =
-            indent depth ++ "IfAST\n" ++
-                printASTIndented (depth + 1) cond ++
-                printASTIndented (depth + 1) expr1 ++
-                printASTIndented (depth + 1) expr2
-        printASTIndented depth (AST astList) =
-            indent depth ++ "AST\n" ++ concatMap (printASTIndented (depth + 1)) astList
-
-evalAST :: AST -> AST
-evalAST (AST []) = DeadLeafAST
-evalAST (AST (SymbolAST "=" : x : y : _)) =
-    trace ("SymbolAST =: " ++ show x ++ " " ++ show y) $
-    case (evalAST x, evalAST y) of
-        (IntAST x', IntAST y') ->
-            trace ("SymbolAST =: " ++ show x' ++ " " ++ show y') $
-            if x' == y' then IntAST 1 else IntAST 0
-        _ -> trace ("SymbolAST =: " ++ show x ++ " " ++ show y) DeadLeafAST
-evalAST (AST (x:xs)) =
-    trace ("AST: " ++ show x) $ evalAST x
-evalAST (IfAST cond expr1 expr2) =
-    trace ("IfAST: Condition = " ++ printAST cond) $
-    case evalAST cond of
-        IntAST 0 -> trace "IfAST: Condition is 0, evaluating expr2" $ evalAST expr2
-        IntAST _ -> trace "IfAST: Condition is non-zero, evaluating expr1" $ evalAST expr1
-        _ -> trace "IfAST: Condition is not an integer, returning DeadLeafAST" DeadLeafAST
-evalAST (DefineAST name expr) =
-    trace ("Defining: " ++ name) $ evalAST expr
-evalAST (LambdaAST args body) =
-    trace ("Lambda: " ++ printAST args) $ evalAST body
-evalAST (IntAST x) = IntAST x
-evalAST (SymbolAST x) =
-    trace ("Symbol: " ++ x) DeadLeafAST
 
 -- INFO: Main function
 main :: IO ()
 main = do
     -- Hardcoded test
-    let ast = IfAST (AST [SymbolAST "=", IntAST 0, IntAST 1]) (AST [IntAST 1]) (AST [IntAST 2])
+    let ast = IfAST (AST [SymbolAST "=", SymbolAST "1", IntAST 1]) (AST [SymbolAST "a"]) (AST [IntAST 2])
     putStrLn $ "AST: " ++ printAST ast
     putStrLn $ "Result: " ++ printAST (evalAST ast)
 

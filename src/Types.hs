@@ -1,7 +1,9 @@
 module Types (
     File (..),
     Token (..),
-    AST (..)
+    AST (..),
+    indent,
+    printAST
 ) where
 
 -- File type
@@ -41,4 +43,29 @@ data AST = AST [AST] -- list of AST
          | LambdaAST AST AST -- args body
          | IntAST Int -- value
          | SymbolAST String -- name
+         | DeadLeafAST
          deriving Show
+
+
+indent :: Int -> String
+indent 0 = ""
+indent n = "|   " ++ indent (n - 1)
+
+printAST :: AST -> String
+printAST ast = printASTIndented 0 ast
+    where
+        printASTIndented :: Int -> AST -> String
+        printASTIndented depth DeadLeafAST = indent depth ++ "DeadLeafAST\n"
+        printASTIndented depth (IntAST value) = indent depth ++ "IntAST " ++ show value ++ "\n"
+        printASTIndented depth (SymbolAST name) = indent depth ++ "SymbolAST " ++ name ++ "\n"
+        printASTIndented depth (DefineAST name expr) =
+            indent depth ++ "DefineAST " ++ name ++ "\n" ++ printASTIndented (depth + 1) expr
+        printASTIndented depth (LambdaAST args body) =
+            indent depth ++ "LambdaAST\n" ++ printASTIndented (depth + 1) args ++ printASTIndented (depth + 1) body
+        printASTIndented depth (IfAST cond expr1 expr2) =
+            indent depth ++ "IfAST\n" ++
+                printASTIndented (depth + 1) cond ++
+                printASTIndented (depth + 1) expr1 ++
+                printASTIndented (depth + 1) expr2
+        printASTIndented depth (AST astList) =
+            indent depth ++ "AST\n" ++ concatMap (printASTIndented (depth + 1)) astList
