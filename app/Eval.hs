@@ -59,8 +59,50 @@ compareNotEqualAST x y =
         (IntAST x', SymbolAST y') -> if show x' /= y' then IntAST 1 else IntAST 0
         _ -> DeadLeafAST
 
+addAST :: AST -> AST -> AST
+addAST x y =
+    case (x, y) of
+        (IntAST x', IntAST y') -> IntAST (x' + y')
+        (SymbolAST x', SymbolAST y') -> SymbolAST (x' ++ y')
+        (SymbolAST x', IntAST y') -> SymbolAST (x' ++ show y')
+        (IntAST x', SymbolAST y') -> SymbolAST (show x' ++ y')
+        _ -> DeadLeafAST
 
+subAST :: AST -> AST -> AST
+subAST x y =
+    case (x, y) of
+        (IntAST x', IntAST y') -> IntAST (x' - y')
+        (SymbolAST x', SymbolAST y') -> SymbolAST (x' ++ y')
+        (SymbolAST x', IntAST y') -> SymbolAST (x' ++ show y')
+        (IntAST x', SymbolAST y') -> SymbolAST (show x' ++ y')
+        _ -> DeadLeafAST
 
+mulAST :: AST -> AST -> AST
+mulAST x y =
+    case (x, y) of
+        (IntAST x', IntAST y') -> IntAST (x' * y')
+        (SymbolAST x', SymbolAST y') -> SymbolAST (x' ++ y')
+        (SymbolAST x', IntAST y') -> SymbolAST (x' ++ show y')
+        (IntAST x', SymbolAST y') -> SymbolAST (show x' ++ y')
+        _ -> DeadLeafAST
+
+divAST :: AST -> AST -> AST
+divAST x y =
+    case (x, y) of
+        (IntAST x', IntAST y') -> IntAST (x' `div` y')
+        (SymbolAST x', SymbolAST y') -> SymbolAST (x' ++ y')
+        (SymbolAST x', IntAST y') -> SymbolAST (x' ++ show y')
+        (IntAST x', SymbolAST y') -> SymbolAST (show x' ++ y')
+        _ -> DeadLeafAST
+
+modAST :: AST -> AST -> AST
+modAST x y =
+    case (x, y) of
+        (IntAST x', IntAST y') -> IntAST (x' `mod` y')
+        (SymbolAST x', SymbolAST y') -> SymbolAST (x' ++ y')
+        (SymbolAST x', IntAST y') -> SymbolAST (x' ++ show y')
+        (IntAST x', SymbolAST y') -> SymbolAST (show x' ++ y')
+        _ -> DeadLeafAST
 
 evalAST :: AST -> AST
 evalAST (AST []) = DeadLeafAST
@@ -70,6 +112,11 @@ evalAST (AST (SymbolAST "<" : x : y : _)) = traceLittleMsg "USAGE : '<' give" x 
 evalAST (AST (SymbolAST "<=" : x : y : _)) = traceLittleMsg "USAGE : '<=' give" x $ compareLessEqualAST x y
 evalAST (AST (SymbolAST ">=" : x : y : _)) = traceLittleMsg "USAGE : '>=' give" x $ compareGreaterEqualAST x y
 evalAST (AST (SymbolAST "!=" : x : y : _)) = traceLittleMsg "USAGE : '!=' give" x $ compareNotEqualAST x y
+evalAST (AST (SymbolAST "+" : x : y : _)) = traceLittleMsg "USAGE : '+' give" x $ addAST x y
+evalAST (AST (SymbolAST "-" : x : y : _)) = traceLittleMsg "USAGE : '-' give" x $ subAST x y
+evalAST (AST (SymbolAST "*" : x : y : _)) = traceLittleMsg "USAGE : '*' give" x $ mulAST x y
+evalAST (AST (SymbolAST "/" : x : y : _)) = traceLittleMsg "USAGE : '/' give" x $ divAST x y
+evalAST (AST (SymbolAST "%" : x : y : _)) = traceLittleMsg "USAGE : '%' give" x $ modAST x y
 evalAST (AST (x:xs)) = traceMsg "AST:" x xs $ evalAST x
 evalAST (IfAST cond expr1 expr2) = traceMsg "IfAST: Condition =" cond [expr1, expr2] $
     case evalAST cond of
