@@ -10,20 +10,32 @@ jobs:
       - name: Checkout the code
         uses: actions/checkout@v2
 
-      - name: Set up build environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y make
-          sudo apt-get install -y haskell-stack
-          stack upgrade
-        shell: bash
+    - name: Set up Haskell
+      uses: actions/setup-haskell@v1
+      with:
+        ghc-version: '8.10.4'
+        stack-version: '2.7.3'
 
-      - name: Build the project
-        run: |
-          make
-        working-directory: ${{ github.workspace }}
+    - name: Build and Test
+      run: |
+        stack setup
+        make
+        make test
 
-      - name: Run tests
-        run: |
-          make test
-        working-directory: ${{ github.workspace }}
+      # - name: Set up build environment
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y make
+      #     sudo apt-get install -y haskell-stack
+      #     stack upgrade
+      #   shell: bash
+
+      # - name: Build the project
+      #   run: |
+      #     make
+      #   working-directory: ${{ github.workspace }}
+
+      # - name: Run tests
+      #   run: |
+      #     make test
+      #   working-directory: ${{ github.workspace }}
