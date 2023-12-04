@@ -14,14 +14,11 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v1
 
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
       - name: Set up Haskell
         uses: actions/setup-haskell@v2
         with:
-        ghc-version: "8.10.7"
-        cabal-version: "3.4.0.0"
+          ghc-version: "8.10.7"
+          cabal-version: "3.4.0.0"
 
       - name: 📸 Build Snapshot
         if: steps.cache.outputs.cache-hit != 'true'
