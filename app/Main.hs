@@ -112,7 +112,7 @@ sexprToAst (_ : xs) = do
 main :: IO ()
 main = do
     -- Hardcoded test
-    let ast = IfAST (AST [SymbolAST "=", SymbolAST "1", IntAST 1]) (AST [SymbolAST "a"]) (AST [IntAST 2])
+    let ast = IfAST (AST [SymbolAST ">=", SymbolAST "103", IntAST 103]) (AST [SymbolAST "True"]) (AST [IntAST 0])
     putStrLn $ "AST: " ++ printAST ast
     putStrLn $ "Result: " ++ printAST (evalAST ast)
 

@@ -40,6 +40,7 @@ library
 executable GLaDOS-exe
   main-is: Main.hs
   other-modules:
+      Eval
       Paths_GLaDOS
   autogen-modules:
       Paths_GLaDOS
