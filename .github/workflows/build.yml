@@ -13,7 +13,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt install -y haskell-stack
-          stack upgrade
+          stack upgrade --force-download
         shell: bash
 
       - name: Build the project
