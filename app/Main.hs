@@ -1,47 +1,7 @@
 module Main (main) where
 
 import System.Environment
-import System.Exit
-import Lib
-
--- File type
-data File = File [String]
-
-instance Show File where
-    show (File []) = ""
-    show (File (x:xs)) = x ++ "\n" ++ show (File xs)
-
--- All Tokens Types
-data Token = OpenParenthesis
-            | CloseParenthesis
-            | SpaceToken
-            | IfToken
-            | DefineToken
-            | LambdaToken
-            | IntToken Int
-            | SymbolToken String
-            | ListToken [Token]
-            -- deriving Show
-
-instance Show Token where
-    show OpenParenthesis = "OpenPARENTHESIS"
-    show CloseParenthesis = "ClosePARENTHESIS"
-    show SpaceToken = "SPACE"
-    show IfToken = "IF"
-    show DefineToken = "DEFINE"
-    show LambdaToken = "LAMBDA"
-    show (IntToken x) = show x
-    show (SymbolToken x) = x
-    show (ListToken x) = show x
-
--- All AST Types
-data AST = AST [AST] -- list of AST
-         | IfAST AST AST AST -- cond expr1 expr2
-         | DefineAST String AST -- name expr
-         | LambdaAST AST AST -- args body
-         | IntAST Int -- value
-         | SymbolAST String -- name
-         deriving Show
+import Types
 
 -- INFO: Create token list
 parseLine :: String -> [Token]
@@ -115,34 +75,34 @@ tokenListToSexpr (x:xs) = x : tokenListToSexpr xs
 sexprToAst :: [Token] -> AST
 sexprToAst [] = AST []
 -- TODO If token
-sexprToAst (ListToken (IfToken : xs) : ys) = do
+sexprToAst (ListToken (IfToken : xs) : _) = do
     let (cond, rest) = getSubList xs
     let (expr1, rest2) = getSubList rest
-    let (expr2, rest3) = getSubList rest2
+    let (expr2, _) = getSubList rest2
     IfAST (sexprToAst cond) (sexprToAst expr1) (sexprToAst expr2)
 
 -- TODO Define token
-sexprToAst (ListToken (DefineToken : xs) : ys) = do
+sexprToAst (ListToken (DefineToken : xs) : _) = do
     let (name, rest) = (head xs, tail xs)
-    let (expr, rest2) = getSubList rest
+    let (expr, _) = getSubList rest
     DefineAST (show name) (sexprToAst expr)
 
 -- TODO Lambda token
-sexprToAst (ListToken (LambdaToken : xs) : ys) = do
+sexprToAst (ListToken (LambdaToken : xs) : _) = do
     let (args, body) = ([head xs], tail xs)
     LambdaAST (sexprToAst args) (sexprToAst body)
 
 -- Int token
-sexprToAst (ListToken (IntToken x : xs) : ys) = do
+sexprToAst (ListToken (IntToken x : _) : _) = do
     IntAST x
 -- Symbol token
-sexprToAst (ListToken (SymbolToken x : xs) : ys) = do
+sexprToAst (ListToken (SymbolToken x : _) : _) = do
     SymbolAST x
 -- List token
 sexprToAst (ListToken (x : xs) : ys) = do
     sexprToAst (ListToken (x : xs) : ys)
 -- Other token
-sexprToAst (x : xs) = do
+sexprToAst (_ : xs) = do
     sexprToAst xs
 
 -- INFO: Main function
