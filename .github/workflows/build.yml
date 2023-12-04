@@ -1,0 +1,28 @@
+name: Build and Test Stack project
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v2
+
+      - name: Set up build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make
+          sudo apt-get install -y haskell-stack
+        shell: bash
+
+      - name: Build the project
+        run: |
+          make
+        working-directory: ${{ github.workspace }}
+
+      - name: Run tests
+        run: |
+          make test
+        working-directory: ${{ github.workspace }}
