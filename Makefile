@@ -6,7 +6,7 @@
 ##
 
 BINARY_PATH :=  $(shell stack path --local-install-root)
-NAME = GLaDOS
+NAME = glados
 TEST_DIR = test
 
 all:
