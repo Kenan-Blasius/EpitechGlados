@@ -5,6 +5,8 @@ import Types
 import Debug.Trace
 
 
+-- * -------------------------------- COMPARE -------------------------------- * --
+
 compareEqualAST :: AST -> AST -> AST
 compareEqualAST x y =
     case (x, y) of
@@ -59,6 +61,9 @@ compareNotEqualAST x y =
         (IntAST x', SymbolAST y') -> if show x' /= y' then IntAST 1 else IntAST 0
         _ -> DeadLeafAST
 
+
+-- * --------------------------------- MATH ---------------------------------- * --
+
 addAST :: AST -> AST -> AST
 addAST x y =
     case (x, y) of
@@ -104,6 +109,9 @@ modAST x y =
         (IntAST x', SymbolAST y') -> SymbolAST (show x' ++ y')
         _ -> DeadLeafAST
 
+
+-- * --------------------------------- EVAL ---------------------------------- * --
+
 evalAST :: AST -> AST
 evalAST (AST []) = DeadLeafAST
 evalAST (AST (SymbolAST "=" : x : y : _)) = traceLittleMsg "USAGE : '=' give" x $ compareEqualAST x y
@@ -136,71 +144,3 @@ traceLittleMsg msg arg result =
 traceMsg :: String -> AST -> [AST] -> AST -> AST
 traceMsg msg arg children result =
     trace (msg ++ " " ++ printAST arg ++ " => " ++ printAST result) result
-
-
-
--- traceMsg :: String -> AST -> [AST] -> AST -> AST
--- traceMsg msg arg children result =
---     trace (msg ++ " " ++ printAST arg ++ " => " ++ printAST result) $
---     case children of
---         [] -> result
---         _ -> evalAST (head children)  -- Assuming you want to evaluate only the first child
-
-
-
--- printAST :: AST -> String
--- printAST (SymbolAST x) = x
--- printAST (IntAST x) = show x
--- printAST _ = ""
-
-
-
--- evalAST :: AST -> AST
--- evalAST (AST []) = DeadLeafAST
--- evalAST (AST (SymbolAST "=" : x : y : _)) =
---     trace ("SymbolAST =: " ++ show x ++ " " ++ show y) $
---     case (evalAST x, evalAST y) of
---         (IntAST x', IntAST y') ->
---             trace ("SymbolAST =: " ++ show x' ++ " " ++ show y') $
---             if x' == y' then IntAST 1 else IntAST 0
---         (SymbolAST x', SymbolAST y') ->
---             trace ("SymbolAST =: " ++ show x' ++ " " ++ show y') $
---             if x' == y' then IntAST 1 else IntAST 0
---         (SymbolAST x', IntAST y') ->
---             trace ("SymbolAST =: " ++ show x' ++ " " ++ show y') $
---             if x' == show y' then IntAST 1 else IntAST 0
---         (IntAST x', SymbolAST y') ->
---             trace ("SymbolAST =: " ++ show x' ++ " " ++ show y') $
---             if show x' == y' then IntAST 1 else IntAST 0
---         _ -> trace ("SymbolAST =: " ++ show x ++ " " ++ show y) DeadLeafAST
--- evalAST (AST (SymbolAST ">" : x : y : _)) =
---     trace ("SymbolAST =: " ++ show x ++ " " ++ show y) $
---     case (evalAST x, evalAST y) of
---         (IntAST x', IntAST y') ->
---             trace ("SymbolAST =: " ++ show x' ++ " " ++ show y') $
---             if x' > y' then IntAST 1 else IntAST 0
---         (SymbolAST x', SymbolAST y') ->
---             trace ("SymbolAST =: " ++ show x' ++ " " ++ show y') $
---             if x' > y' then IntAST 1 else IntAST 0
---         (SymbolAST x', IntAST y') ->
---             trace ("SymbolAST =: " ++ show x' ++ " " ++ show y') $
---             if x' > show y' then IntAST 1 else IntAST 0
---         (IntAST x', SymbolAST y') ->
---             trace ("SymbolAST =: " ++ show x' ++ " " ++ show y') $
---             if show x' > y' then IntAST 1 else IntAST 0
---         _ -> trace ("SymbolAST =: " ++ show x ++ " " ++ show y) DeadLeafAST
--- evalAST (AST (x:xs)) =
---     trace ("AST: " ++ show x) $ evalAST x
--- evalAST (IfAST cond expr1 expr2) =
---     trace ("IfAST: Condition = " ++ printAST cond) $
---     case evalAST cond of
---         IntAST 0 -> trace "IfAST: Condition is 0, evaluating expr2" $ evalAST expr2
---         IntAST _ -> trace "IfAST: Condition is non-zero, evaluating expr1" $ evalAST expr1
---         _ -> trace "IfAST: Condition is not an integer, returning DeadLeafAST" DeadLeafAST
--- evalAST (DefineAST name expr) =
---     trace ("Defining: " ++ name) $ evalAST expr
--- evalAST (LambdaAST args body) =
---     trace ("Lambda: " ++ printAST args) $ evalAST body
--- evalAST (IntAST x) = IntAST x
--- evalAST (SymbolAST x) =
---     trace ("Symbol: " ++ x) DeadLeafAST
