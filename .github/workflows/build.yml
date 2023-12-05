@@ -1,29 +1,31 @@
 name: Build and Test Stack project
 
-on: [push]
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: haskell:8.10.4
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Set up build environment
+      - name: Build
         run: |
-          sudo apt-get update
-          sudo apt install -y haskell-stack
-          stack upgrade --force-download
-        shell: bash
+          stack setup --allow-different-user
+          stack build --allow-different-user
 
-      - name: Build the project
-        run: |
-          stack --version
-          stack setup
-          stack build
-        working-directory: ${{ github.workspace }}
-
-      - name: Run tests
-        run: |
-          stack test --no-terminal
-        working-directory: ${{ github.workspace }}
+      - name: Test
+        run: ./test/test.sh
+        # When we have a test suite, we can use the following instead:
+        # run: |
+        #   stack test --coverage --allow-different-user
