@@ -7,35 +7,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout the code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-      - name: Set up Haskell
+      - name: Set up build environment
         run: |
-          sudo apt-get -y update
-          sudo apt-get -y install ghc
-          sudo apt-get -y install haskell-stack
+          sudo apt-get update
+          sudo apt install -y haskell-stack
+          stack upgrade --force-download
+        shell: bash
 
-      - name: Build and Test
+      - name: Build the project
         run: |
+          stack --version
           stack setup
-          make
-          make test
+          stack build
+        working-directory: ${{ github.workspace }}
 
-      # - name: Set up build environment
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y make
-      #     sudo apt-get install -y haskell-stack
-      #     stack upgrade
-      #   shell: bash
-
-      # - name: Build the project
-      #   run: |
-      #     make
-      #   working-directory: ${{ github.workspace }}
-
-      # - name: Run tests
-      #   run: |
-      #     make test
-      #   working-directory: ${{ github.workspace }}
+      - name: Run tests
+        run: |
+          stack test --no-terminal
+        working-directory: ${{ github.workspace }}
