@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./GLaDOS "factorial.lisp"
+./glados "factorial.lisp"

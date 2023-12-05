@@ -4,11 +4,11 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 
-name:           GLaDOS
+name:           glados
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/GLaDOS#readme>
-homepage:       https://github.com/githubuser/GLaDOS#readme
-bug-reports:    https://github.com/githubuser/GLaDOS/issues
+description:    Please see the README on GitHub at <https://github.com/githubuser/glados#readme>
+homepage:       https://github.com/githubuser/glados#readme
+bug-reports:    https://github.com/githubuser/glados/issues
 author:         Author name here
 maintainer:     example@example.com
 copyright:      2023 Author name here
@@ -21,15 +21,15 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/GLaDOS
+  location: https://github.com/githubuser/glados
 
 library
   exposed-modules:
       Types
   other-modules:
-      Paths_GLaDOS
+      Paths_glados
   autogen-modules:
-      Paths_GLaDOS
+      Paths_glados
   hs-source-dirs:
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
@@ -37,32 +37,33 @@ library
       base >=4.7 && <5
   default-language: Haskell2010
 
-executable GLaDOS-exe
+executable glados-exe
   main-is: Main.hs
   other-modules:
+      Parser
       Eval
-      Paths_GLaDOS
+      Paths_glados
   autogen-modules:
-      Paths_GLaDOS
+      Paths_glados
   hs-source-dirs:
       app
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      GLaDOS
+      glados
     , base >=4.7 && <5
   default-language: Haskell2010
 
-test-suite GLaDOS-test
+test-suite glados-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Paths_GLaDOS
+      Paths_glados
   autogen-modules:
-      Paths_GLaDOS
+      Paths_glados
   hs-source-dirs:
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      GLaDOS
+      glados
     , base >=4.7 && <5
   default-language: Haskell2010
