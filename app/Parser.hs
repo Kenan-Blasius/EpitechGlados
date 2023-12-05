@@ -3,6 +3,228 @@ module Parser (parser) where
 import System.Exit
 import System.IO
 import Types
+-- import Debug.Trace
+
+-- INFO: Parsing bootstrap
+data Parser a = Parser {
+    runParser :: String -> Maybe (a, String)
+}
+
+parseChar :: Char -> Parser Char
+parseChar x = Parser f
+    where
+        f (y:ys) | x == y = Just (x, ys)
+        f _ = Nothing
+
+parseAnyChar :: String -> Parser Char
+parseAnyChar x = Parser f
+    where
+        f (y:ys) | y `elem` x = Just (y, ys)
+        f _ = Nothing
+
+parseOr :: Parser a -> Parser a -> Parser a
+parseOr (Parser f) (Parser g) = Parser h
+    where
+        h x = case f x of
+            Just (y, ys) -> Just (y, ys)
+            Nothing -> g x
+
+parseAnd :: Parser a -> Parser b -> Parser (a, b)
+parseAnd (Parser f) (Parser g) = Parser h
+    where
+        h x = case f x of
+            Just (y, ys) -> case g ys of
+                Just (z, zs) -> Just ((y, z), zs)
+                Nothing -> Nothing
+            Nothing -> Nothing
+
+parseAndWith :: (a -> b -> c) -> Parser a -> Parser b -> Parser c
+parseAndWith f (Parser g) (Parser h) = Parser i
+    where
+        i x = case g x of
+            Just (y, ys) -> case h ys of
+                Just (z, zs) -> Just (f y z, zs)
+                Nothing -> Nothing
+            Nothing -> Nothing
+
+parseMany :: Parser a -> Parser [a]
+parseMany (Parser f) = Parser g
+    where
+        g x = case f x of
+            Just (y, ys) -> case g ys of
+                Just (z, zs) -> Just (y : z, zs)
+                Nothing -> Just ([y], ys)
+            Nothing -> Just ([], x)
+
+parseSome :: Parser a -> Parser [a]
+parseSome (Parser f) = Parser g
+    where
+        g x = case f x of
+            Just (y, ys) -> case g ys of
+                Just (z, zs) -> Just (y : z, zs)
+                Nothing -> Just ([y], ys)
+            Nothing -> Nothing
+
+parseUInt :: Parser Int
+parseUInt = Parser f
+    where
+        f x = case runParser (parseSome (parseAnyChar ['0' .. '9'])) x of
+            Just (y, ys) -> Just (read y :: Int, ys)
+            Nothing -> Nothing
+
+parseInt :: Parser Int
+parseInt = Parser f
+    where
+        f ('-':xs) = do
+            (x, ys) <- runParser parseUInt xs
+            return (-x, ys)
+        f ('+':xs) = do
+            (x, ys) <- runParser parseUInt xs
+            return (x, ys)
+        f xs = runParser parseUInt xs
+
+parsePair :: Parser a -> Parser (a, a) -- Dumb since the format is fixed
+parsePair (Parser f) = Parser h
+    where
+        h x = case runParser (parseChar '(') x of
+            Just (_, as) -> case f as of
+                Just (b, bs) -> case runParser (parseChar ' ') bs of
+                    Just (_, cs) -> case f cs of
+                        Just (d, es) -> case runParser (parseChar ')') es of
+                            Just (_, fs) -> Just ((b, d), fs)
+                            Nothing -> Nothing
+                        Nothing -> Nothing
+                    Nothing -> Nothing
+                Nothing -> Nothing
+            Nothing -> Nothing
+
+-- parseList' :: Char -> Char -> Char -> Parser a -> Parser [a]
+-- parseList' _ sep close (Parser f) = Parser h
+--     where
+--         h xs = case f xs of -- check parse
+--             Just (b, bs) -> case runParser (parseChar sep) bs of -- if parse then check sep
+--                 Just (_, cs) -> case h cs of -- if sep then check list
+--                     Just (d, es) -> Just (b : d, es)
+--                     Nothing -> case runParser (parseChar close) cs of -- if not list then check close
+--                         Just (_, fs) -> Just ([b], fs)
+--                         Nothing -> Nothing
+--                 Nothing -> case runParser (parseChar close) bs of -- if not sep then check close
+--                     Just (_, cs) -> Just ([b], cs)
+--                     Nothing -> Nothing
+--             Nothing -> case runParser (parseChar close) xs of -- if not parse then check close
+--                 Just (_, bs) -> Just ([], bs)
+--                 Nothing -> Nothing
+
+-- parseList :: Char -> Char -> Char -> Parser a -> Parser [a]
+-- parseList open sep close (Parser f) = Parser h
+--     where
+--         h x = case runParser (parseAnd (parseChar open) (parseList' open sep close (Parser f))) x of
+--             Just ((_, y), ys) -> Just (y, ys)
+--             Nothing -> Nothing
+
+parseOrBoth :: Parser a -> Parser b -> Parser (Either a b)
+parseOrBoth (Parser f) (Parser g) = Parser h
+    where
+        h x = case f x of
+            Just (y, ys) -> Just (Left y, ys)
+            Nothing -> case g x of
+                Just (z, zs) -> Just (Right z, zs)
+                Nothing -> Nothing
+
+--           open        separator   close       ignore      token       result
+parseList :: Parser a -> Parser b -> Parser c -> Parser d -> Parser e -> Parser [e]
+parseList open sep close ignore token = Parser f
+    where
+        f x = case runParser open x of
+            Just (_, xs) -> case runParser (parseMany (parseAndWith (\ _ y -> y) (parseMany (parseOrBoth sep ignore)) token)) xs of
+                Just (y, ys) -> case runParser close ys of
+                    Just (_, zs) -> Just (y, zs)
+                    Nothing -> Nothing
+                Nothing -> Nothing
+            Nothing -> Nothing
+
+-- Test all parsers
+parsingBootstrap :: IO ()
+parsingBootstrap = do
+    putStrLn "------------------------------------"
+    putStrLn "Parsing bootstrap"
+    putStrLn "------------------------------------"
+    putStrLn ""
+    putStrLn "parseChar"
+    putStrLn $ show $ runParser (parseChar 'a') "abcd"
+    putStrLn $ show $ runParser (parseChar 'z') "abcd"
+    putStrLn $ show $ runParser (parseChar 'b') "abcd"
+    putStrLn $ show $ runParser (parseChar 'a') "aaaa"
+    putStrLn ""
+    putStrLn "parseAnyChar"
+    putStrLn $ show $ runParser (parseAnyChar "bca") "abcd"
+    putStrLn $ show $ runParser (parseAnyChar "xyz") "abcd"
+    putStrLn $ show $ runParser (parseAnyChar "bca") "cdef"
+    putStrLn ""
+    putStrLn "parseOr"
+    putStrLn $ show $ runParser (parseOr (parseChar 'a') (parseChar 'b')) "abcd"
+    putStrLn $ show $ runParser (parseOr (parseChar 'a') (parseChar 'b')) "bcda"
+    putStrLn $ show $ runParser (parseOr (parseChar 'a') (parseChar 'b')) "xyz"
+    putStrLn ""
+    putStrLn "parseAnd"
+    putStrLn $ show $ runParser (parseAnd (parseChar 'a') (parseChar 'b')) "abcd"
+    putStrLn $ show $ runParser (parseAnd (parseChar 'a') (parseChar 'b')) "bcda"
+    putStrLn $ show $ runParser (parseAnd (parseChar 'a') (parseChar 'b')) "acd"
+    putStrLn ""
+    putStrLn "parseAndWith"
+    putStrLn $ show $ runParser (parseAndWith (\ x y -> [x,y]) (parseChar 'a') (parseChar 'b')) "abcd"
+    putStrLn $ show $ runParser (parseAndWith (\ x y -> [x,y]) (parseChar 'a') (parseChar 'b')) "bcda"
+    putStrLn ""
+    putStrLn "parseMany"
+    putStrLn $ show $ runParser (parseMany (parseChar ' ')) "    foobar"
+    putStrLn $ show $ runParser (parseMany (parseChar ' ')) "foobar    "
+    putStrLn ""
+    putStrLn "parseSome"
+    putStrLn $ show $ runParser (parseSome (parseAnyChar ['0' .. '9'])) "42foobar"
+    putStrLn $ show $ runParser (parseSome (parseAnyChar ['0' .. '9'])) "foobar42"
+    putStrLn ""
+    putStrLn "parseUInt"
+    putStrLn $ show $ runParser parseUInt "42foobar"
+    putStrLn $ show $ runParser parseUInt "-42foobar"
+    putStrLn $ show $ runParser parseUInt "+42foobar"
+    putStrLn $ show $ runParser parseUInt "foobar42"
+    putStrLn ""
+    putStrLn "parseInt"
+    putStrLn $ show $ runParser parseInt "42foobar"
+    putStrLn $ show $ runParser parseInt "-42foobar"
+    putStrLn $ show $ runParser parseInt "+42foobar"
+    putStrLn $ show $ runParser parseInt "foobar42"
+    putStrLn ""
+    putStrLn "parsePair"
+    putStrLn $ show $ runParser (parsePair parseInt) "(1 2)"
+    putStrLn $ show $ runParser (parsePair parseInt) "(1 2 3)"
+    putStrLn $ show $ runParser (parsePair parseInt) "(1)"
+    putStrLn $ show $ runParser (parsePair parseInt) "(1"
+    putStrLn $ show $ runParser (parsePair parseInt) "1 2)"
+    putStrLn $ show $ runParser (parsePair parseInt) "1 2"
+    putStrLn $ show $ runParser (parsePair parseInt) "1"
+    putStrLn $ show $ runParser (parsePair parseInt) ""
+    putStrLn ""
+    putStrLn "parseOrBoth"
+    putStrLn $ show $ runParser (parseOrBoth (parseChar '4') parseInt) "42foobar"
+    putStrLn $ show $ runParser (parseOrBoth parseInt (parseChar '4')) "42foobar"
+    putStrLn $ show $ runParser (parseOrBoth parseInt (parseChar 'a')) "42foobar"
+    putStrLn $ show $ runParser (parseOrBoth (parseChar 'a') (parseChar '4')) "42foobar"
+    putStrLn $ show $ runParser (parseOrBoth (parseChar 'a') (parseChar 'b')) "42foobar"
+    putStrLn ""
+    putStrLn "parseList"
+    putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "(1 2)"
+    putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "(1 2 3)alut"
+    putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ',') (parseChar ')') (parseChar ' ') parseInt) "(1,  2,  3)"
+    putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ',') (parseChar ')') (parseChar ' ') parseInt) "alut(1,2,3)"
+    putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "(1)"
+    putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "(1"
+    putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "1 2)"
+    putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "1 2"
+    putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "1"
+    putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) ""
+    putStrLn ""
+    putStrLn "------------------------------------"
 
 -- INFO: Create token list
 parseLine :: String -> Int -> IO ([Token])
@@ -138,6 +360,7 @@ sexprToAst (_ : xs) = do
 -- INFO: Main function
 parser :: File -> IO (AST)
 parser file = do
+    parsingBootstrap
     putStrLn "------------------------------------"
     putStrLn $ show file
     putStrLn "------------------------------------"
