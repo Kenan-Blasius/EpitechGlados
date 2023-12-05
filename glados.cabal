@@ -40,8 +40,8 @@ library
 executable glados-exe
   main-is: Main.hs
   other-modules:
-      Parser
       Eval
+      Parser
       Paths_glados
   autogen-modules:
       Paths_glados
@@ -49,8 +49,8 @@ executable glados-exe
       app
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      glados
-    , base >=4.7 && <5
+      base >=4.7 && <5
+    , glados
   default-language: Haskell2010
 
 test-suite glados-test
@@ -64,6 +64,6 @@ test-suite glados-test
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      glados
-    , base >=4.7 && <5
+      base >=4.7 && <5
+    , glados
   default-language: Haskell2010
