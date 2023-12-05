@@ -1,39 +1,54 @@
 module Main (main) where
 
 import System.Environment
+import System.Exit
+import System.IO
 import Types
 
 -- INFO: Create token list
-parseLine :: String -> [Token]
-parseLine str = do
+parseLine :: String -> Int -> IO ([Token])
+parseLine str lineNumber = do
     -- for each word in the string generate the tokens
     case words str of
         [] -> do
-            []
+            return ([])
         ("define":xs) -> do
-            [DefineToken] ++ parseLine (" " ++ unwords xs)
+            tmpDefine <- parseLine (" " ++ unwords xs) lineNumber
+            return ([DefineToken] ++ tmpDefine)
         ("if":xs) -> do
-            [IfToken] ++ parseLine (" " ++ unwords xs)
+            tmpIf <- parseLine (" " ++ unwords xs) lineNumber
+            return ([IfToken] ++ tmpIf)
         ("lambda":xs) -> do
-            [LambdaToken] ++ parseLine (" " ++ unwords xs)
+            tmpLambda <- parseLine (" " ++ unwords xs) lineNumber
+            return ([LambdaToken] ++ tmpLambda)
         (_:_) -> do
             -- for each char in the string generate the tokens
             case str of
                 [] -> do
-                    []
+                    return ([])
                 (' ':ys) -> do
-                    [SpaceToken] ++ parseLine ys
+                    tmpSpace <- parseLine ys lineNumber
+                    return ([SpaceToken] ++ tmpSpace)
                 ('(':ys) -> do
-                    [OpenParenthesis] ++ parseLine ys
+                    tmpOpenParenthesis <- parseLine ys lineNumber
+                    return ([OpenParenthesis] ++ tmpOpenParenthesis)
                 (')':ys) -> do
-                    [CloseParenthesis] ++ parseLine ys
+                    tmpCloseParenthesis <- parseLine ys lineNumber
+                    return ([CloseParenthesis] ++ tmpCloseParenthesis)
                 ('\"':ys) -> do
                     let (quoteStr, rest) = span (/= '\"') ys
-                    [SymbolToken quoteStr] ++ parseLine (tail rest)
+                    if null rest then do
+                        hPutStrLn stderr $ "Error: Missing \" at line " ++ show lineNumber
+                        exitWith (ExitFailure 84)
+                    else do
+                        tmpQuoteStr <- parseLine (tail rest) lineNumber
+                        return ([SymbolToken quoteStr] ++ tmpQuoteStr)
                 (y:ys) | y `elem` ['0'..'9'] -> do
-                    [IntToken (read [y])] ++ parseLine ys
+                    tmpInt <- parseLine ys lineNumber
+                    return ([IntToken (read [y])] ++ tmpInt)
                 (y:ys) -> do
-                    [SymbolToken [y]] ++ parseLine ys
+                    tmpSymbol <- parseLine ys lineNumber
+                    return ([SymbolToken [y]] ++ tmpSymbol)
 
 mergeSymbols :: [Token] -> [Token]
 mergeSymbols [] = []
@@ -48,10 +63,12 @@ mergeSymbols (SpaceToken : xs) = mergeSymbols xs
 -- No merge needed
 mergeSymbols (x:xs) = x : mergeSymbols xs
 
-parseFile :: File -> [Token]
-parseFile (File []) = []
-parseFile (File (x:xs)) = do
-    (mergeSymbols (parseLine x)) ++ parseFile (File xs)
+parseFile :: File -> Int -> IO ([Token])
+parseFile (File []) _ = return ([])
+parseFile (File (x:xs)) lineNumber = do
+    parsedLine <- parseLine x lineNumber
+    rest <- parseFile (File xs) (lineNumber + 1)
+    return ((mergeSymbols parsedLine) ++ rest)
 
 -- INFO: Convert token list to SExpr
 getSubList :: [Token] -> ([Token], [Token])
@@ -156,9 +173,9 @@ main = do
             putStrLn "------------------------------------"
             putStrLn $ show file
             putStrLn "------------------------------------"
-            putStrLn $ show $ parseFile file
+            tokenList <- parseFile file 0
+            putStrLn $ show $ tokenList
             putStrLn "------------------------------------"
-            let tokenList = parseFile file
             putStrLn $ show $ tokenListToSexpr tokenList
             putStrLn "------------------------------------"
             let sexpr = tokenListToSexpr tokenList
