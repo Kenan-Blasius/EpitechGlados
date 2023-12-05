@@ -1,6 +1,5 @@
 module Eval (evalAST) where
 
-import System.Environment
 import Types
 import Debug.Trace
 
@@ -135,6 +134,7 @@ evalAST (DefineAST name expr) = traceMsg ("Defining: " ++ name) expr [] $ evalAS
 evalAST (LambdaAST args body) = traceMsg "Lambda:" args [body] $ evalAST body
 evalAST (IntAST x) = IntAST x
 evalAST (SymbolAST x) = SymbolAST x
+evalAST _ = DeadLeafAST
 
 traceLittleMsg :: String -> AST -> AST -> AST
 traceLittleMsg msg arg result =
@@ -142,5 +142,5 @@ traceLittleMsg msg arg result =
 
 
 traceMsg :: String -> AST -> [AST] -> AST -> AST
-traceMsg msg arg children result =
+traceMsg msg arg _ result =
     trace (msg ++ " " ++ printAST arg ++ " => " ++ printAST result) result

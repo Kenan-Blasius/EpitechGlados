@@ -2,7 +2,6 @@ module Main (main) where
 
 import System.Environment
 import Types
-import Debug.Trace
 import Eval
 
 -- INFO: Create token list
