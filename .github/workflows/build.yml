@@ -19,6 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Change owner of /github/home/
+        run: sudo chown -R $(whoami) /github/home/
+
       - name: Build
         run: |
           stack setup --allow-different-user
