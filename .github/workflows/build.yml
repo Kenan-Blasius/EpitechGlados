@@ -14,7 +14,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: haskell:8.10.4
+    container: haskell:8.10.4-buster
 
     steps:
       - uses: actions/checkout@v2
