@@ -1,4 +1,20 @@
-module Parser (parser) where
+module Parser (
+    parser,
+
+    Parser (..),
+    parseChar,
+    parseAnyChar,
+    parseOr,
+    parseAnd,
+    parseAndWith,
+    parseMany,
+    parseSome,
+    parseUInt,
+    parseInt,
+    parsePair,
+    parseOrBoth,
+    parseList,
+) where
 
 import System.Exit
 import System.IO
