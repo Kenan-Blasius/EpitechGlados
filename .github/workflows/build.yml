@@ -14,13 +14,21 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: haskell:8.10.4-buster
+    container: haskell:8.10.4
+    env:
+      STACK_ROOT: /root/.stack
+
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - name: Change owner of /github/home/
-        run: sudo chown -R $(whoami) /github/home/
+      - name: Cache stack
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.STACK_ROOT }}
+          key: ${{ runner.os }}-stack-${{ hashFiles('**/stack.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
 
       - name: Build
         run: |
