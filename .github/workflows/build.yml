@@ -1,0 +1,37 @@
+name: Build and Test Stack project
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: haskell:8.10.4
+    env:
+      STACK_ROOT: /root/.stack
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Change working directory
+        run: cd ${{ env.STACK_ROOT }}
+
+      - name: Build
+        run: |
+          stack setup --allow-different-user
+          stack build --allow-different-user
+          cp $(stack path --local-install-root)/bin/glados-exe ./glados
+
+      - name: Test
+        run: ./test/test.sh
+        # When we have a test suite, we can use the following instead:
+        # run: |
+        #   stack test --coverage --allow-different-user

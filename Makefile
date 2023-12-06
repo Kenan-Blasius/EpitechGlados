@@ -6,7 +6,8 @@
 ##
 
 BINARY_PATH :=  $(shell stack path --local-install-root)
-NAME = GLaDOS
+NAME = glados
+TEST_DIR = test
 
 all:
 		stack build
@@ -17,6 +18,9 @@ clean:
 
 fclean: clean
 		rm -f $(NAME)
+
+test: $(NAME)
+	@ ./$(TEST_DIR)/test.sh
 
 re: fclean all
 
