@@ -153,6 +153,7 @@ main = do
             putStrLn $ printAST $ sexprToAst sexpr
             putStrLn "------------------------------------"
             let ast = sexprToAst sexpr
-            putStrLn $ show $ evalAST ast
+            let env = []
+            putStrLn $ show $ evalAST env ast
         _ -> do
             putStrLn "No file given as an argument"

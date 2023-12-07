@@ -2,9 +2,12 @@ module Types (
     File (..),
     Token (..),
     AST (..),
+    Environment,
     indent,
     printAST
 ) where
+
+-- import Control.Monad.State
 
 -- File type
 data File = File [String]
@@ -12,6 +15,8 @@ data File = File [String]
 instance Show File where
     show (File []) = ""
     show (File (x:xs)) = x ++ "\n" ++ show (File xs)
+
+type Environment = [(String, AST)]
 
 -- All Tokens Types
 data Token = OpenParenthesis
