@@ -10,7 +10,7 @@ module Types (
 -- import Control.Monad.State
 
 -- File type
-data File = File [String]
+newtype File = File [String]
 
 instance Show File where
     show (File []) = ""
@@ -58,7 +58,7 @@ indent 0 = ""
 indent n = "|   " ++ indent (n - 1)
 
 printAST :: AST -> String
-printAST ast = printASTIndented 0 ast
+printAST = printASTIndented 0
     where
         printASTIndented :: Int -> AST -> String
         printASTIndented depth DeadLeafAST = indent depth ++ "DeadLeafAST\n"
@@ -75,6 +75,11 @@ printAST ast = printASTIndented 0 ast
                 printASTIndented (depth + 1) expr2
         printASTIndented depth (AST astList) =
             indent depth ++ "AST\n" ++ concatMap (printASTIndented (depth + 1)) astList
+        printASTIndented depth (LambdaClosure args body env) =
+            indent depth ++ "LambdaClosure\n" ++
+                indent (depth + 1) ++ "args: " ++ show args ++ "\n" ++
+                indent (depth + 1) ++ "body: " ++ printASTIndented (depth + 1) body ++ "\n" ++
+                indent (depth + 1) ++ "env: " ++ show env ++ "\n"
 
 -- Overload the ++ operator for AST
 instance Semigroup AST where
@@ -84,5 +89,5 @@ instance Semigroup AST where
     -- Adding two AST is the same as adding a list of AST
     AST x <> AST y = AST (x ++ y)
     AST x <> y = AST (x ++ [y])
-    x <> AST y = AST ([x] ++ y)
-    x <> y = AST ([x, y])
+    x <> AST y = AST (x : y)
+    x <> y = AST [x, y]

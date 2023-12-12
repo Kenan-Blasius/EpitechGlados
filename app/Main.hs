@@ -9,32 +9,22 @@ parseLine :: String -> [Token]
 parseLine str = do
     -- for each word in the string generate the tokens
     case words str of
-        [] -> do
-            []
-        ("define":xs) -> do
-            [DefineToken] ++ parseLine (" " ++ unwords xs)
-        ("if":xs) -> do
-            [IfToken] ++ parseLine (" " ++ unwords xs)
-        ("lambda":xs) -> do
-            [LambdaToken] ++ parseLine (" " ++ unwords xs)
+        [] -> []
+        ("define":xs) -> DefineToken : parseLine (" " ++ unwords xs)
+        ("if":xs) -> IfToken : parseLine (" " ++ unwords xs)
+        ("lambda":xs) -> LambdaToken : parseLine (" " ++ unwords xs)
         (_:_) -> do
             -- for each char in the string generate the tokens
             case str of
-                [] -> do
-                    []
-                (' ':ys) -> do
-                    [SpaceToken] ++ parseLine ys
-                ('(':ys) -> do
-                    [OpenParenthesis] ++ parseLine ys
-                (')':ys) -> do
-                    [CloseParenthesis] ++ parseLine ys
+                [] -> []
+                (' ':ys) -> SpaceToken : parseLine ys
+                ('(':ys) -> OpenParenthesis : parseLine ys
+                (')':ys) -> CloseParenthesis : parseLine ys
                 ('\"':ys) -> do
                     let (quoteStr, rest) = span (/= '\"') ys
-                    [SymbolToken quoteStr] ++ parseLine (tail rest)
-                (y:ys) | y `elem` ['0'..'9'] -> do
-                    [IntToken (read [y])] ++ parseLine ys
-                (y:ys) -> do
-                    [SymbolToken [y]] ++ parseLine ys
+                    SymbolToken quoteStr : parseLine (tail rest)
+                (y:ys) | y `elem` ['0'..'9'] -> IntToken (read [y]) : parseLine ys
+                (y:ys) -> SymbolToken [y] : parseLine ys
 
 mergeSymbols :: [Token] -> [Token]
 mergeSymbols [] = []
@@ -51,8 +41,7 @@ mergeSymbols (x:xs) = x : mergeSymbols xs
 
 parseFile :: File -> [Token]
 parseFile (File []) = []
-parseFile (File (x:xs)) = do
-    (mergeSymbols (parseLine x)) ++ parseFile (File xs)
+parseFile (File (x:xs)) = mergeSymbols (parseLine x) ++ parseFile (File xs)
 
 -- INFO: Convert token list to SExpr
 getSubList :: [Token] -> ([Token], [Token])
@@ -104,21 +93,15 @@ sexprToAst (LambdaToken : xs) = do
             _ -> [args]
     LambdaAST (sexprToAst args2) (sexprToAst body)
 -- ! Int token
-sexprToAst (IntToken x : ListToken y : _) = do
-    AST [IntAST x, sexprToAst y]
-sexprToAst (IntToken x : xs) = do
-    AST [IntAST x] <> sexprToAst xs
+sexprToAst (IntToken x : ListToken y : _) = AST [IntAST x, sexprToAst y]
+sexprToAst (IntToken x : xs) = AST [IntAST x] <> sexprToAst xs
 -- ! Symbol token
-sexprToAst (SymbolToken x : ListToken y : _) = do
-    AST [SymbolAST x, sexprToAst y]
-sexprToAst (SymbolToken x : xs) = do
-    AST [SymbolAST x] <> sexprToAst xs
+sexprToAst (SymbolToken x : ListToken y : _) = AST [SymbolAST x, sexprToAst y]
+sexprToAst (SymbolToken x : xs) = AST [SymbolAST x] <> sexprToAst xs
 -- ! List token
-sexprToAst (ListToken (x : xs) : ys) = do
-    AST [sexprToAst (x : xs)] <> sexprToAst ys
+sexprToAst (ListToken (x : xs) : ys) = AST [sexprToAst (x : xs)] <> sexprToAst ys
 -- ! Other token
-sexprToAst (_ : xs) = do
-    sexprToAst xs
+sexprToAst (_ : xs) = sexprToAst xs
 
 -- INFO: Main function
 main :: IO ()
@@ -140,20 +123,19 @@ main = do
         [filename] -> do
             putStrLn $ "Running file: " ++ filename
             contents <- readFile filename
-            file <- return $ File (lines contents)
+            let file = File (lines contents)
             putStrLn "------------------------------------"
-            putStrLn $ show file
+            print file
             putStrLn "------------------------------------"
-            putStrLn $ show $ parseFile file
+            print (parseFile file)
             putStrLn "------------------------------------"
             let tokenList = parseFile file
-            putStrLn $ show $ tokenListToSexpr tokenList
+            print (tokenListToSexpr tokenList)
             putStrLn "------------------------------------"
             let sexpr = tokenListToSexpr tokenList
             putStrLn $ printAST $ sexprToAst sexpr
             putStrLn "------------------------------------"
             let ast = sexprToAst sexpr
             let env = []
-            putStrLn $ show $ evalAST env ast
-        _ -> do
-            putStrLn "No file given as an argument"
+            print (evalAST env ast)
+        _ -> putStrLn "No file given as an argument"

@@ -7,7 +7,7 @@ import Debug.Trace
 -- * -------------------------------- COMPARE -------------------------------- * --
 
 compareEqualAST :: Environment -> AST -> AST -> (Environment, AST)
-compareEqualAST env x y = 
+compareEqualAST env x y =
     let (env1, evaluatedX) = evalAST env x
         (env2, evaluatedY) = evalAST env1 y
     in case (evaluatedX, evaluatedY) of
@@ -19,7 +19,7 @@ compareEqualAST env x y =
 
 
 compareGreaterAST :: Environment -> AST -> AST -> (Environment, AST)
-compareGreaterAST env x y = evalGreaterAST env x y
+compareGreaterAST = evalGreaterAST
 
 evalGreaterAST :: Environment -> AST -> AST -> (Environment, AST)
 evalGreaterAST env x y =
@@ -34,7 +34,7 @@ evalGreaterAST env x y =
 
 
 compareLessAST :: Environment -> AST -> AST -> (Environment, AST)
-compareLessAST env x y = evalLessAST env x y
+compareLessAST = evalLessAST
 
 evalLessAST :: Environment -> AST -> AST -> (Environment, AST)
 evalLessAST env x y =
@@ -49,7 +49,7 @@ evalLessAST env x y =
 
 
 compareLessEqualAST :: Environment -> AST -> AST -> (Environment, AST)
-compareLessEqualAST env x y = evalLessEqualAST env x y
+compareLessEqualAST = evalLessEqualAST
 
 evalLessEqualAST :: Environment -> AST -> AST -> (Environment, AST)
 evalLessEqualAST env x y =
@@ -64,7 +64,7 @@ evalLessEqualAST env x y =
 
 
 compareGreaterEqualAST :: Environment -> AST -> AST -> (Environment, AST)
-compareGreaterEqualAST env x y = evalGreaterEqualAST env x y
+compareGreaterEqualAST = evalGreaterEqualAST
 
 evalGreaterEqualAST :: Environment -> AST -> AST -> (Environment, AST)
 evalGreaterEqualAST env x y =
@@ -78,7 +78,7 @@ evalGreaterEqualAST env x y =
         _ -> (env2, DeadLeafAST)
 
 compareNotEqualAST :: Environment -> AST -> AST -> (Environment, AST)
-compareNotEqualAST env x y = evalNotEqualAST env x y
+compareNotEqualAST = evalNotEqualAST
 
 evalNotEqualAST :: Environment -> AST -> AST -> (Environment, AST)
 evalNotEqualAST env x y =
@@ -94,19 +94,19 @@ evalNotEqualAST env x y =
 -- * --------------------------------- MATH ---------------------------------- * --
 
 addAST :: Environment -> AST -> AST -> (Environment, AST)
-addAST env x y = 
+addAST env x y =
     let (env1, evaluatedX) = evalAST env x
         (env2, evaluatedY) = evalAST env1 y
     in case (evaluatedX, evaluatedY) of
         (IntAST x', IntAST y') -> (env2, IntAST (x' + y'))
-        (SymbolAST x', SymbolAST y') -> (env2, IntAST ((read x') + (read y')))
-        (SymbolAST x', IntAST y') -> (env2, IntAST ((read x') + y'))
-        (IntAST x', SymbolAST y') -> (env2, IntAST (x' + (read y')))
+        (SymbolAST x', SymbolAST y') -> (env2, IntAST (read x' + read y'))
+        (SymbolAST x', IntAST y') -> (env2, IntAST (read x' + y'))
+        (IntAST x', SymbolAST y') -> (env2, IntAST (x' + read y'))
         _ -> (env2, DeadLeafAST)
 
 
 subAST :: Environment -> AST -> AST -> (Environment, AST)
-subAST env x y = evalSubAST env x y
+subAST = evalSubAST
 
 evalSubAST :: Environment -> AST -> AST -> (Environment, AST)
 evalSubAST env x y =
@@ -114,14 +114,14 @@ evalSubAST env x y =
         (env2, evaluatedY) = evalAST env1 y
     in case (evaluatedX, evaluatedY) of
         (IntAST x', IntAST y') -> (env2, IntAST (x' - y'))
-        (SymbolAST x', SymbolAST y') -> (env2, IntAST ((read x') - (read y')))
-        (SymbolAST x', IntAST y') -> (env2, IntAST ((read x') - y'))
-        (IntAST x', SymbolAST y') -> (env2, IntAST (x' - (read y'))) 
+        (SymbolAST x', SymbolAST y') -> (env2, IntAST (read x' - read y'))
+        (SymbolAST x', IntAST y') -> (env2, IntAST (read x' - y'))
+        (IntAST x', SymbolAST y') -> (env2, IntAST (x' - read y'))
         _ -> (env2, DeadLeafAST)
 
 
 mulAST :: Environment -> AST -> AST -> (Environment, AST)
-mulAST env x y = evalMulAST env x y
+mulAST = evalMulAST
 
 evalMulAST :: Environment -> AST -> AST -> (Environment, AST)
 evalMulAST env x y =
@@ -129,14 +129,14 @@ evalMulAST env x y =
         (env2, evaluatedY) = evalAST env1 y
     in case (evaluatedX, evaluatedY) of
         (IntAST x', IntAST y') -> (env2, IntAST (x' * y'))
-        (SymbolAST x', SymbolAST y') -> (env2, IntAST ((read x') * (read y')))
-        (SymbolAST x', IntAST y') -> (env2, IntAST ((read x') * y'))
-        (IntAST x', SymbolAST y') -> (env2, IntAST (x' * (read y')))
+        (SymbolAST x', SymbolAST y') -> (env2, IntAST (read x' * read y'))
+        (SymbolAST x', IntAST y') -> (env2, IntAST (read x' * y'))
+        (IntAST x', SymbolAST y') -> (env2, IntAST (x' * read y'))
         _ -> (env2, DeadLeafAST)
 
 
 divAST :: Environment -> AST -> AST -> (Environment, AST)
-divAST env x y = evalDivAST env x y
+divAST = evalDivAST
 
 evalDivAST :: Environment -> AST -> AST -> (Environment, AST)
 evalDivAST env x y =
@@ -144,14 +144,14 @@ evalDivAST env x y =
         (env2, evaluatedY) = evalAST env1 y
     in case (evaluatedX, evaluatedY) of
         (IntAST x', IntAST y') -> (env2, if y' /= 0 then IntAST (x' `div` y') else DeadLeafAST)
-        (SymbolAST x', SymbolAST y') -> (env2, IntAST ((read x') `div` (read y')))
-        (SymbolAST x', IntAST y') -> (env2, IntAST ((read x') `div` y'))
-        (IntAST x', SymbolAST y') -> (env2, IntAST (x' `div` (read y')))
+        (SymbolAST x', SymbolAST y') -> (env2, IntAST (read x' `div` read y'))
+        (SymbolAST x', IntAST y') -> (env2, IntAST (read x' `div` y'))
+        (IntAST x', SymbolAST y') -> (env2, IntAST (x' `div` read y'))
         _ -> (env2, DeadLeafAST)
 
 
 modAST :: Environment -> AST -> AST -> (Environment, AST)
-modAST env x y = evalModAST env x y
+modAST = evalModAST
 
 evalModAST :: Environment -> AST -> AST -> (Environment, AST)
 evalModAST env x y =
@@ -159,9 +159,9 @@ evalModAST env x y =
         (env2, evaluatedY) = evalAST env1 y
     in case (evaluatedX, evaluatedY) of
         (IntAST x', IntAST y') -> (env2, if y' /= 0 then IntAST (x' `mod` y') else DeadLeafAST)
-        (SymbolAST x', SymbolAST y') -> (env2, IntAST ((read x') `mod` (read y')))
-        (SymbolAST x', IntAST y') -> (env2, IntAST ((read x') `mod` y'))
-        (IntAST x', SymbolAST y') -> (env2, IntAST (x' `mod` (read y')))
+        (SymbolAST x', SymbolAST y') -> (env2, IntAST (read x' `mod` read y'))
+        (SymbolAST x', IntAST y') -> (env2, IntAST (read x' `mod` y'))
+        (IntAST x', SymbolAST y') -> (env2, IntAST (x' `mod` read y'))
         _ -> (env2, DeadLeafAST)
 
 
@@ -192,8 +192,8 @@ evalAST env expr = trace ("Evaluating expression: " ++ show expr ++ " in env: " 
                 IntAST _ -> evalAST env1 expr1
                 _ -> (env1, DeadLeafAST)
 
-    DefineAST name expr -> trace ("Defining: " ++ name) $
-        let (newEnv, value) = evalAST env expr
+    DefineAST name expr1 -> trace ("Defining: " ++ name) $
+        let (newEnv, value) = evalAST env expr1
         in ((name, value) : newEnv, value)
 
     LambdaAST paramsAST body -> trace "Creating LambdaClosure..." $
@@ -202,12 +202,12 @@ evalAST env expr = trace ("Evaluating expression: " ++ show expr ++ " in env: " 
 
 
 
-    AST (x:xs) -> trace "Evaluating AST sequence..." $ 
+    AST (x:xs) -> trace "Evaluating AST sequence..." $
         case x of
-            SymbolAST funcName -> 
+            SymbolAST funcName ->
                 case lookup funcName env of
                     Just (LambdaClosure paramNames body closureEnv) ->
-                        let argValues = map (\argExpr -> snd (evalAST env argExpr)) xs
+                        let argValues = map (snd . evalAST env) xs
                             extendedEnv = zip paramNames argValues ++ closureEnv
                         in trace ("Extended environment: " ++ show extendedEnv) $
                             evalAST extendedEnv body
@@ -236,11 +236,11 @@ extractArgs (AST []) = []
 extractArgs (AST (SymbolAST x : xs)) = x : extractArgs (AST xs)
 extractArgs _ = []
 
-traceLittleMsg :: String -> AST -> (Environment, AST) -> (Environment, AST)
-traceLittleMsg msg arg (env, result) =
-    trace (msg ++ " " ++ printAST arg ++ " => " ++ printAST result) (env, result)
+-- traceLittleMsg :: String -> AST -> (Environment, AST) -> (Environment, AST)
+-- traceLittleMsg msg arg (env, result) =
+--     trace (msg ++ " " ++ printAST arg ++ " => " ++ printAST result) (env, result)
 
-traceMsg :: String -> AST -> [AST] -> (Environment, AST) -> (Environment, AST)
-traceMsg msg arg _ (env, result) =
-    trace (msg ++ " " ++ printAST arg ++ " => " ++ printAST result) (env, result)
+-- traceMsg :: String -> AST -> [AST] -> (Environment, AST) -> (Environment, AST)
+-- traceMsg msg arg _ (env, result) =
+--     trace (msg ++ " " ++ printAST arg ++ " => " ++ printAST result) (env, result)
 
