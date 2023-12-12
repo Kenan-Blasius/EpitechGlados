@@ -167,65 +167,74 @@ evalModAST env x y =
 
 -- * --------------------------------- EVAL ---------------------------------- * --
 
+
 evalAST :: Environment -> AST -> (Environment, AST)
-evalAST env (AST []) = (env, DeadLeafAST)
-evalAST env (AST (SymbolAST "=" : x : y : _)) = 
-    let (_, resultAST) = compareEqualAST env x y
-    in (env, resultAST)
-evalAST env (AST (SymbolAST ">" : x : y : _)) =
-    let (_, resultAST) = compareGreaterAST env x y
-    in (env, resultAST)
-evalAST env (AST (SymbolAST "<" : x : y : _)) =
-    let (_, resultAST) = compareLessAST env x y
-    in (env, resultAST)
-evalAST env (AST (SymbolAST "<=" : x : y : _)) =
-    let (_, resultAST) = compareLessEqualAST env x y
-    in (env, resultAST)
-evalAST env (AST (SymbolAST ">=" : x : y : _)) =
-    let (_, resultAST) = compareGreaterEqualAST env x y
-    in (env, resultAST)
-evalAST env (AST (SymbolAST "!=" : x : y : _)) =
-    let (_, resultAST) = compareNotEqualAST env x y
-    in (env, resultAST)
-evalAST env (AST (SymbolAST "+" : x : y : _)) =
-    let (_, resultAST) = addAST env x y
-    in (env, resultAST)
-evalAST env (AST (SymbolAST "-" : x : y : _)) =
-    let (_, resultAST) = subAST env x y
-    in (env, resultAST)
-evalAST env (AST (SymbolAST "*" : x : y : _)) =
-    let (_, resultAST) = mulAST env x y
-    in (env, resultAST)
-evalAST env (AST (SymbolAST "/" : x : y : _)) =
-    let (_, resultAST) = divAST env x y
-    in (env, resultAST)
-evalAST env (AST (SymbolAST "%" : x : y : _)) =
-    let (_, resultAST) = modAST env x y
-    in (env, resultAST)
-evalAST env (IfAST cond expr1 expr2) = 
-    let (env1, resultCond) = evalAST env cond
-    in case resultCond of
-        IntAST 0 -> evalAST env1 expr2
-        IntAST _ -> evalAST env1 expr1
-        _ -> (env1, DeadLeafAST)
-evalAST env (DefineAST name expr) =
-    let (newEnv, value) = evalAST env expr
-    in ((name, value) : newEnv, value)
-evalAST env (LambdaAST args body) = 
-    let (newEnv, result) = evalAST env body
-    in (newEnv, result)
-evalAST env (SymbolAST x) = case lookup x env of
-    Just val -> (env, val)
-    Nothing -> (env, SymbolAST x)  -- Ou une autre gestion d'erreur
-evalAST env (AST (x:xs)) = 
-    let (newEnv, result) = evalAST env x
-    in if null xs 
-       then (newEnv, result)
-       else evalAST newEnv (AST xs)
-evalAST env (IntAST x) = (env, IntAST x)
-evalAST env _ = (env, DeadLeafAST)
+evalAST env expr = trace ("Evaluating expression: " ++ show expr ++ " in env: " ++ show env) $ case expr of
+    AST [] -> (env, DeadLeafAST)
+
+    AST (SymbolAST "=" : x : y : _) -> let (_, resultAST) = compareEqualAST env x y in (env, resultAST)
+    AST (SymbolAST ">" : x : y : _) -> let (_, resultAST) = compareGreaterAST env x y in (env, resultAST)
+    AST (SymbolAST "<" : x : y : _) -> let (_, resultAST) = compareLessAST env x y in (env, resultAST)
+    AST (SymbolAST "<=" : x : y : _) -> let (_, resultAST) = compareLessEqualAST env x y in (env, resultAST)
+    AST (SymbolAST ">=" : x : y : _) -> let (_, resultAST) = compareGreaterEqualAST env x y in (env, resultAST)
+    AST (SymbolAST "!=" : x : y : _) -> let (_, resultAST) = compareNotEqualAST env x y in (env, resultAST)
+    AST (SymbolAST "+" : x : y : _) -> let (_, resultAST) = addAST env x y in (env, resultAST)
+    AST (SymbolAST "-" : x : y : _) -> let (_, resultAST) = subAST env x y in (env, resultAST)
+    AST (SymbolAST "*" : x : y : _) -> let (_, resultAST) = mulAST env x y in (env, resultAST)
+    AST (SymbolAST "/" : x : y : _) -> let (_, resultAST) = divAST env x y in (env, resultAST)
+    AST (SymbolAST "%" : x : y : _) -> let (_, resultAST) = modAST env x y in (env, resultAST)
+
+    IfAST cond expr1 expr2 -> trace "Evaluating IfAST..." $
+        let (env1, resultCond) = evalAST env cond
+        in trace ("Condition result: " ++ show resultCond) $
+            case resultCond of
+                IntAST 0 -> evalAST env1 expr2
+                IntAST _ -> evalAST env1 expr1
+                _ -> (env1, DeadLeafAST)
+
+    DefineAST name expr -> trace ("Defining: " ++ name) $
+        let (newEnv, value) = evalAST env expr
+        in ((name, value) : newEnv, value)
+
+    LambdaAST paramsAST body -> trace "Creating LambdaClosure..." $
+        let params = extractArgs paramsAST
+        in (env, LambdaClosure params body env)
 
 
+
+    AST (x:xs) -> trace "Evaluating AST sequence..." $ 
+        case x of
+            SymbolAST funcName -> 
+                case lookup funcName env of
+                    Just (LambdaClosure paramNames body closureEnv) ->
+                        let argValues = map (\argExpr -> snd (evalAST env argExpr)) xs
+                            extendedEnv = zip paramNames argValues ++ closureEnv
+                        in trace ("Extended environment: " ++ show extendedEnv) $
+                            evalAST extendedEnv body
+                    _ -> evalASTSequence env (x:xs)
+            _ -> evalASTSequence env (x:xs)
+
+    SymbolAST x -> trace ("Looking up: " ++ x) $
+        case lookup x env of
+            Just val -> (env, val)
+            Nothing -> (env, SymbolAST x)
+
+
+
+    IntAST x -> (env, IntAST x)
+    _ -> (env, DeadLeafAST)
+
+evalASTSequence :: Environment -> [AST] -> (Environment, AST)
+evalASTSequence env [] = (env, DeadLeafAST)
+evalASTSequence env [x] = evalAST env x
+evalASTSequence env (x:xs) =
+    let (newEnv, _) = evalAST env x
+    in evalASTSequence newEnv xs
+
+extractArgs :: AST -> [String]
+extractArgs (AST []) = []
+extractArgs (AST (SymbolAST x : xs)) = x : extractArgs (AST xs)
+extractArgs _ = []
 
 traceLittleMsg :: String -> AST -> (Environment, AST) -> (Environment, AST)
 traceLittleMsg msg arg (env, result) =

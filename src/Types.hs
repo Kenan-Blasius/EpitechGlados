@@ -46,6 +46,7 @@ data AST = AST [AST] -- list of AST
          | IfAST AST AST AST -- cond expr1 expr2
          | DefineAST String AST -- name expr
          | LambdaAST AST AST -- args body
+         | LambdaClosure [String] AST Environment
          | IntAST Int -- value
          | SymbolAST String -- name
          | DeadLeafAST
