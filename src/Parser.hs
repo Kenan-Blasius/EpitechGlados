@@ -26,6 +26,13 @@ data Parser a = Parser {
     runParser :: String -> Maybe (a, String)
 }
 
+instance Functor Parser where
+    fmap f (Parser g) = Parser h
+        where
+            h x = case g x of
+                Just (y, ys) -> Just (f y, ys)
+                Nothing -> Nothing
+
 parseChar :: Char -> Parser Char
 parseChar x = Parser f
     where
@@ -84,9 +91,14 @@ parseSome (Parser f) = Parser g
 parseUInt :: Parser Int
 parseUInt = Parser f
     where
-        f x = case runParser (parseSome (parseAnyChar ['0' .. '9'])) x of
-            Just (y, ys) -> Just (read y :: Int, ys)
+        -- using the functor instance
+        f x = case runParser ((\ y -> read y :: Int) <$> (parseSome (parseAnyChar ['0' .. '9']))) x of
+            Just (y, ys) -> Just (y, ys)
             Nothing -> Nothing
+    -- where
+    --     f x = case runParser (parseSome (parseAnyChar ['0' .. '9'])) x of
+    --         Just (y, ys) -> Just (read y :: Int, ys)
+    --         Nothing -> Nothing
 
 parseInt :: Parser Int
 parseInt = Parser f
