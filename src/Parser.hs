@@ -33,6 +33,18 @@ instance Functor Parser where
                 Just (y, ys) -> Just (f y, ys)
                 Nothing -> Nothing
 
+instance Applicative Parser where
+    pure x = Parser f
+        where
+            f xs = Just (x, xs)
+    (Parser f) <*> (Parser g) = Parser h
+        where
+            h x = case f x of
+                Just (y, ys) -> case g ys of
+                    Just (z, zs) -> Just (y z, zs)
+                    Nothing -> Nothing
+                Nothing -> Nothing
+
 parseChar :: Char -> Parser Char
 parseChar x = Parser f
     where
@@ -80,13 +92,17 @@ parseMany (Parser f) = Parser g
             Nothing -> Just ([], x)
 
 parseSome :: Parser a -> Parser [a]
-parseSome (Parser f) = Parser g
+-- Using Functor and Applicative instance <$> and <*>
+parseSome f = Parser g
     where
-        g x = case f x of
-            Just (y, ys) -> case g ys of
-                Just (z, zs) -> Just (y : z, zs)
-                Nothing -> Just ([y], ys)
-            Nothing -> Nothing
+        g x = runParser (pure (:) <*> f <*> parseMany f) x
+-- parseSome (Parser f) = Parser g
+--     where
+--         g x = case f x of
+--             Just (y, ys) -> case g ys of
+--                 Just (z, zs) -> Just (y : z, zs)
+--                 Nothing -> Just ([y], ys)
+--             Nothing -> Nothing
 
 parseUInt :: Parser Int
 parseUInt = Parser f
@@ -99,16 +115,26 @@ parseUInt = Parser f
     --         Just (y, ys) -> Just (read y :: Int, ys)
     --         Nothing -> Nothing
 
+parseSign :: Parser Int
+parseSign = Parser f
+    where
+        f ('-':xs) = Just (-1, xs)
+        f ('+':xs) = Just (1, xs)
+        f xs = Just (1, xs)
+
 parseInt :: Parser Int
 parseInt = Parser f
     where
-        f ('-':xs) = do
-            (x, ys) <- runParser parseUInt xs
-            return (-x, ys)
-        f ('+':xs) = do
-            (x, ys) <- runParser parseUInt xs
-            return (x, ys)
-        f xs = runParser parseUInt xs
+        -- Using Functor and Applicative instance <$> and <*>
+        f x = runParser (pure (\ y z -> y * z) <*> parseSign <*> parseUInt) x
+
+        -- f ('-':xs) = do
+        --     (x, ys) <- runParser parseUInt xs
+        --     return (-x, ys)
+        -- f ('+':xs) = do
+        --     (x, ys) <- runParser parseUInt xs
+        --     return (x, ys)
+        -- f xs = runParser parseUInt xs
 
 parsePair :: Parser a -> Parser (a, a) -- Dumb since the format is fixed
 parsePair (Parser f) = Parser h
