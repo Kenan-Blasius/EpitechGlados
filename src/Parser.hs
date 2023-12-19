@@ -92,9 +92,8 @@ parseUInt :: Parser Int
 parseUInt = Parser f
     where
         -- using the functor instance
-        f x = case runParser ((\ y -> read y :: Int) <$> (parseSome (parseAnyChar ['0' .. '9']))) x of
-            Just (y, ys) -> Just (y, ys)
-            Nothing -> Nothing
+        -- f x = runParser (fmap (\ y -> read y :: Int) (parseSome (parseAnyChar ['0' .. '9']))) x
+        f x = runParser ((\ y -> read y :: Int) <$> (parseSome (parseAnyChar ['0' .. '9']))) x -- <$> is the infix version of fmap
     -- where
     --     f x = case runParser (parseSome (parseAnyChar ['0' .. '9'])) x of
     --         Just (y, ys) -> Just (read y :: Int, ys)
