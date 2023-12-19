@@ -1,0 +1,52 @@
+name: update docs
+
+on:
+  push:
+    # Only run workflow if docs/ changed AND the push is on main branch
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+
+jobs:
+  copy-repo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: EpitechPromo2026/B-FUN-500-MAR-5-2-glados-niels.ouvrard
+          ref: main
+
+      - name: Clone Glados public repo
+        uses: actions/checkout@v3
+        with:
+          repository: Kenan-Blasius/glados-doc
+          token: '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'
+          path: glados-doc
+
+      - name: Remove docs content
+        run: rm -rf glados-doc/docs
+
+      - name: mkdir docs
+        run: mkdir glados-doc/docs
+
+      - name: Copy docs content to glados-Doc
+        run: cp -r docs/* glados-doc/docs
+
+      - name: Move mkdocs.yml to glados-doc
+        run: mv glados-doc/docs/mkdocs.yml glados-doc/mkdocs.yml
+
+      - name: Commit files
+        run: |
+          cd glados-doc/
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .
+          git commit -m "Automated push: $(date +'%Y-%m-%d %H:%M:%S') modification to doc website"
+
+      # Push changes to the repo
+      - name: Push changes
+        run: |
+          cd glados-doc/
+          git push https://github.com/Kenan-Blasius/glados-doc.git HEAD:main
