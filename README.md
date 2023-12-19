@@ -12,7 +12,7 @@ Clonez le repo et lancez `make re`.
 
 ## Utilisation
 
-Lancez `./glados <fichier>` pour compiler un fichier.
+Lancez `./glados <fichier>` pour exécuter un fichier (Chez Scheme lisp).
 
 ## Auteurs
 
