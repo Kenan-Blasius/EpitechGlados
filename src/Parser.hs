@@ -60,6 +60,7 @@ instance Alternative Parser where
                     Nothing -> Nothing
 
 -- ! NOT SURE OF THEIR USE
+-- Operation associative binaire -> e.g: a * (b * c) = (a * b) * c
 instance Semigroup a => Semigroup (Parser a) where
     (Parser f) <> (Parser g) = Parser h
         where
@@ -75,10 +76,13 @@ instance Semigroup a => Semigroup (Parser a) where
                     -- nothing nothing = nothing
                     Nothing -> Nothing
 
+-- Operation associative binaire avec element neutre -> e.g: a * (b * c) = (a * b) * c
+-- element neutre (E) -> e.g: a * E = a, a + E = a
 instance Monoid a => Monoid (Parser a) where
     mempty = Parser f
         where
             f _ = Nothing
+    mappend = (<>)
 -- ! NOT SURE OF THEIR USE
 
 parseChar :: Char -> Parser Char
