@@ -19,6 +19,7 @@ module Parser (
 import System.Exit
 import System.IO
 import Types
+import Control.Applicative
 -- import Debug.Trace
 
 -- INFO: Parsing bootstrap
@@ -45,6 +46,18 @@ instance Applicative Parser where
                     Nothing -> Nothing
                 Nothing -> Nothing
 
+instance Alternative Parser where
+    empty = Parser f
+        where
+            f _ = Nothing
+    (Parser f) <|> (Parser g) = Parser h
+        where
+            h x = case f x of
+                Just (y, ys) -> Just (y, ys)
+                Nothing -> case g x of
+                    Just (z, zs) -> Just (z, zs)
+                    Nothing -> Nothing
+
 parseChar :: Char -> Parser Char
 parseChar x = Parser f
     where
@@ -60,9 +73,12 @@ parseAnyChar x = Parser f
 parseOr :: Parser a -> Parser a -> Parser a
 parseOr (Parser f) (Parser g) = Parser h
     where
-        h x = case f x of
-            Just (y, ys) -> Just (y, ys)
-            Nothing -> g x
+        -- using Alternative instance
+        h x = f x <|> g x
+
+        -- h x = case f x of
+        --     Just (y, ys) -> Just (y, ys)
+        --     Nothing -> g x
 
 parseAnd :: Parser a -> Parser b -> Parser (a, b)
 parseAnd (Parser f) (Parser g) = Parser h
