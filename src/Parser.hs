@@ -65,20 +65,8 @@ instance Semigroup a => Semigroup (Parser a) where
         where
             h x = case f x of
                 Just (y, ys) -> case g ys of
-                    Just (z, zs) -> Just (y <> z, zs)
-                    Nothing -> Nothing
-                Nothing -> Nothing
-
-instance Monoid a => Monoid (Parser a) where
-    mempty = Parser f
-        where
-            f _ = Nothing
-    (Parser f) `mappend` (Parser g) = Parser h
-        where
-            h x = case f x of
-                Just (y, ys) -> case g ys of
                     -- x y = x mappend y
-                    Just (z, zs) -> Just (y `mappend` z, zs)
+                    Just (z, zs) -> Just (y <> z, zs)
                     -- x nothing = x
                     Nothing -> Just (y, ys)
                 Nothing -> case g x of
@@ -86,6 +74,11 @@ instance Monoid a => Monoid (Parser a) where
                     Just (z, zs) -> Just (z, zs)
                     -- nothing nothing = nothing
                     Nothing -> Nothing
+
+instance Monoid a => Monoid (Parser a) where
+    mempty = Parser f
+        where
+            f _ = Nothing
 -- ! NOT SURE OF THEIR USE
 
 parseChar :: Char -> Parser Char
