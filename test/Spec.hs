@@ -11,6 +11,18 @@ parseCharTest =
         TestCase (assertEqual "parseChar" (Just ('a', "aaa"))           (runParser (parseChar 'a') "aaaa"))
     ]
 
+parseStringTest :: Test
+parseStringTest =
+    TestList
+    [
+        TestCase (assertEqual "parseString" (Just ("abc", "def"))       (runParser (parseString "abc") "abcdef")),
+        TestCase (assertEqual "parseString" Nothing                     (runParser (parseString "abc") "defabc")),
+        TestCase (assertEqual "parseString" (Just ("abc", "defg"))      (runParser (parseString "abc") "abcdefg")),
+        TestCase (assertEqual "parseString" (Just ("abc", "abc"))       (runParser (parseString "abc") "abcabc")),
+        TestCase (assertEqual "parseString" (Just ("abc", ""))          (runParser (parseString "abc") "abc")),
+        TestCase (assertEqual "parseString" Nothing                     (runParser (parseString "abc") "ab"))
+    ]
+
 parseAnyCharTest :: Test
 parseAnyCharTest =
     TestList
@@ -158,6 +170,7 @@ testParsingFunction =
     TestList
         [
             TestLabel "parseChar" parseCharTest,
+            TestLabel "parseString" parseStringTest,
             TestLabel "parseAnyChar" parseAnyCharTest,
             TestLabel "parseOr" parseOrTest,
             TestLabel "parseAnd" parseAndTest,

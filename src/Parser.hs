@@ -3,6 +3,7 @@ module Parser (
 
     Parser (..),
     parseChar,
+    parseString,
     parseAnyChar,
     parseOr,
     parseAnd,
@@ -58,11 +59,51 @@ instance Alternative Parser where
                     Just (z, zs) -> Just (z, zs)
                     Nothing -> Nothing
 
+-- ! NOT SURE OF THEIR USE
+instance Semigroup a => Semigroup (Parser a) where
+    (Parser f) <> (Parser g) = Parser h
+        where
+            h x = case f x of
+                Just (y, ys) -> case g ys of
+                    Just (z, zs) -> Just (y <> z, zs)
+                    Nothing -> Nothing
+                Nothing -> Nothing
+
+instance Monoid a => Monoid (Parser a) where
+    mempty = Parser f
+        where
+            f _ = Nothing
+    (Parser f) `mappend` (Parser g) = Parser h
+        where
+            h x = case f x of
+                Just (y, ys) -> case g ys of
+                    -- x y = x mappend y
+                    Just (z, zs) -> Just (y `mappend` z, zs)
+                    -- x nothing = x
+                    Nothing -> Just (y, ys)
+                Nothing -> case g x of
+                    -- nothing y = y
+                    Just (z, zs) -> Just (z, zs)
+                    -- nothing nothing = nothing
+                    Nothing -> Nothing
+-- ! NOT SURE OF THEIR USE
+
 parseChar :: Char -> Parser Char
 parseChar x = Parser f
     where
         f (y:ys) | x == y = Just (x, ys)
         f _ = Nothing
+
+parseString :: String -> Parser String
+parseString x = Parser f
+    where
+        f xs = case length x of
+            0 -> Just ("", xs)
+            _ -> case runParser (parseChar (head x)) xs of
+                Just (_, ys) -> case runParser (parseString (tail x)) ys of
+                    Just (z, zs) -> Just (head x : z, zs)
+                    Nothing -> Nothing
+                Nothing -> Nothing
 
 parseAnyChar :: String -> Parser Char
 parseAnyChar x = Parser f
@@ -224,6 +265,14 @@ parsingBootstrap = do
     putStrLn $ show $ runParser (parseChar 'z') "abcd"
     putStrLn $ show $ runParser (parseChar 'b') "abcd"
     putStrLn $ show $ runParser (parseChar 'a') "aaaa"
+    putStrLn ""
+    putStrLn "parseString"
+    putStrLn $ show $ runParser (parseString "abc") "abcd"
+    putStrLn $ show $ runParser (parseString "abc") "abce"
+    putStrLn $ show $ runParser (parseString "abc") "ab"
+    putStrLn $ show $ runParser (parseString "abc") "abc"
+    putStrLn $ show $ runParser (parseString "abc") "abcabc"
+    putStrLn $ show $ runParser (parseString "abc") "bca"
     putStrLn ""
     putStrLn "parseAnyChar"
     putStrLn $ show $ runParser (parseAnyChar "bca") "abcd"
