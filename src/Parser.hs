@@ -85,6 +85,14 @@ instance Monoid a => Monoid (Parser a) where
     mappend = (<>)
 -- ! NOT SURE OF THEIR USE
 
+instance Monad Parser where
+    return = pure
+    (Parser f) >>= g = Parser h
+        where
+            h x = case f x of
+                Just (y, ys) -> runParser (g y) ys
+                Nothing -> Nothing
+
 parseChar :: Char -> Parser Char
 parseChar x = Parser f
     where
@@ -94,13 +102,19 @@ parseChar x = Parser f
 parseString :: String -> Parser String
 parseString x = Parser f
     where
-        f xs = case length x of
-            0 -> Just ("", xs)
-            _ -> case runParser (parseChar (head x)) xs of
-                Just (_, ys) -> case runParser (parseString (tail x)) ys of
-                    Just (z, zs) -> Just (head x : z, zs)
-                    Nothing -> Nothing
-                Nothing -> Nothing
+        -- using Monad (do notation)
+        f xs | length x == 0 = Just ("", xs)
+        f xs = do
+            (_, ys) <- runParser (parseChar (head x)) xs
+            (z, zs) <- runParser (parseString (tail x)) ys
+            return (head x : z, zs)
+        -- f xs = case length x of
+        --     0 -> Just ("", xs)
+        --     _ -> case runParser (parseChar (head x)) xs of
+        --         Just (_, ys) -> case runParser (parseString (tail x)) ys of
+        --             Just (z, zs) -> Just (head x : z, zs)
+        --             Nothing -> Nothing
+        --         Nothing -> Nothing
 
 parseAnyChar :: String -> Parser Char
 parseAnyChar x = Parser f
@@ -121,20 +135,30 @@ parseOr (Parser f) (Parser g) = Parser h
 parseAnd :: Parser a -> Parser b -> Parser (a, b)
 parseAnd (Parser f) (Parser g) = Parser h
     where
-        h x = case f x of
-            Just (y, ys) -> case g ys of
-                Just (z, zs) -> Just ((y, z), zs)
-                Nothing -> Nothing
-            Nothing -> Nothing
+        -- using Monad (do notation)
+        h x = do
+            (y, ys) <- f x
+            (z, zs) <- g ys
+            return ((y, z), zs)
+        -- h x = case f x of
+        --     Just (y, ys) -> case g ys of
+        --         Just (z, zs) -> Just ((y, z), zs)
+        --         Nothing -> Nothing
+        --     Nothing -> Nothing
 
 parseAndWith :: (a -> b -> c) -> Parser a -> Parser b -> Parser c
 parseAndWith f (Parser g) (Parser h) = Parser i
     where
-        i x = case g x of
-            Just (y, ys) -> case h ys of
-                Just (z, zs) -> Just (f y z, zs)
-                Nothing -> Nothing
-            Nothing -> Nothing
+        -- using Monad (do notation)
+        i x = do
+            (y, ys) <- g x
+            (z, zs) <- h ys
+            return (f y z, zs)
+        -- i x = case g x of
+        --     Just (y, ys) -> case h ys of
+        --         Just (z, zs) -> Just (f y z, zs)
+        --         Nothing -> Nothing
+        --     Nothing -> Nothing
 
 parseMany :: Parser a -> Parser [a]
 parseMany (Parser f) = Parser g
@@ -193,17 +217,26 @@ parseInt = Parser f
 parsePair :: Parser a -> Parser (a, a) -- Dumb since the format is fixed
 parsePair (Parser f) = Parser h
     where
-        h x = case runParser (parseChar '(') x of
-            Just (_, as) -> case f as of
-                Just (b, bs) -> case runParser (parseChar ' ') bs of
-                    Just (_, cs) -> case f cs of
-                        Just (d, es) -> case runParser (parseChar ')') es of
-                            Just (_, fs) -> Just ((b, d), fs)
-                            Nothing -> Nothing
-                        Nothing -> Nothing
-                    Nothing -> Nothing
-                Nothing -> Nothing
-            Nothing -> Nothing
+        -- Using Monad (do notation)
+        h x = do
+            (_, as) <- runParser (parseChar '(') x
+            (b, bs) <- f as
+            (_, cs) <- runParser (parseChar ' ') bs
+            (d, es) <- f cs
+            (_, fs) <- runParser (parseChar ')') es
+            return ((b, d), fs)
+        -- h x = case runParser (parseChar '(') x of
+        --     Just (_, as) -> case f as of
+        --         Just (b, bs) -> case runParser (parseChar ' ') bs of
+        --             Just (_, cs) -> case f cs of
+        --                 Just (d, es) -> case runParser (parseChar ')') es of
+        --                     Just (_, fs) -> Just ((b, d), fs)
+        --                     Nothing -> Nothing
+        --                 Nothing -> Nothing
+        --             Nothing -> Nothing
+        --         Nothing -> Nothing
+        --     Nothing -> Nothing
+
 
 -- parseList' :: Char -> Char -> Char -> Parser a -> Parser [a]
 -- parseList' _ sep close (Parser f) = Parser h
@@ -242,13 +275,19 @@ parseOrBoth (Parser f) (Parser g) = Parser h
 parseList :: Parser a -> Parser b -> Parser c -> Parser d -> Parser e -> Parser [e]
 parseList open sep close ignore token = Parser f
     where
-        f x = case runParser open x of
-            Just (_, xs) -> case runParser (parseMany (parseAndWith (\ _ y -> y) (parseMany (parseOrBoth sep ignore)) token)) xs of
-                Just (y, ys) -> case runParser close ys of
-                    Just (_, zs) -> Just (y, zs)
-                    Nothing -> Nothing
-                Nothing -> Nothing
-            Nothing -> Nothing
+        -- Using Monad (do notation)
+        f x = do
+            (_, xs) <- runParser open x
+            (y, ys) <- runParser (parseMany (parseAndWith (\ _ y -> y) (parseMany (parseOrBoth sep ignore)) token)) xs
+            (_, zs) <- runParser close ys
+            return (y, zs)
+        -- f x = case runParser open x of
+        --     Just (_, xs) -> case runParser (parseMany (parseAndWith (\ _ y -> y) (parseMany (parseOrBoth sep ignore)) token)) xs of
+        --         Just (y, ys) -> case runParser close ys of
+        --             Just (_, zs) -> Just (y, zs)
+        --             Nothing -> Nothing
+        --         Nothing -> Nothing
+        --     Nothing -> Nothing
 
 -- Test all parsers
 parsingBootstrap :: IO ()
