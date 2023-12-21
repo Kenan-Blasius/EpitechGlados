@@ -2,7 +2,9 @@ module Eval (evalAST) where
 
 import Types
 import Debug.Trace
-
+import Data.List (find)
+import Data.List (isPrefixOf)
+import Data.List.Split (splitOn)
 
 -- * -------------------------------- COMPARE -------------------------------- * --
 
@@ -18,6 +20,8 @@ compareEqualAST env x y =
         _ -> (env2, DeadLeafAST)
 
 
+-- ? it is useful to have compareGreaterAST and evalGreaterAST ?
+
 compareGreaterAST :: Environment -> AST -> AST -> (Environment, AST)
 compareGreaterAST = evalGreaterAST
 
@@ -25,12 +29,15 @@ evalGreaterAST :: Environment -> AST -> AST -> (Environment, AST)
 evalGreaterAST env x y =
     let (env1, evaluatedX) = evalAST env x
         (env2, evaluatedY) = evalAST env1 y
-    in case (evaluatedX, evaluatedY) of
-        (IntAST x', IntAST y') -> (env2, if x' > y' then IntAST 1 else IntAST 0)
-        (SymbolAST x', SymbolAST y') -> (env2, if x' > y' then IntAST 1 else IntAST 0)
-        (SymbolAST x', IntAST y') -> (env2, if x' > show y' then IntAST 1 else IntAST 0)
-        (IntAST x', SymbolAST y') -> (env2, if show x' > y' then IntAST 1 else IntAST 0)
-        _ -> (env2, DeadLeafAST)
+    in
+        trace ("evalGreaterAST: x = " ++ show x ++ ", evaluatedX = " ++ show evaluatedX ++
+               ", y = " ++ show y ++ ", evaluatedY = " ++ show evaluatedY) $
+        case (evaluatedX, evaluatedY) of
+            (IntAST x', IntAST y') -> (env2, if x' > y' then IntAST 1 else IntAST 0)
+            (SymbolAST x', SymbolAST y') -> (env2, if x' > y' then IntAST 1 else IntAST 0)
+            (SymbolAST x', IntAST y') -> (env2, if x' > show y' then IntAST 1 else IntAST 0)
+            (IntAST x', SymbolAST y') -> (env2, if show x' > y' then IntAST 1 else IntAST 0)
+            _ -> (env2, DeadLeafAST)
 
 
 compareLessAST :: Environment -> AST -> AST -> (Environment, AST)
@@ -167,10 +174,36 @@ evalModAST env x y =
 
 -- * --------------------------------- EVAL ---------------------------------- * --
 
+getParamsASTFromLambda :: AST -> [String]
+getParamsASTFromLambda (LambdaAST (AST params) _) = map extractParam params
+getParamsASTFromLambda _ = []
+
+extractParam :: AST -> String
+extractParam (SymbolAST paramName) = paramName
+extractParam _ = error "Invalid parameter format in LambdaAST"
+
+
+addToEnv :: Environment -> String -> AST -> Environment
+addToEnv env name (AST (LambdaAST params body : _)) = trace ("Adding lambda to env: " ++ name ++ " = " ++ show (LambdaAST params body)) (name, LambdaAST params body) : env
+addToEnv env name (IntAST x) = trace ("Adding int to env: " ++ name ++ " = " ++ show x) (name, IntAST x) : env
+addToEnv env name (SymbolAST x) = trace ("Adding symb to env: " ++ name ++ " = " ++ show x) (name, SymbolAST x) : env
+addToEnv env name (LambdaAST params body) = trace ("Adding LAMBDA to env: " ++ name ++ " = " ++ show (LambdaAST params body)) (name, LambdaAST params body) : env
+addToEnv env name (AST (x:_)) = trace ("Adding ast to env: " ++ name ++ " = " ++ show x) (name, x) : env
+addToEnv env name what = trace ("Adding ? to env: " ++ name ++ " ??? " ++ show what) (name, DeadLeafAST) : env
+
+addFunctionCalledToAST :: Environment -> String -> AST -> AST
+addFunctionCalledToAST env name (AST (x:xs)) =
+    let (env1, result) = evalAST env x
+    in AST (SymbolAST name : result : xs)
+
+extractParams :: String -> [String]
+extractParams input = case splitOn "," $ init $ tail input of
+  (_:params) -> params
+  _          -> []
 
 evalAST :: Environment -> AST -> (Environment, AST)
-evalAST env expr = trace ("Evaluating expression: " ++ show expr ++ " in env: " ++ show env) $ case expr of
-    AST [] -> (env, DeadLeafAST)
+evalAST env expr = case expr of
+    AST [] -> trace "Empty AST" (env, DeadLeafAST)
 
     AST (SymbolAST "=" : x : y : _) -> let (_, resultAST) = compareEqualAST env x y in (env, resultAST)
     AST (SymbolAST ">" : x : y : _) -> let (_, resultAST) = compareGreaterAST env x y in (env, resultAST)
@@ -192,37 +225,49 @@ evalAST env expr = trace ("Evaluating expression: " ++ show expr ++ " in env: " 
                 IntAST _ -> evalAST env1 expr1
                 _ -> (env1, DeadLeafAST)
 
-    DefineAST name expr1 -> trace ("Defining: " ++ name) $
-        let (newEnv, value) = evalAST env expr1
-        in ((name, value) : newEnv, value)
+    DefineAST name expr1 -> trace ("\nDefining direct: " ++ name ++ " = " ++ show expr1) $
+        let newEnv = addToEnv env name expr1
+        in (newEnv, expr1)
+
+
 
     LambdaAST paramsAST body -> trace "Creating LambdaClosure..." $
         let params = extractArgs paramsAST
-        in (env, LambdaClosure params body env)
+        in trace ("LambdaClosure params: " ++ show params ++ " body: " ++ show body) $
+            evalAST env (LambdaClosure params body env)
 
 
 
     AST (x:xs) -> trace "Evaluating AST sequence..." $
         case x of
             SymbolAST funcName ->
-                case lookup funcName env of
-                    Just (LambdaClosure paramNames body closureEnv) ->
-                        let argValues = map (snd . evalAST env) xs
-                            extendedEnv = zip paramNames argValues ++ closureEnv
-                        in trace ("Extended environment: " ++ show extendedEnv) $
-                            evalAST extendedEnv body
-                    _ -> evalASTSequence env (x:xs)
-            _ -> evalASTSequence env (x:xs)
+                trace ("Function name: " ++ show funcName ++ " params: " ++ show xs) $
+                trace ("Keys in environment: " ++ show (map fst env)) $
+                case find (\(name, para) -> name == funcName) env of
+                    Just (funct, val) ->
+                        trace ("\n\nFound: " ++ show val ++ " funct = " ++ funct ++ " xs = " ++ show xs) $
+                        let paramBindings = zip (getParamsASTFromLambda val) xs
+                            newEnv = foldl (\acc (param, value) -> addToEnv acc param value) env paramBindings
+                        in trace ("\n\nFound and binding parameters: " ++ show paramBindings ++ " newEnv: " ++ show newEnv) $
+                            evalAST newEnv val
+                    Nothing -> trace ("Not found: \"" ++ funcName ++ "\" in " ++ show env) (env, DeadLeafAST)
 
-    SymbolAST x -> trace ("Looking up: " ++ x) $
-        case lookup x env of
-            Just val -> (env, val)
-            Nothing -> (env, SymbolAST x)
+            AST name -> trace ("AST: " ++ show name) $ evalASTSequence env (x:xs)
+            _ -> trace ("\t\tSee next... " ++ show expr) $ evalASTSequence env (x:xs)
+
+    LambdaClosure params body closureEnv ->
+        trace ("Executing LambdaClosure: params = " ++ show params ++ ", body = " ++ show body) $
+            let (newEnv, result) = evalASTSequence closureEnv [body]
+            in trace ("LambdaClosure result: " ++ show result) (env, result)
 
 
 
     IntAST x -> (env, IntAST x)
-    _ -> (env, DeadLeafAST)
+    SymbolAST x -> trace ("SymbolAST: " ++ show x) $
+        case find (\(name, _) -> name == x) env of
+            Just (_, val) -> trace ("Found: " ++ show val) (env, val)
+            Nothing -> trace ("Not found: " ++ x ++ " in " ++ show env) (env, DeadLeafAST)
+    _ -> trace ("Unknown AST _ -> :" ++ show expr) (env, DeadLeafAST)
 
 evalASTSequence :: Environment -> [AST] -> (Environment, AST)
 evalASTSequence env [] = (env, DeadLeafAST)
@@ -233,14 +278,6 @@ evalASTSequence env (x:xs) =
 
 extractArgs :: AST -> [String]
 extractArgs (AST []) = []
-extractArgs (AST (SymbolAST x : xs)) = x : extractArgs (AST xs)
+extractArgs (AST (SymbolAST x : xs)) = trace ("extractArgs: " ++ x) $
+    x : extractArgs (AST xs)
 extractArgs _ = []
-
--- traceLittleMsg :: String -> AST -> (Environment, AST) -> (Environment, AST)
--- traceLittleMsg msg arg (env, result) =
---     trace (msg ++ " " ++ printAST arg ++ " => " ++ printAST result) (env, result)
-
--- traceMsg :: String -> AST -> [AST] -> (Environment, AST) -> (Environment, AST)
--- traceMsg msg arg _ (env, result) =
---     trace (msg ++ " " ++ printAST arg ++ " => " ++ printAST result) (env, result)
-
