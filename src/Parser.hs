@@ -495,13 +495,13 @@ sexprToAst (LambdaToken : xs) = do
             _ -> [args]
     LambdaAST (sexprToAst args2) (sexprToAst body)
 -- ! Int token
-sexprToAst (IntToken x : ListToken y : _) = do
-    AST [IntAST x, sexprToAst y]
+-- sexprToAst (IntToken x : ListToken y : _) = do
+--     AST [IntAST x, sexprToAst y]
 sexprToAst (IntToken x : xs) = do
     AST [IntAST x] <> sexprToAst xs
 -- ! Symbol token
-sexprToAst (SymbolToken x : ListToken y : _) = do
-    AST [SymbolAST x, sexprToAst y]
+-- sexprToAst (SymbolToken x : ListToken y : _) = do
+--     AST [SymbolAST x, sexprToAst y]
 sexprToAst (SymbolToken x : xs) = do
     AST [SymbolAST x] <> sexprToAst xs
 -- ! List token
