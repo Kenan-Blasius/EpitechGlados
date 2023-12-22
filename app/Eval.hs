@@ -188,8 +188,25 @@ addToEnv env name (AST (LambdaAST params body : _)) = trace ("Adding lambda to e
 addToEnv env name (IntAST x) = trace ("Adding int to env: " ++ name ++ " = " ++ show x) (name, IntAST x) : env
 addToEnv env name (SymbolAST x) = trace ("Adding symb to env: " ++ name ++ " = " ++ show x) (name, SymbolAST x) : env
 addToEnv env name (LambdaAST params body) = trace ("Adding LAMBDA to env: " ++ name ++ " = " ++ show (LambdaAST params body)) (name, LambdaAST params body) : env
-addToEnv env name (AST (x:_)) = trace ("Adding ast to env: " ++ name ++ " = " ++ show x) (name, x) : env
+addToEnv env name (AST x) =
+    let (_, evaluatedAST) = evalAST env (AST x)
+    in trace ("Adding ast to env: " ++ name ++ " = " ++ show evaluatedAST) (name, evaluatedAST) : env
 addToEnv env name what = trace ("Adding ? to env: " ++ name ++ " ??? " ++ show what) (name, DeadLeafAST) : env
+
+-- This code prevent from adding the same 
+-- addToEnv :: Environment -> String -> AST -> Environment
+-- addToEnv env name (AST (LambdaAST params body : _)) = updateEnv env name (LambdaAST params body)
+-- addToEnv env name (IntAST x) = updateEnv env name (IntAST x)
+-- addToEnv env name (SymbolAST x) = updateEnv env name (SymbolAST x)
+-- addToEnv env name (LambdaAST params body) = updateEnv env name (LambdaAST params body)
+-- addToEnv env name (AST (x:_)) = updateEnv env name x
+-- addToEnv env name what = updateEnv env name (DeadLeafAST)
+
+-- updateEnv :: Environment -> String -> AST -> Environment
+-- updateEnv [] name value = [(name, value)]
+-- updateEnv ((n, v) : rest) name value
+--     | n == name = (name, value) : rest
+--     | otherwise = (n, v) : updateEnv rest name value
 
 addFunctionCalledToAST :: Environment -> String -> AST -> AST
 addFunctionCalledToAST env name (AST (x:xs)) =
@@ -202,6 +219,8 @@ extractParams input = case splitOn "," $ init $ tail input of
   _          -> []
 
 evalAST :: Environment -> AST -> (Environment, AST)
+evalAST env expr
+    | length env > 10 = (env, DeadLeafAST)
 evalAST env expr = case expr of
     AST [] -> trace "Empty AST" (env, DeadLeafAST)
 
@@ -253,10 +272,10 @@ evalAST env expr = case expr of
                     Nothing -> trace ("Not found: \"" ++ funcName ++ "\" in " ++ show env) (env, DeadLeafAST)
 
             AST name -> trace ("AST: " ++ show name) $ evalASTSequence env (x:xs)
-            _ -> trace ("\t\tSee next... " ++ show expr) $ evalASTSequence env (x:xs)
+            _ -> trace ("\t\tSee next... " ++ show x ++ " " ++ show xs) $ evalASTSequence env (x:xs)
 
     LambdaClosure params body closureEnv ->
-        trace ("Executing LambdaClosure: params = " ++ show params ++ ", body = " ++ show body) $
+        trace ("Executing LambdaClosure: params = " ++ show params ++ ", body = " ++ show body ++ ", closureEnv = " ++ show closureEnv) $
             let (newEnv, result) = evalASTSequence closureEnv [body]
             in trace ("LambdaClosure result: " ++ show result) (env, result)
 

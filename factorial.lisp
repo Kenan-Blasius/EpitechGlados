@@ -1,5 +1,3 @@
-(define x "5")
-
 (define factorial
     (lambda (n)
         (if (= n 0)
