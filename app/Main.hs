@@ -109,21 +109,22 @@ main = do
     args <- getArgs
     case args of
         [filename] -> do
-            putStrLn $ "Running file: " ++ filename
+            -- putStrLn $ "Running file: " ++ filename
             contents <- readFile filename
             let file = File (lines contents)
-            putStrLn "------------------------------------"
-            print file
-            putStrLn "------------------------------------"
-            print (parseFile file)
-            putStrLn "------------------------------------"
+            -- putStrLn "------------------------------------"
+            -- print file
+            -- putStrLn "------------------------------------"
+            -- print (parseFile file)
+            -- putStrLn "------------------------------------"
             let tokenList = parseFile file
-            print (tokenListToSexpr tokenList)
-            putStrLn "------------------------------------"
+            -- print (tokenListToSexpr tokenList)
+            -- putStrLn "------------------------------------"
             let sexpr = tokenListToSexpr tokenList
-            putStrLn $ printAST $ sexprToAst sexpr
-            putStrLn "------------------------------------"
+            -- putStrLn $ printAST $ sexprToAst sexpr
+            -- putStrLn "------------------------------------"
             let ast = sexprToAst sexpr
             let env = []
-            print (evalAST env ast)
+            let (_, evaluatedAST) = evalAST env ast
+            print (evaluatedAST)
         _ -> putStrLn "No file given as an argument"
