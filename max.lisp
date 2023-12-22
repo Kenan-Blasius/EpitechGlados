@@ -1,6 +1,6 @@
-(define max (lambda (n, k)
+(define max (lambda (n k)
         (if (> n k)
             n
             k)))
 
-(max 1 2)
+(max 3 6)

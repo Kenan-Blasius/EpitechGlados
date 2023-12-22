@@ -1,34 +1,31 @@
 #!/bin/bash
 
-# Run the tests and capture the output
-output=$(./glados factorial.lisp)
+list_of_files="arithmetic_test.lisp variable_test.lisp max.lisp factorial.lisp if.lisp foo.lisp sum.lisp square.lisp"
 
-echo "factorial.lisp Output: $output"
-if [ "$output" == "IntAST 120" ]; then
-    echo "factorial.lisp Passed"
-else
-    echo "factorial.lisp Failed"
-    exit 1
-fi
+expected_outputs=(
+    "IntAST 3"
+    "IntAST 13"
+    "IntAST 6"
+    "IntAST 120"
+    "IntAST 11"
+    "IntAST 1"
+    "IntAST 15"
+    "IntAST 16"
+)
 
-# Run the tests and capture the output
-output=$(./glados if.lisp)
+index=0
+for file in $list_of_files; do
+    echo "Running $file"
+    output=$(./glados $file)
+    echo "$file Output: $output"
+    expected_output=${expected_outputs[$index]}
 
-echo "if.lisp Output: $output"
-if [ "$output" == "IntAST 11" ]; then
-    echo "if.lisp Passed"
-else
-    echo "if.lisp Failed"
-    exit 1
-fi
+    if [ "$output" == "$expected_output" ]; then
+        echo "$file Passed"
+    else
+        echo "$file Failed"
+        exit 1
+    fi
 
-# Run the tests and capture the output
-output=$(./glados foo.lisp)
-
-echo "foo.lisp Output: $output"
-if [ "$output" == "IntAST 1" ]; then
-    echo "foo.lisp Passed"
-else
-    echo "foo.lisp Failed"
-    exit 1
-fi
+    ((index++))
+done
