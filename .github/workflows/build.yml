@@ -33,5 +33,5 @@ jobs:
       - name: Test
         run: ./test/test.sh
         # When we have a test suite, we can use the following instead:
-        run: |
-          stack test --coverage --allow-different-user
+        # run: |
+        #  stack test --coverage --allow-different-user
