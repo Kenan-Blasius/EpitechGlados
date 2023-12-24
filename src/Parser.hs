@@ -584,6 +584,20 @@ sexprToAst (_ : xs) = do
     sexprToAst xs
 
 -- INFO: Main function
+checkSyntax :: [Token] -> IO ()
+-- check if nb of open parenthesis == nb of close parenthesis
+checkSyntax xs = do
+    let nbOpenParenthesis = length $ filter (== OpenParenthesis) xs
+    let nbCloseParenthesis = length $ filter (== CloseParenthesis) xs
+    if nbOpenParenthesis < nbCloseParenthesis then do
+        hPutStrLn stderr $ "Error: Missing ( token"
+        exitWith (ExitFailure 84)
+    else if nbOpenParenthesis > nbCloseParenthesis then do
+        hPutStrLn stderr $ "Error: Missing ) token"
+        exitWith (ExitFailure 84)
+    else do
+        return ()
+
 parser :: File -> IO (AST)
 parser file = do
     -- parsingBootstrap
@@ -591,6 +605,7 @@ parser file = do
     -- putStrLn $ show file
     -- putStrLn "------------------------------------"
     tokenList <- parseFile file 0
+    checkSyntax tokenList
     -- putStrLn $ show $ tokenList
     -- putStrLn "------------------------------------"
     -- putStrLn $ show $ tokenListToSexpr tokenList
