@@ -21,6 +21,8 @@ import System.Exit
 import System.IO
 import Types
 import Control.Applicative
+import Data.Char (chr)
+import Control.Exception
 -- import Debug.Trace
 
 -- INFO: Parsing bootstrap
@@ -380,50 +382,120 @@ parseList open sep close ignore token = Parser f
 --     putStrLn ""
 --     putStrLn "------------------------------------"
 
+-- INFO: Token Parser
+parseKeyword :: String -> Token -> Parser Token
+parseKeyword str token = Parser f
+    where
+        f x = case runParser (parseString str) x of
+            Just (_, xs) -> Just (token, xs)
+            Nothing -> Nothing
+
+parseIntToken :: Parser Token
+parseIntToken = Parser f
+    where
+        f x = case runParser parseInt x of
+            Just (y, ys) -> Just (IntToken y, ys)
+            Nothing -> Nothing
+
+parseSymbolToken :: Parser Token
+parseSymbolToken = Parser f
+    where
+        -- parse absolutely any char
+        f x = case runParser (parseAnyChar ['\0' .. '\255']) x of
+            Just (y, ys) -> Just (SymbolToken [y], ys)
+            Nothing -> Nothing
+
+parseStringToken :: Parser Token
+parseStringToken = Parser f
+    where
+        f x = case runParser (parseChar '\"') x of
+            -- parse all chars except "
+            Just (_, ys) -> case runParser (parseMany (parseAnyChar [chr i | i <- [0 .. 255], chr i /= '\"'])) ys of
+                Just (z, zs) -> case runParser (parseChar '\"') zs of
+                    Just (_, ws) -> Just (SymbolToken ("\"" ++ z ++ "\""), ws)
+                    Nothing -> throw (ParserError "Missing \" token")
+                Nothing -> Nothing
+            Nothing -> Nothing
+
+parseToken :: Parser Token
+parseToken =
+    -- KeyWords
+    (parseKeyword "define" DefineToken)
+    <|> (parseKeyword "if" IfToken)
+    <|> (parseKeyword "lambda" LambdaToken)
+    -- Spacer
+    <|> (parseKeyword " " SpaceToken)
+    <|> (parseKeyword "\t" SpaceToken)
+    -- List
+    <|> (parseKeyword "(" OpenParenthesis)
+    <|> (parseKeyword ")" CloseParenthesis)
+    -- Quotes
+    <|> (parseStringToken)
+    -- Numbers
+    <|> (parseIntToken)
+    -- Symbols (others)
+    <|> (parseSymbolToken)
+    -- Empty str
+    <|> empty
+
 -- INFO: Create token list
 parseLine :: String -> Int -> IO ([Token])
-parseLine str lineNumber = do
-    -- for each word in the string generate the tokens
-    case words str of
-        [] -> do
-            return ([])
-        ("define":xs) -> do
-            tmpDefine <- parseLine (" " ++ unwords xs) lineNumber
-            return ([DefineToken] ++ tmpDefine)
-        ("if":xs) -> do
-            tmpIf <- parseLine (" " ++ unwords xs) lineNumber
-            return ([IfToken] ++ tmpIf)
-        ("lambda":xs) -> do
-            tmpLambda <- parseLine (" " ++ unwords xs) lineNumber
-            return ([LambdaToken] ++ tmpLambda)
-        (_:_) -> do
-            -- for each char in the string generate the tokens
-            case str of
-                [] -> do
-                    return ([])
-                (' ':ys) -> do
-                    tmpSpace <- parseLine ys lineNumber
-                    return ([SpaceToken] ++ tmpSpace)
-                ('(':ys) -> do
-                    tmpOpenParenthesis <- parseLine ys lineNumber
-                    return ([OpenParenthesis] ++ tmpOpenParenthesis)
-                (')':ys) -> do
-                    tmpCloseParenthesis <- parseLine ys lineNumber
-                    return ([CloseParenthesis] ++ tmpCloseParenthesis)
-                ('\"':ys) -> do
-                    let (quoteStr, rest) = span (/= '\"') ys
-                    if null rest then do
-                        hPutStrLn stderr $ "Error: Missing \" at line " ++ show lineNumber
-                        exitWith (ExitFailure 84)
-                    else do
-                        tmpQuoteStr <- parseLine (tail rest) lineNumber
-                        return ([SymbolToken quoteStr] ++ tmpQuoteStr)
-                (y:ys) | y `elem` ['0'..'9'] -> do
-                    tmpInt <- parseLine ys lineNumber
-                    return ([IntToken (read [y])] ++ tmpInt)
-                (y:ys) -> do
-                    tmpSymbol <- parseLine ys lineNumber
-                    return ([SymbolToken [y]] ++ tmpSymbol)
+parseLine str lineNumber =
+    catch (
+        -- for each word in the string generate the tokens
+        case runParser (parseMany parseToken) str of
+            Just (x, _) -> do
+                return (x)
+            Nothing -> do
+                hPutStrLn stderr $ "Invalid syntax at line " ++ show lineNumber ++ ": " ++ str
+                exitWith (ExitFailure 84)
+        ) handler
+    where
+        handler :: ParserError -> IO ([Token])
+        handler e = do
+            hPutStrLn stderr $ "Invalid syntax at line " ++ show lineNumber ++ ": " ++ show e
+            exitWith (ExitFailure 84)
+
+    -- case words str of
+    --     [] -> do
+    --         return ([])
+    --     ("define":xs) -> do
+    --         tmpDefine <- parseLine (" " ++ unwords xs) lineNumber
+    --         return ([DefineToken] ++ tmpDefine)
+    --     ("if":xs) -> do
+    --         tmpIf <- parseLine (" " ++ unwords xs) lineNumber
+    --         return ([IfToken] ++ tmpIf)
+    --     ("lambda":xs) -> do
+    --         tmpLambda <- parseLine (" " ++ unwords xs) lineNumber
+    --         return ([LambdaToken] ++ tmpLambda)
+    --     (_:_) -> do
+    --         -- for each char in the string generate the tokens
+    --         case str of
+    --             [] -> do
+    --                 return ([])
+    --             (' ':ys) -> do
+    --                 tmpSpace <- parseLine ys lineNumber
+    --                 return ([SpaceToken] ++ tmpSpace)
+    --             ('(':ys) -> do
+    --                 tmpOpenParenthesis <- parseLine ys lineNumber
+    --                 return ([OpenParenthesis] ++ tmpOpenParenthesis)
+    --             (')':ys) -> do
+    --                 tmpCloseParenthesis <- parseLine ys lineNumber
+    --                 return ([CloseParenthesis] ++ tmpCloseParenthesis)
+    --             ('\"':ys) -> do
+    --                 let (quoteStr, rest) = span (/= '\"') ys
+    --                 if null rest then do
+    --                     hPutStrLn stderr $ "Error: Missing \" at line " ++ show lineNumber
+    --                     exitWith (ExitFailure 84)
+    --                 else do
+    --                     tmpQuoteStr <- parseLine (tail rest) lineNumber
+    --                     return ([SymbolToken quoteStr] ++ tmpQuoteStr)
+    --             (y:ys) | y `elem` ['0'..'9'] -> do
+    --                 tmpInt <- parseLine ys lineNumber
+    --                 return ([IntToken (read [y])] ++ tmpInt)
+    --             (y:ys) -> do
+    --                 tmpSymbol <- parseLine ys lineNumber
+    --                 return ([SymbolToken [y]] ++ tmpSymbol)
 
 mergeSymbols :: [Token] -> [Token]
 mergeSymbols [] = []

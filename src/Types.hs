@@ -1,4 +1,5 @@
 module Types (
+    ParserError (..),
     File (..),
     Token (..),
     AST (..),
@@ -7,6 +8,7 @@ module Types (
     printAST
 ) where
 
+import Control.Exception
 -- import Control.Monad.State
 
 -- File type
@@ -17,6 +19,14 @@ instance Show File where
     show (File (x:xs)) = x ++ "\n" ++ show (File xs)
 
 type Environment = [(String, AST)]
+
+-- Parser Error Type
+data ParserError = ParserError String
+
+instance Show ParserError where
+    show (ParserError x) = x
+
+instance Exception ParserError
 
 -- All Tokens Types
 data Token = OpenParenthesis
