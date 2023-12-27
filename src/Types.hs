@@ -1,4 +1,5 @@
 module Types (
+    ParserError (..),
     File (..),
     Token (..),
     AST (..),
@@ -7,6 +8,7 @@ module Types (
     printAST
 ) where
 
+import Control.Exception
 -- import Control.Monad.State
 
 -- File type
@@ -17,6 +19,14 @@ instance Show File where
     show (File (x:xs)) = x ++ "\n" ++ show (File xs)
 
 type Environment = [(String, AST)]
+
+-- Parser Error Type
+data ParserError = ParserError String
+
+instance Show ParserError where
+    show (ParserError x) = x
+
+instance Exception ParserError
 
 -- All Tokens Types
 data Token = OpenParenthesis
@@ -41,6 +51,18 @@ instance Show Token where
     show (SymbolToken x) = x
     show (ListToken x) = show x
 
+instance Eq Token where
+    OpenParenthesis == OpenParenthesis = True
+    CloseParenthesis == CloseParenthesis = True
+    SpaceToken == SpaceToken = True
+    IfToken == IfToken = True
+    DefineToken == DefineToken = True
+    LambdaToken == LambdaToken = True
+    (IntToken x) == (IntToken y) = x == y
+    (SymbolToken x) == (SymbolToken y) = x == y
+    (ListToken x) == (ListToken y) = x == y
+    _ == _ = False
+
 -- All AST Types
 data AST = AST [AST] -- list of AST
          | IfAST AST AST AST -- cond expr1 expr2
@@ -52,6 +74,16 @@ data AST = AST [AST] -- list of AST
          | DeadLeafAST
          deriving Show
 
+instance Eq AST where
+    AST x == AST y = x == y
+    IfAST cond1 expr1 expr2 == IfAST cond2 expr3 expr4 = cond1 == cond2 && expr1 == expr3 && expr2 == expr4
+    DefineAST name1 expr1 == DefineAST name2 expr2 = name1 == name2 && expr1 == expr2
+    LambdaAST args1 body1 == LambdaAST args2 body2 = args1 == args2 && body1 == body2
+    LambdaClosure args1 body1 env1 == LambdaClosure args2 body2 env2 = args1 == args2 && body1 == body2 && env1 == env2
+    IntAST x == IntAST y = x == y
+    SymbolAST x == SymbolAST y = x == y
+    DeadLeafAST == DeadLeafAST = True
+    _ == _ = False
 
 indent :: Int -> String
 indent 0 = ""

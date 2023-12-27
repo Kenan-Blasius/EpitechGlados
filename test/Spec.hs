@@ -1,4 +1,5 @@
 import Parser
+import Types
 import Test.HUnit
 
 parseCharTest :: Test
@@ -165,10 +166,49 @@ parseListTest =
         TestCase (assertEqual "parseList" (Just ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], ""))  (runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "(1 2 3 4 5 6 7 8 9 10 11)"))
     ]
 
+showFileTest :: Test
+showFileTest =
+    TestList
+    [
+        TestCase (assertEqual "showFile" "Hello World\n" (show (File ["Hello World"]))),
+        TestCase (assertEqual "showFile" "Hello World\n42\n" (show (File ["Hello World", "42"]))),
+        TestCase (assertEqual "showFile" "Hello World\n42\n(define my_var 42)\n" (show (File ["Hello World", "42", "(define my_var 42)"])))
+    ]
+
+showTokenTest :: Test
+showTokenTest =
+    TestList
+    [
+        TestCase (assertEqual "showToken" "OpenPARENTHESIS" (show (OpenParenthesis))),
+        TestCase (assertEqual "showToken" "ClosePARENTHESIS" (show (CloseParenthesis))),
+        TestCase (assertEqual "showToken" "SPACE" (show (SpaceToken))),
+        TestCase (assertEqual "showToken" "IF" (show (IfToken))),
+        TestCase (assertEqual "showToken" "DEFINE" (show (DefineToken))),
+        TestCase (assertEqual "showToken" "LAMBDA" (show (LambdaToken))),
+        TestCase (assertEqual "showToken" "42" (show (IntToken 42))),
+        TestCase (assertEqual "showToken" "\"Hello World\"" (show (SymbolToken "\"Hello World\""))),
+        TestCase (assertEqual "showToken" "[1,2,3]" (show (ListToken [IntToken 1, IntToken 2, IntToken 3])))
+    ]
+
+printASTTest :: Test
+printASTTest =
+    TestList
+    [
+        TestCase (assertEqual "printAST" "AST\n" (printAST (AST []))),
+        TestCase (assertEqual "printAST" "AST\n|   DefineAST my_var\n|   |   AST\n|   |   |   DeadLeafAST\n" (printAST (AST [DefineAST "my_var" (AST [DeadLeafAST])]))),
+        TestCase (assertEqual "printAST" "AST\n|   DefineAST my_var\n|   |   AST\n|   |   |   IntAST 42\n" (printAST (AST [DefineAST "my_var" (AST [IntAST 42])]))),
+        TestCase (assertEqual "printAST" "AST\n|   DefineAST my_var\n|   |   AST\n|   |   |   SymbolAST \"Hello World\"\n" (printAST (AST [DefineAST "my_var" (AST [SymbolAST "\"Hello World\""])]))),
+        TestCase (assertEqual "printAST" "AST\n|   AST\n|   |   DefineAST factorial\n|   |   |   AST\n|   |   |   |   LambdaAST\n|   |   |   |   |   AST\n|   |   |   |   |   |   SymbolAST n\n|   |   |   |   |   AST\n|   |   |   |   |   |   IfAST\n|   |   |   |   |   |   |   AST\n|   |   |   |   |   |   |   |   SymbolAST =\n|   |   |   |   |   |   |   |   SymbolAST n\n|   |   |   |   |   |   |   |   IntAST 0\n|   |   |   |   |   |   |   AST\n|   |   |   |   |   |   |   |   IntAST 1\n|   |   |   |   |   |   |   AST\n|   |   |   |   |   |   |   |   SymbolAST *\n|   |   |   |   |   |   |   |   SymbolAST n\n|   |   |   |   |   |   |   |   AST\n|   |   |   |   |   |   |   |   |   SymbolAST factorial\n|   |   |   |   |   |   |   |   |   AST\n|   |   |   |   |   |   |   |   |   |   SymbolAST -\n|   |   |   |   |   |   |   |   |   |   SymbolAST n\n|   |   |   |   |   |   |   |   |   |   IntAST 1\n|   AST\n|   |   SymbolAST factorial\n|   |   IntAST 5\n" (printAST (AST [AST [DefineAST "factorial" (AST [LambdaAST (AST [SymbolAST "n"]) (AST [IfAST (AST [SymbolAST "=", SymbolAST "n", IntAST 0]) (AST [IntAST 1]) (AST [SymbolAST "*", SymbolAST "n", AST [SymbolAST "factorial", AST [SymbolAST "-", SymbolAST "n", IntAST 1]]])])])], AST [SymbolAST "factorial", IntAST 5]])))
+    ]
+
 testParsingFunction :: Test
 testParsingFunction =
     TestList
         [
+            TestLabel "showFile" showFileTest,
+            TestLabel "showToken" showTokenTest,
+            TestLabel "printAST" printASTTest,
+
             TestLabel "parseChar" parseCharTest,
             TestLabel "parseString" parseStringTest,
             TestLabel "parseAnyChar" parseAnyCharTest,

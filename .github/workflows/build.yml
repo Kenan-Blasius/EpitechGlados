@@ -31,7 +31,8 @@ jobs:
           cp $(stack path --local-install-root)/bin/glados-exe ./glados
 
       - name: Test
-        run: ./test/test.sh
+        # run: ./test/test.sh
         # When we have a test suite, we can use the following instead:
-        # run: |
-        #  stack test --coverage --allow-different-user
+        run: |
+          stack test --coverage --allow-different-user
+          ./test/test.sh
