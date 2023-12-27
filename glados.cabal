@@ -42,7 +42,7 @@ library
 executable glados-exe
   main-is: Main.hs
   other-modules:
-      Eval
+      -- Eval
       Paths_glados
   autogen-modules:
       Paths_glados

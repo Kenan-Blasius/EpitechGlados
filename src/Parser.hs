@@ -291,97 +291,6 @@ parseList open sep close ignore token = Parser f
         --         Nothing -> Nothing
         --     Nothing -> Nothing
 
--- -- Test all parsers
--- parsingBootstrap :: IO ()
--- parsingBootstrap = do
---     putStrLn "------------------------------------"
---     putStrLn "Parsing bootstrap"
---     putStrLn "------------------------------------"
---     putStrLn ""
---     putStrLn "parseChar"
---     putStrLn $ show $ runParser (parseChar 'a') "abcd"
---     putStrLn $ show $ runParser (parseChar 'z') "abcd"
---     putStrLn $ show $ runParser (parseChar 'b') "abcd"
---     putStrLn $ show $ runParser (parseChar 'a') "aaaa"
---     putStrLn ""
---     putStrLn "parseString"
---     putStrLn $ show $ runParser (parseString "abc") "abcd"
---     putStrLn $ show $ runParser (parseString "abc") "abce"
---     putStrLn $ show $ runParser (parseString "abc") "ab"
---     putStrLn $ show $ runParser (parseString "abc") "abc"
---     putStrLn $ show $ runParser (parseString "abc") "abcabc"
---     putStrLn $ show $ runParser (parseString "abc") "bca"
---     putStrLn ""
---     putStrLn "parseAnyChar"
---     putStrLn $ show $ runParser (parseAnyChar "bca") "abcd"
---     putStrLn $ show $ runParser (parseAnyChar "xyz") "abcd"
---     putStrLn $ show $ runParser (parseAnyChar "bca") "cdef"
---     putStrLn ""
---     putStrLn "parseOr"
---     putStrLn $ show $ runParser (parseOr (parseChar 'a') (parseChar 'b')) "abcd"
---     putStrLn $ show $ runParser (parseOr (parseChar 'a') (parseChar 'b')) "bcda"
---     putStrLn $ show $ runParser (parseOr (parseChar 'a') (parseChar 'b')) "xyz"
---     putStrLn ""
---     putStrLn "parseAnd"
---     putStrLn $ show $ runParser (parseAnd (parseChar 'a') (parseChar 'b')) "abcd"
---     putStrLn $ show $ runParser (parseAnd (parseChar 'a') (parseChar 'b')) "bcda"
---     putStrLn $ show $ runParser (parseAnd (parseChar 'a') (parseChar 'b')) "acd"
---     putStrLn ""
---     putStrLn "parseAndWith"
---     putStrLn $ show $ runParser (parseAndWith (\ x y -> [x,y]) (parseChar 'a') (parseChar 'b')) "abcd"
---     putStrLn $ show $ runParser (parseAndWith (\ x y -> [x,y]) (parseChar 'a') (parseChar 'b')) "bcda"
---     putStrLn ""
---     putStrLn "parseMany"
---     putStrLn $ show $ runParser (parseMany (parseChar ' ')) "    foobar"
---     putStrLn $ show $ runParser (parseMany (parseChar ' ')) "foobar    "
---     putStrLn ""
---     putStrLn "parseSome"
---     putStrLn $ show $ runParser (parseSome (parseAnyChar ['0' .. '9'])) "42foobar"
---     putStrLn $ show $ runParser (parseSome (parseAnyChar ['0' .. '9'])) "foobar42"
---     putStrLn ""
---     putStrLn "parseUInt"
---     putStrLn $ show $ runParser parseUInt "42foobar"
---     putStrLn $ show $ runParser parseUInt "-42foobar"
---     putStrLn $ show $ runParser parseUInt "+42foobar"
---     putStrLn $ show $ runParser parseUInt "foobar42"
---     putStrLn ""
---     putStrLn "parseInt"
---     putStrLn $ show $ runParser parseInt "42foobar"
---     putStrLn $ show $ runParser parseInt "-42foobar"
---     putStrLn $ show $ runParser parseInt "+42foobar"
---     putStrLn $ show $ runParser parseInt "foobar42"
---     putStrLn ""
---     putStrLn "parsePair"
---     putStrLn $ show $ runParser (parsePair parseInt) "(1 2)"
---     putStrLn $ show $ runParser (parsePair parseInt) "(1 2 3)"
---     putStrLn $ show $ runParser (parsePair parseInt) "(1)"
---     putStrLn $ show $ runParser (parsePair parseInt) "(1"
---     putStrLn $ show $ runParser (parsePair parseInt) "1 2)"
---     putStrLn $ show $ runParser (parsePair parseInt) "1 2"
---     putStrLn $ show $ runParser (parsePair parseInt) "1"
---     putStrLn $ show $ runParser (parsePair parseInt) ""
---     putStrLn ""
---     putStrLn "parseOrBoth"
---     putStrLn $ show $ runParser (parseOrBoth (parseChar '4') parseInt) "42foobar"
---     putStrLn $ show $ runParser (parseOrBoth parseInt (parseChar '4')) "42foobar"
---     putStrLn $ show $ runParser (parseOrBoth parseInt (parseChar 'a')) "42foobar"
---     putStrLn $ show $ runParser (parseOrBoth (parseChar 'a') (parseChar '4')) "42foobar"
---     putStrLn $ show $ runParser (parseOrBoth (parseChar 'a') (parseChar 'b')) "42foobar"
---     putStrLn ""
---     putStrLn "parseList"
---     putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "(1 2)"
---     putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "(1 2 3)alut"
---     putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ',') (parseChar ')') (parseChar ' ') parseInt) "(1,  2,  3)"
---     putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ',') (parseChar ')') (parseChar ' ') parseInt) "alut(1,2,3)"
---     putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "(1)"
---     putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "(1"
---     putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "1 2)"
---     putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "1 2"
---     putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) "1"
---     putStrLn $ show $ runParser (parseList (parseChar '(') (parseChar ' ') (parseChar ')') (parseChar ' ') parseInt) ""
---     putStrLn ""
---     putStrLn "------------------------------------"
-
 -- INFO: Token Parser
 parseKeyword :: String -> Token -> Parser Token
 parseKeyword str token = Parser f
@@ -420,15 +329,32 @@ parseStringToken = Parser f
 parseToken :: Parser Token
 parseToken =
     -- KeyWords
-    (parseKeyword "define" DefineToken)
+    (parseKeyword "#define" DefineToken)
     <|> (parseKeyword "if" IfToken)
+    <|> (parseKeyword "else" ElseToken)
     <|> (parseKeyword "lambda" LambdaToken)
+    <|> (parseKeyword "fun" FunToken)
+    <|> (parseKeyword ":" FunTypeToken)
+    -- Types
+    <|> (parseKeyword "int" IntTypeToken)
+    <|> (parseKeyword "char" CharTypeToken)
+    <|> (parseKeyword "string" StringTypeToken)
+    -- Comments
+    <|> (parseKeyword "/*" CommentStart)
+    <|> (parseKeyword "*/" CommentEnd)
+    <|> (parseKeyword "//" InlineCommentStart)
+    -- Line separator
+    <|> (parseKeyword ";" LineSeparator)
     -- Spacer
     <|> (parseKeyword " " SpaceToken)
     <|> (parseKeyword "\t" SpaceToken)
     -- List
     <|> (parseKeyword "(" OpenParenthesis)
     <|> (parseKeyword ")" CloseParenthesis)
+    <|> (parseKeyword "[" OpenBracket)
+    <|> (parseKeyword "]" CloseBracket)
+    <|> (parseKeyword "{" OpenBraces)
+    <|> (parseKeyword "}" CloseBraces)
     -- Quotes
     <|> (parseStringToken)
     -- Numbers
@@ -447,14 +373,16 @@ parseLine str lineNumber =
             Just (x, _) -> do
                 return (x)
             Nothing -> do
-                hPutStrLn stderr $ "Invalid syntax at line " ++ show lineNumber ++ ": " ++ str
-                exitWith (ExitFailure 84)
+                throw (ParserError ("Invalid syntax at line " ++ show lineNumber ++ ": " ++ str))
+                -- hPutStrLn stderr $ "Invalid syntax at line " ++ show lineNumber ++ ": " ++ str
+                -- exitWith (ExitFailure 84)
         ) handler
     where
         handler :: ParserError -> IO ([Token])
         handler e = do
-            hPutStrLn stderr $ "Invalid syntax at line " ++ show lineNumber ++ ": " ++ show e
-            exitWith (ExitFailure 84)
+            throw (ParserError ("Invalid syntax at line " ++ show lineNumber ++ ": " ++ show e))
+            -- hPutStrLn stderr $ "Invalid syntax at line " ++ show lineNumber ++ ": " ++ show e
+            -- exitWith (ExitFailure 84)
 
     -- case words str of
     --     [] -> do
@@ -499,14 +427,25 @@ parseLine str lineNumber =
 
 mergeSymbols :: [Token] -> [Token]
 mergeSymbols [] = []
+-- Once we found a InlineCommentStart we ignore all the rest of the line
+mergeSymbols (InlineCommentStart : _) = []
 -- merge all consecutive symbols (ex: b o n j o u r  -> bonjour)
 mergeSymbols (SymbolToken x : SymbolToken y : xs) = mergeSymbols (SymbolToken (x ++ y) : xs)
+mergeSymbols (SymbolToken x : IntTypeToken : xs) = mergeSymbols (SymbolToken (x ++ "int") : xs)
+mergeSymbols (SymbolToken x : CharTypeToken : xs) = mergeSymbols (SymbolToken (x ++ "char") : xs)
+mergeSymbols (SymbolToken x : StringTypeToken : xs) = mergeSymbols (SymbolToken (x ++ "string") : xs)
+mergeSymbols (SymbolToken x : IfToken : xs) = mergeSymbols (SymbolToken (x ++ "if") : xs)
+mergeSymbols (SymbolToken x : ElseToken : xs) = mergeSymbols (SymbolToken (x ++ "else") : xs)
+mergeSymbols (SymbolToken x : LambdaToken : xs) = mergeSymbols (SymbolToken (x ++ "lambda") : xs)
+mergeSymbols (SymbolToken x : FunToken : xs) = mergeSymbols (SymbolToken (x ++ "fun") : xs)
 -- merge all consecutive numbers (ex: 1 2 3 -> 123)
 mergeSymbols (IntToken x : IntToken y : xs) = mergeSymbols (IntToken (x * 10 + y) : xs)
 -- -- Trim all spaces
 -- mergeSymbols (SpaceToken : SpaceToken : xs) = mergeSymbols (SpaceToken : xs)
 -- Delete all spaces
 mergeSymbols (SpaceToken : xs) = mergeSymbols xs
+-- Concat all LineSeparator
+mergeSymbols (LineSeparator : LineSeparator : xs) = mergeSymbols (LineSeparator : xs)
 -- No merge needed
 mergeSymbols (x:xs) = x : mergeSymbols xs
 
@@ -518,47 +457,117 @@ parseFile (File (x:xs)) lineNumber = do
     return ((mergeSymbols parsedLine) ++ rest)
 
 -- INFO: Convert token list to SExpr
-getSubList :: [Token] -> ([Token], [Token])
-getSubList [] = ([], [])
-getSubList (CloseParenthesis : xs) = ([], xs)
-getSubList (OpenParenthesis : xs) = do
-    let (subList, rest) = getSubList xs
-    let (subList2, rest2) = getSubList rest
-    (OpenParenthesis : subList ++ CloseParenthesis : subList2, rest2)
-getSubList (x:xs) = do
-    let (subList, rest) = getSubList xs
+getSubList :: Token -> Token -> [Token] -> ([Token], [Token])
+getSubList _ _ [] = ([], [])
+-- Comment case
+getSubList CommentStart CommentEnd (x:xs) | x == CommentEnd = ([], xs)
+getSubList CommentStart CommentEnd (_:xs) = getSubList CommentStart CommentEnd xs
+-- All case
+getSubList _ close (x:xs) | x == close = ([], xs)
+getSubList open close (x:xs) | x == open = do
+    let (subList, rest) = getSubList open close xs
+    let (subList2, rest2) = getSubList open close rest
+    (open : subList ++ close : subList2, rest2)
+getSubList open close (x:xs) = do
+    let (subList, rest) = getSubList open close xs
     (x : subList, rest)
 
 tokenListToSexpr :: [Token] -> [Token]
 tokenListToSexpr [] = []
+-- all between comment is ignored
+tokenListToSexpr (CommentStart : xs) = do
+    let (_, rest) = getSubList CommentStart CommentEnd xs
+    tokenListToSexpr rest
+-- Create a sub list for function type
+tokenListToSexpr (FunTypeToken : xs) = do
+    ListToken [FunTypeToken, head xs] : tokenListToSexpr (tail xs)
 -- all between parenthesis is a sub list of tokens
 tokenListToSexpr (OpenParenthesis : xs) = do
-    let (subList, rest) = getSubList xs
+    let (subList, rest) = getSubList OpenParenthesis CloseParenthesis xs
+    ListToken (tokenListToSexpr subList) : tokenListToSexpr rest
+-- all between bracket is a sub list of tokens
+tokenListToSexpr (OpenBracket : xs) = do
+    let (subList, rest) = getSubList OpenBracket CloseBracket xs
+    ListToken (tokenListToSexpr subList) : tokenListToSexpr rest
+-- all between braces is a sub list of tokens
+tokenListToSexpr (OpenBraces : xs) = do
+    let (subList, rest) = getSubList OpenBraces CloseBraces xs
     ListToken (tokenListToSexpr subList) : tokenListToSexpr rest
 -- all other tokens are converted to SExpr
 tokenListToSexpr (x:xs) = x : tokenListToSexpr xs
 
 -- INFO: Convert SExpr to AST
+splitAtValue :: Eq a => a -> [a] -> Maybe ([a], a, [a])
+splitAtValue _ [] = Nothing
+splitAtValue val (x:xs)
+    | val == x = Just ([], x, xs)
+    | otherwise = case splitAtValue val xs of
+                    Nothing -> Nothing
+                    Just (before, v, after) -> Just (x:before, v, after)
+
 sexprToAst :: [Token] -> AST
 sexprToAst [] = DeadLeafAST
+-- ! Line separator token
+sexprToAst x | case splitAtValue LineSeparator x of
+            Nothing -> False
+            Just (_, _, _) -> True = do
+    let (before, _, after) = case splitAtValue LineSeparator x of
+            Nothing -> ([], LineSeparator, [])
+            Just (b, _, a) -> (b, LineSeparator, a)
+    AST [sexprToAst before] <> sexprToAst after
+-- ! Types token
+sexprToAst (IntTypeToken : xs) = do
+    AST [IntTypeAST] <> sexprToAst xs
+sexprToAst (CharTypeToken : xs) = do
+    AST [CharTypeAST] <> sexprToAst xs
+sexprToAst (StringTypeToken : xs) = do
+    AST [StringTypeAST] <> sexprToAst xs
+-- ! Fun token
+sexprToAst (FunToken : name : returnType : args : body : xs) = do
+    let returnType2 = case returnType of
+            ListToken x -> x
+            _ -> [returnType]
+    let args2 = case args of
+            ListToken x -> x
+            _ -> [args]
+    let body2 = case body of
+            ListToken x -> x
+            _ -> [body]
+    -- let (name, rest) = (head xs, tail xs)
+    -- let (args, rest2) = getSubList OpenParenthesis CloseParenthesis rest
+    -- let (body, rest3) = getSubList OpenBraces CloseBraces rest2
+    AST [FunAST (show name) (sexprToAst returnType2) (sexprToAst args2) (sexprToAst body2)] <> sexprToAst xs
 -- ! If token
-sexprToAst (IfToken : xs) = do
-    let (cond, expr1, expr2) = (head xs, head (tail xs), head (tail (tail xs)))
+sexprToAst (IfToken : cond : expr : xs) = do
+    -- let (cond, expr1) = (head xs, head (tail xs))
     let cond2 = case cond of
             ListToken x -> x
             _ -> [cond]
-    let expr12 = case expr1 of
+    let expr12 = case expr of
             ListToken x -> x
-            _ -> [expr1]
-    let expr22 = case expr2 of
+            _ -> [expr]
+    -- let expr22 = case expr2 of
+    --         ListToken x -> x
+    --         _ -> [expr2]
+    AST [IfAST (sexprToAst cond2) (sexprToAst expr12)] <> sexprToAst xs
+-- ! Else token
+sexprToAst (ElseToken : expr : xs) = do
+    let expr2 = case expr of
             ListToken x -> x
-            _ -> [expr2]
-    IfAST (sexprToAst cond2) (sexprToAst expr12) (sexprToAst expr22)
+            _ -> [expr]
+    AST [ElseAST (sexprToAst expr2)] <> sexprToAst xs
 -- ! Define token
-sexprToAst (DefineToken : xs) = do
-    let (name, rest) = (head xs, tail xs)
-    let (expr, _) = getSubList rest
-    AST [DefineAST (show name) (sexprToAst expr)]
+sexprToAst (DefineToken : name : expr : xs) = do
+    -- if type of name isn't SymbolToken then throw error
+    if case name of
+        SymbolToken _ -> False
+        _ -> True then do
+        throw $ (ParserError "Error: Invalid type for name in define")
+    else do
+        let expr2 = case expr of
+                ListToken x -> x
+                _ -> [expr]
+        AST [DefineAST (show name) (sexprToAst expr2)] <> sexprToAst xs
 -- ! Lambda token
 sexprToAst (LambdaToken : xs) = do
     let (args, body) = (head xs, tail xs)
@@ -589,29 +598,50 @@ checkSyntax :: [Token] -> IO ()
 checkSyntax xs = do
     let nbOpenParenthesis = length $ filter (== OpenParenthesis) xs
     let nbCloseParenthesis = length $ filter (== CloseParenthesis) xs
+    let nbOpenBracket = length $ filter (== OpenBracket) xs
+    let nbCloseBracket = length $ filter (== CloseBracket) xs
+    let nbOpenBraces = length $ filter (== OpenBraces) xs
+    let nbCloseBraces = length $ filter (== CloseBraces) xs
+    let nbCommentStart = length $ filter (== CommentStart) xs
+    let nbCommentEnd = length $ filter (== CommentEnd) xs
     if nbOpenParenthesis < nbCloseParenthesis then do
-        hPutStrLn stderr $ "Error: Missing ( token"
-        exitWith (ExitFailure 84)
+        throw $ (ParserError "Error: Missing ( token")
     else if nbOpenParenthesis > nbCloseParenthesis then do
-        hPutStrLn stderr $ "Error: Missing ) token"
-        exitWith (ExitFailure 84)
+        throw $ (ParserError "Error: Missing ) token")
+    else if nbOpenBracket < nbCloseBracket then do
+        throw $ (ParserError "Error: Missing [ token")
+    else if nbOpenBracket > nbCloseBracket then do
+        throw $ (ParserError "Error: Missing ] token")
+    else if nbOpenBraces < nbCloseBraces then do
+        throw $ (ParserError "Error: Missing { token")
+    else if nbOpenBraces > nbCloseBraces then do
+        throw $ (ParserError "Error: Missing } token")
+    else if nbCommentStart /= nbCommentEnd then do
+        throw $ (ParserError "Error: Missing */ token")
     else do
         return ()
 
 parser :: File -> IO (AST)
 parser file = do
-    -- parsingBootstrap
-    -- putStrLn "------------------------------------"
-    -- putStrLn $ show file
-    -- putStrLn "------------------------------------"
-    tokenList <- parseFile file 0
-    checkSyntax tokenList
-    -- putStrLn $ show $ tokenList
-    -- putStrLn "------------------------------------"
-    -- putStrLn $ show $ tokenListToSexpr tokenList
-    -- putStrLn "------------------------------------"
-    let sexpr = tokenListToSexpr tokenList
-    -- putStrLn $ printAST $ sexprToAst sexpr
-    -- putStrLn "------------------------------------"
-    let ast = sexprToAst sexpr
-    return (ast)
+    catch (
+        do
+        putStrLn "------------------------------------"
+        putStrLn $ show file
+        putStrLn "------------------------------------"
+        tokenList <- parseFile file 0
+        checkSyntax tokenList
+        putStrLn $ show $ tokenList
+        putStrLn "------------------------------------"
+        putStrLn $ show $ tokenListToSexpr tokenList
+        putStrLn "------------------------------------"
+        let sexpr = tokenListToSexpr tokenList
+        putStrLn $ printAST $ sexprToAst sexpr
+        putStrLn "------------------------------------"
+        let ast = sexprToAst sexpr
+        return (ast)
+        ) handler
+    where
+        handler :: ParserError -> IO (AST)
+        handler e = do
+            hPutStrLn stderr $ show e
+            exitWith (ExitFailure 84)

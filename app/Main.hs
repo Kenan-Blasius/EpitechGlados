@@ -2,7 +2,7 @@ module Main (main) where
 
 import System.Environment
 import Types
-import Eval
+-- import Eval
 import Parser
 
 -- INFO: Main function
@@ -15,8 +15,9 @@ main = do
             contents <- readFile filename
             file <- return $ File (lines contents)
             ast <- parser file
-            let env = []
-            let (_, evaluatedAST) = evalAST env ast
-            print (evaluatedAST)
+            putStrLn $ show ast
+            -- let env = []
+            -- let (_, evaluatedAST) = evalAST env ast
+            -- print (evaluatedAST)
         _ -> do
             putStrLn "No file given as an argument"
