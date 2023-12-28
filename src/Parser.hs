@@ -321,8 +321,20 @@ parseStringToken = Parser f
             -- parse all chars except "
             Just (_, ys) -> case runParser (parseMany (parseAnyChar [chr i | i <- [0 .. 255], chr i /= '\"'])) ys of
                 Just (z, zs) -> case runParser (parseChar '\"') zs of
-                    Just (_, ws) -> Just (SymbolToken ("\"" ++ z ++ "\""), ws)
+                    Just (_, ws) -> Just (StringToken z, ws)
                     Nothing -> throw (ParserError "Missing \" token")
+                Nothing -> Nothing
+            Nothing -> Nothing
+
+parseCharToken :: Parser Token
+parseCharToken = Parser f
+    where
+        f x = case runParser (parseChar '\'') x of
+            -- parse all chars except '
+            Just (_, ys) -> case runParser (parseAnyChar [chr i | i <- [0 .. 255], chr i /= '\'']) ys of
+                Just (z, zs) -> case runParser (parseChar '\'') zs of
+                    Just (_, ws) -> Just (CharToken z, ws)
+                    Nothing -> throw (ParserError "Missing ' token")
                 Nothing -> Nothing
             Nothing -> Nothing
 
@@ -359,6 +371,7 @@ parseToken =
     <|> (parseKeyword "}" CloseBraces)
     -- Quotes
     <|> (parseStringToken)
+    <|> (parseCharToken)
     -- Numbers
     <|> (parseIntToken)
     -- Symbols (others)
@@ -587,6 +600,12 @@ sexprToAst (IntToken x : xs) = do
 --     AST [SymbolAST x, sexprToAst y]
 sexprToAst (SymbolToken x : xs) = do
     AST [SymbolAST x] <> sexprToAst xs
+-- ! String token
+sexprToAst (StringToken x : xs) = do
+    AST [StringAST x] <> sexprToAst xs
+-- ! Char token
+sexprToAst (CharToken x : xs) = do
+    AST [CharAST x] <> sexprToAst xs
 -- ! List token
 sexprToAst (ListToken (x : xs) : ys) = do
     AST [sexprToAst (x : xs)] <> sexprToAst ys

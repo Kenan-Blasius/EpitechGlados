@@ -50,6 +50,8 @@ data Token = OpenParenthesis
             | LambdaToken
             | IntToken Int
             | SymbolToken String
+            | StringToken String
+            | CharToken Char
             | CommaToken
             | LineSeparator
             | ListToken [Token]
@@ -77,6 +79,8 @@ instance Show Token where
     show LambdaToken = "LAMBDA"
     show (IntToken x) = show x
     show (SymbolToken x) = x
+    show (StringToken x) = "\"" ++ x ++ "\""
+    show (CharToken x) = show x
     show CommaToken = "COMMA"
     show LineSeparator = "LineSEPARATOR"
     show (ListToken x) = show x
@@ -103,6 +107,8 @@ instance Eq Token where
     LambdaToken == LambdaToken = True
     (IntToken x) == (IntToken y) = x == y
     (SymbolToken x) == (SymbolToken y) = x == y
+    (StringToken x) == (StringToken y) = x == y
+    (CharToken x) == (CharToken y) = x == y
     CommaToken == CommaToken = True
     LineSeparator == LineSeparator = True
     (ListToken x) == (ListToken y) = x == y
@@ -123,6 +129,8 @@ data AST = AST [AST] -- list of AST
          | LambdaClosure [String] AST Environment
          | IntAST Int -- value
          | SymbolAST String -- name
+         | StringAST String -- value
+         | CharAST Char -- value
          | DeadLeafAST
          deriving Show
 
@@ -139,6 +147,8 @@ instance Eq AST where
     LambdaClosure args1 body1 env1 == LambdaClosure args2 body2 env2 = args1 == args2 && body1 == body2 && env1 == env2
     IntAST x == IntAST y = x == y
     SymbolAST x == SymbolAST y = x == y
+    StringAST x == StringAST y = x == y
+    CharAST x == CharAST y = x == y
     DeadLeafAST == DeadLeafAST = True
     _ == _ = False
 
@@ -180,6 +190,8 @@ printAST = printASTIndented 0
         printASTIndented depth IntTypeAST = indent depth ++ "IntTypeAST\n"
         printASTIndented depth CharTypeAST = indent depth ++ "CharTypeAST\n"
         printASTIndented depth StringTypeAST = indent depth ++ "StringTypeAST\n"
+        printASTIndented depth (StringAST value) = indent depth ++ "StringAST " ++ show value ++ "\n"
+        printASTIndented depth (CharAST value) = indent depth ++ "CharAST " ++ show value ++ "\n"
 
 -- Overload the ++ operator for AST
 instance Semigroup AST where
