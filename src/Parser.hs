@@ -239,31 +239,6 @@ parsePair (Parser f) = Parser h
         --         Nothing -> Nothing
         --     Nothing -> Nothing
 
-
--- parseList' :: Char -> Char -> Char -> Parser a -> Parser [a]
--- parseList' _ sep close (Parser f) = Parser h
---     where
---         h xs = case f xs of -- check parse
---             Just (b, bs) -> case runParser (parseChar sep) bs of -- if parse then check sep
---                 Just (_, cs) -> case h cs of -- if sep then check list
---                     Just (d, es) -> Just (b : d, es)
---                     Nothing -> case runParser (parseChar close) cs of -- if not list then check close
---                         Just (_, fs) -> Just ([b], fs)
---                         Nothing -> Nothing
---                 Nothing -> case runParser (parseChar close) bs of -- if not sep then check close
---                     Just (_, cs) -> Just ([b], cs)
---                     Nothing -> Nothing
---             Nothing -> case runParser (parseChar close) xs of -- if not parse then check close
---                 Just (_, bs) -> Just ([], bs)
---                 Nothing -> Nothing
-
--- parseList :: Char -> Char -> Char -> Parser a -> Parser [a]
--- parseList open sep close (Parser f) = Parser h
---     where
---         h x = case runParser (parseAnd (parseChar open) (parseList' open sep close (Parser f))) x of
---             Just ((_, y), ys) -> Just (y, ys)
---             Nothing -> Nothing
-
 parseOrBoth :: Parser a -> Parser b -> Parser (Either a b)
 parseOrBoth (Parser f) (Parser g) = Parser h
     where
@@ -389,56 +364,11 @@ parseLine str lineNumber =
                 return (x)
             Nothing -> do
                 throw (ParserError ("Invalid syntax at line " ++ show lineNumber ++ ": " ++ str))
-                -- hPutStrLn stderr $ "Invalid syntax at line " ++ show lineNumber ++ ": " ++ str
-                -- exitWith (ExitFailure 84)
         ) handler
     where
         handler :: ParserError -> IO ([Token])
         handler e = do
             throw (ParserError ("Invalid syntax at line " ++ show lineNumber ++ ": " ++ show e))
-            -- hPutStrLn stderr $ "Invalid syntax at line " ++ show lineNumber ++ ": " ++ show e
-            -- exitWith (ExitFailure 84)
-
-    -- case words str of
-    --     [] -> do
-    --         return ([])
-    --     ("define":xs) -> do
-    --         tmpDefine <- parseLine (" " ++ unwords xs) lineNumber
-    --         return ([DefineToken] ++ tmpDefine)
-    --     ("if":xs) -> do
-    --         tmpIf <- parseLine (" " ++ unwords xs) lineNumber
-    --         return ([IfToken] ++ tmpIf)
-    --     ("lambda":xs) -> do
-    --         tmpLambda <- parseLine (" " ++ unwords xs) lineNumber
-    --         return ([LambdaToken] ++ tmpLambda)
-    --     (_:_) -> do
-    --         -- for each char in the string generate the tokens
-    --         case str of
-    --             [] -> do
-    --                 return ([])
-    --             (' ':ys) -> do
-    --                 tmpSpace <- parseLine ys lineNumber
-    --                 return ([SpaceToken] ++ tmpSpace)
-    --             ('(':ys) -> do
-    --                 tmpOpenParenthesis <- parseLine ys lineNumber
-    --                 return ([OpenParenthesis] ++ tmpOpenParenthesis)
-    --             (')':ys) -> do
-    --                 tmpCloseParenthesis <- parseLine ys lineNumber
-    --                 return ([CloseParenthesis] ++ tmpCloseParenthesis)
-    --             ('\"':ys) -> do
-    --                 let (quoteStr, rest) = span (/= '\"') ys
-    --                 if null rest then do
-    --                     hPutStrLn stderr $ "Error: Missing \" at line " ++ show lineNumber
-    --                     exitWith (ExitFailure 84)
-    --                 else do
-    --                     tmpQuoteStr <- parseLine (tail rest) lineNumber
-    --                     return ([SymbolToken quoteStr] ++ tmpQuoteStr)
-    --             (y:ys) | y `elem` ['0'..'9'] -> do
-    --                 tmpInt <- parseLine ys lineNumber
-    --                 return ([IntToken (read [y])] ++ tmpInt)
-    --             (y:ys) -> do
-    --                 tmpSymbol <- parseLine ys lineNumber
-    --                 return ([SymbolToken [y]] ++ tmpSymbol)
 
 mergeSymbols :: [Token] -> [Token]
 mergeSymbols [] = []
@@ -455,8 +385,6 @@ mergeSymbols (SymbolToken x : LambdaToken : xs) = mergeSymbols (SymbolToken (x +
 mergeSymbols (SymbolToken x : FunToken : xs) = mergeSymbols (SymbolToken (x ++ "fun") : xs)
 -- merge all consecutive numbers (ex: 1 2 3 -> 123)
 mergeSymbols (IntToken x : IntToken y : xs) = mergeSymbols (IntToken (x * 10 + y) : xs)
--- -- Trim all spaces
--- mergeSymbols (SpaceToken : SpaceToken : xs) = mergeSymbols (SpaceToken : xs)
 -- Delete all spaces
 mergeSymbols (SpaceToken : xs) = mergeSymbols xs
 -- Concat all LineSeparator
@@ -548,22 +476,15 @@ sexprToAst (FunToken : name : returnType : args : body : xs) = do
     let body2 = case body of
             ListToken x -> x
             _ -> [body]
-    -- let (name, rest) = (head xs, tail xs)
-    -- let (args, rest2) = getSubList OpenParenthesis CloseParenthesis rest
-    -- let (body, rest3) = getSubList OpenBraces CloseBraces rest2
     AST [FunAST (show name) (sexprToAst returnType2) (sexprToAst args2) (sexprToAst body2)] <> sexprToAst xs
 -- ! If token
 sexprToAst (IfToken : cond : expr : xs) = do
-    -- let (cond, expr1) = (head xs, head (tail xs))
     let cond2 = case cond of
             ListToken x -> x
             _ -> [cond]
     let expr12 = case expr of
             ListToken x -> x
             _ -> [expr]
-    -- let expr22 = case expr2 of
-    --         ListToken x -> x
-    --         _ -> [expr2]
     AST [IfAST (sexprToAst cond2) (sexprToAst expr12)] <> sexprToAst xs
 -- ! Else token
 sexprToAst (ElseToken : expr : xs) = do
@@ -591,13 +512,9 @@ sexprToAst (LambdaToken : xs) = do
             _ -> [args]
     LambdaAST (sexprToAst args2) (sexprToAst body)
 -- ! Int token
--- sexprToAst (IntToken x : ListToken y : _) = do
---     AST [IntAST x, sexprToAst y]
 sexprToAst (IntToken x : xs) = do
     AST [IntAST x] <> sexprToAst xs
 -- ! Symbol token
--- sexprToAst (SymbolToken x : ListToken y : _) = do
---     AST [SymbolAST x, sexprToAst y]
 sexprToAst (SymbolToken x : xs) = do
     AST [SymbolAST x] <> sexprToAst xs
 -- ! String token
@@ -615,7 +532,6 @@ sexprToAst (_ : xs) = do
 
 -- INFO: Main function
 checkSyntax :: [Token] -> IO ()
--- check if nb of open parenthesis == nb of close parenthesis
 checkSyntax xs = do
     let nbOpenParenthesis = length $ filter (== OpenParenthesis) xs
     let nbCloseParenthesis = length $ filter (== CloseParenthesis) xs
