@@ -343,6 +343,8 @@ parseToken =
     <|> (parseKeyword "/*" CommentStart)
     <|> (parseKeyword "*/" CommentEnd)
     <|> (parseKeyword "//" InlineCommentStart)
+    -- Separator
+    <|> (parseKeyword "," CommaToken)
     -- Line separator
     <|> (parseKeyword ";" LineSeparator)
     -- Spacer

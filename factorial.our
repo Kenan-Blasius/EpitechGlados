@@ -1,6 +1,6 @@
 #define my_int int
 
-fun factorial (int n) /* lol this is a comment to try to break something */: my_int // and this is an inline comment
+fun factorial (int n, char c) /* lol this is a comment to try to break something */: my_int // and this is an inline comment
 {
     if (n == 0) {
         return 1;
@@ -18,7 +18,7 @@ fun factorial (int n) /* lol this is a comment to try to break something */: my_
 */
 fun main () : int
 {
-    int a = factorial(a); int b = factorial(b);
+    int a = factorial(a, 'a'); int b = factorial(b, 'b');
 
     print(a);
 

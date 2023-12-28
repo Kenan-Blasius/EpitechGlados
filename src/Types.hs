@@ -50,6 +50,7 @@ data Token = OpenParenthesis
             | LambdaToken
             | IntToken Int
             | SymbolToken String
+            | CommaToken
             | LineSeparator
             | ListToken [Token]
             -- deriving Show
@@ -76,6 +77,7 @@ instance Show Token where
     show LambdaToken = "LAMBDA"
     show (IntToken x) = show x
     show (SymbolToken x) = x
+    show CommaToken = "COMMA"
     show LineSeparator = "LineSEPARATOR"
     show (ListToken x) = show x
 
@@ -101,6 +103,7 @@ instance Eq Token where
     LambdaToken == LambdaToken = True
     (IntToken x) == (IntToken y) = x == y
     (SymbolToken x) == (SymbolToken y) = x == y
+    CommaToken == CommaToken = True
     LineSeparator == LineSeparator = True
     (ListToken x) == (ListToken y) = x == y
     _ == _ = False
