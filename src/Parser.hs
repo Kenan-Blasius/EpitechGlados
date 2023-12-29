@@ -113,7 +113,7 @@ parseLine str lineNumber =
     where
         handler :: ParserError -> IO ([Token])
         handler e = do
-            throw (ParserError ("Invalid syntax at line " ++ show lineNumber ++ ": " ++ show e))
+            throw (ParserError ("Invalid syntax at line " ++ show lineNumber ++ ":\n" ++ str ++ "\n" ++ show e))
 
 mergeSymbols :: [Token] -> [Token]
 mergeSymbols [] = []
