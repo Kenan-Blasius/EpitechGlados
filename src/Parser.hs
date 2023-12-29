@@ -195,6 +195,20 @@ splitAtValue val (x:xs)
 
 sexprToAst :: [Token] -> AST
 sexprToAst [] = DeadLeafAST
+-- ! Comma token
+sexprToAst x | case splitAtValue CommaToken x of
+            Nothing -> False
+            Just (_, _, _) -> True = do
+    let (before, _, after) = case splitAtValue CommaToken x of
+            Nothing -> ([], CommaToken, [])
+            Just (b, _, a) -> (b, CommaToken, a)
+    -- case length of after without the CommaToken
+    case length $ filter (/= CommaToken) after of
+        -- if there is no more element after the CommaToken
+        0 -> AST [sexprToAst before]
+        -- add a CommaToken at the end of the list
+        -- so after can be wrapped in an AST[] even if it's the last element
+        _ -> AST [sexprToAst before] <> sexprToAst (after ++ [CommaToken])
 -- ! Line separator token
 sexprToAst x | case splitAtValue LineSeparator x of
             Nothing -> False
