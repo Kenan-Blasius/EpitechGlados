@@ -324,7 +324,7 @@ parser file = do
         putStrLn "------------------------------------"
         putStrLn $ show file
         putStrLn "------------------------------------"
-        tokenList <- parseFile file 0
+        tokenList <- parseFile file 1
         checkSyntax tokenList
         putStrLn $ show $ tokenList
         putStrLn "------------------------------------"
