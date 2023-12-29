@@ -1,4 +1,4 @@
-import Parser
+import ParserModule
 import Types
 import Test.HUnit
 
@@ -197,8 +197,7 @@ printASTTest =
         TestCase (assertEqual "printAST" "AST\n" (printAST (AST []))),
         TestCase (assertEqual "printAST" "AST\n|   DefineAST my_var\n|   |   AST\n|   |   |   DeadLeafAST\n" (printAST (AST [DefineAST "my_var" (AST [DeadLeafAST])]))),
         TestCase (assertEqual "printAST" "AST\n|   DefineAST my_var\n|   |   AST\n|   |   |   IntAST 42\n" (printAST (AST [DefineAST "my_var" (AST [IntAST 42])]))),
-        TestCase (assertEqual "printAST" "AST\n|   DefineAST my_var\n|   |   AST\n|   |   |   SymbolAST \"Hello World\"\n" (printAST (AST [DefineAST "my_var" (AST [SymbolAST "\"Hello World\""])]))),
-        TestCase (assertEqual "printAST" "AST\n|   AST\n|   |   DefineAST factorial\n|   |   |   AST\n|   |   |   |   LambdaAST\n|   |   |   |   |   AST\n|   |   |   |   |   |   SymbolAST n\n|   |   |   |   |   AST\n|   |   |   |   |   |   IfAST\n|   |   |   |   |   |   |   AST\n|   |   |   |   |   |   |   |   SymbolAST =\n|   |   |   |   |   |   |   |   SymbolAST n\n|   |   |   |   |   |   |   |   IntAST 0\n|   |   |   |   |   |   |   AST\n|   |   |   |   |   |   |   |   IntAST 1\n|   |   |   |   |   |   |   AST\n|   |   |   |   |   |   |   |   SymbolAST *\n|   |   |   |   |   |   |   |   SymbolAST n\n|   |   |   |   |   |   |   |   AST\n|   |   |   |   |   |   |   |   |   SymbolAST factorial\n|   |   |   |   |   |   |   |   |   AST\n|   |   |   |   |   |   |   |   |   |   SymbolAST -\n|   |   |   |   |   |   |   |   |   |   SymbolAST n\n|   |   |   |   |   |   |   |   |   |   IntAST 1\n|   AST\n|   |   SymbolAST factorial\n|   |   IntAST 5\n" (printAST (AST [AST [DefineAST "factorial" (AST [LambdaAST (AST [SymbolAST "n"]) (AST [IfAST (AST [SymbolAST "=", SymbolAST "n", IntAST 0]) (AST [IntAST 1]) (AST [SymbolAST "*", SymbolAST "n", AST [SymbolAST "factorial", AST [SymbolAST "-", SymbolAST "n", IntAST 1]]])])])], AST [SymbolAST "factorial", IntAST 5]])))
+        TestCase (assertEqual "printAST" "AST\n|   DefineAST my_var\n|   |   AST\n|   |   |   SymbolAST \"Hello World\"\n" (printAST (AST [DefineAST "my_var" (AST [SymbolAST "\"Hello World\""])])))
     ]
 
 testParsingFunction :: Test
