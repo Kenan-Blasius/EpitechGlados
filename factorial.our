@@ -22,6 +22,10 @@ fun main () : int
 {
     int a = factorial(a, 'a'); int b = factorial(b, 'b');
 
+    for (int i = 0; i < 10; i++) {
+        a = a + 1;
+    }
+
     print(a);
 
     return 0;

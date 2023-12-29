@@ -65,6 +65,7 @@ parseToken =
     <|> (parseKeyword "if" IfToken)
     <|> (parseKeyword "else" ElseToken)
     <|> (parseKeyword "lambda" LambdaToken)
+    <|> (parseKeyword "for" ForToken)
     <|> (parseKeyword "fun" FunToken)
     <|> (parseKeyword ":" FunTypeToken)
     -- Types
@@ -209,6 +210,24 @@ sexprToAst x | case splitAtValue CommaToken x of
         -- add a CommaToken at the end of the list
         -- so after can be wrapped in an AST[] even if it's the last element
         _ -> AST [sexprToAst before] <> sexprToAst (after ++ [CommaToken])
+-- ! For token
+sexprToAst (ForToken : ici : expr : xs) = do
+    let ici2 = case ici of
+            ListToken x -> x
+            _ -> [ici]
+    let expr2 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    let (initer, _, rest) = case splitAtValue LineSeparator ici2 of
+            Nothing -> ([], LineSeparator, [])
+            Just (b, _, a) -> (b, LineSeparator, a)
+    let (cond, _, rest2) = case splitAtValue LineSeparator rest of
+            Nothing -> ([], LineSeparator, [])
+            Just (b, _, a) -> (b, LineSeparator, a)
+    let (incr, _, _) = case splitAtValue LineSeparator (rest2 ++ [LineSeparator]) of
+            Nothing -> ([], LineSeparator, [])
+            Just (b, _, a) -> (b, LineSeparator, a)
+    AST [ForAST (sexprToAst initer) (sexprToAst cond) (sexprToAst incr) (sexprToAst expr2)] <> sexprToAst xs
 -- ! Fun token
 sexprToAst (FunToken : name : returnType : args : body : xs) = do
     let returnType2 = case returnType of

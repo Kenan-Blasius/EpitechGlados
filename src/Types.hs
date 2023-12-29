@@ -34,6 +34,7 @@ data Token = OpenParenthesis
             | SpaceToken
             | IfToken
             | ElseToken
+            | ForToken
             | FunToken
             | FunTypeToken
             | IntTypeToken
@@ -63,6 +64,7 @@ instance Show Token where
     show SpaceToken = "SPACE"
     show IfToken = "IF"
     show ElseToken = "ELSE"
+    show ForToken = "FOR"
     show FunToken = "FUN"
     show FunTypeToken = "FUNTYPE"
     show IntTypeToken = "INT"
@@ -91,6 +93,7 @@ instance Eq Token where
     SpaceToken == SpaceToken = True
     IfToken == IfToken = True
     ElseToken == ElseToken = True
+    ForToken == ForToken = True
     FunToken == FunToken = True
     FunTypeToken == FunTypeToken = True
     IntTypeToken == IntTypeToken = True
@@ -120,6 +123,7 @@ data AST = AST [AST] -- list of AST
          | IfAST AST AST -- cond expr1
          | ElseAST AST -- expr
          | DefineAST String AST -- name expr
+         | ForAST AST AST AST AST -- init cond incr expr
          | FunTypeAST AST -- type
          | FunAST String AST AST AST -- name returnType arg expr
          | IntTypeAST -- type
@@ -139,6 +143,7 @@ instance Eq AST where
     IfAST cond1 expr1 == IfAST cond2 expr3 = cond1 == cond2 && expr1 == expr3
     ElseAST expr1 == ElseAST expr2 = expr1 == expr2
     DefineAST name1 expr1 == DefineAST name2 expr2 = name1 == name2 && expr1 == expr2
+    ForAST init1 cond1 incr1 expr1 == ForAST init2 cond2 incr2 expr2 = init1 == init2 && cond1 == cond2 && incr1 == incr2 && expr1 == expr2
     FunAST name1 type1 arg1 expr1 == FunAST name2 type2 arg2 expr2 = name1 == name2 && type1 == type2 && arg1 == arg2 && expr1 == expr2
     IntTypeAST == IntTypeAST = True
     CharTypeAST == CharTypeAST = True
@@ -192,6 +197,12 @@ printAST = printASTIndented 0
         printASTIndented depth StringTypeAST = indent depth ++ "StringTypeAST\n"
         printASTIndented depth (StringAST value) = indent depth ++ "StringAST " ++ show value ++ "\n"
         printASTIndented depth (CharAST value) = indent depth ++ "CharAST " ++ show value ++ "\n"
+        printASTIndented depth (ForAST initer cond incr expr) =
+            indent depth ++ "ForAST\n" ++
+                printASTIndented (depth + 1) initer ++
+                printASTIndented (depth + 1) cond ++
+                printASTIndented (depth + 1) incr ++
+                printASTIndented (depth + 1) expr
 
 -- Overload the ++ operator for AST
 instance Semigroup AST where
