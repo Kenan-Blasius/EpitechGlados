@@ -2,6 +2,7 @@
 
 fun factorial (int n, char c) /* lol this is a comment to try to break something */: my_int // and this is an inline comment
 {
+    print(n);
     if (n == 0) {
         return 1;
     } else {
@@ -9,6 +10,7 @@ fun factorial (int n, char c) /* lol this is a comment to try to break something
         n = n * factorial(n-1);
         return n;
     }
+    print("This should not be printed");
 }
 
 /*

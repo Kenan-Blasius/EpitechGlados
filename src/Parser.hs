@@ -209,21 +209,6 @@ sexprToAst x | case splitAtValue CommaToken x of
         -- add a CommaToken at the end of the list
         -- so after can be wrapped in an AST[] even if it's the last element
         _ -> AST [sexprToAst before] <> sexprToAst (after ++ [CommaToken])
--- ! Line separator token
-sexprToAst x | case splitAtValue LineSeparator x of
-            Nothing -> False
-            Just (_, _, _) -> True = do
-    let (before, _, after) = case splitAtValue LineSeparator x of
-            Nothing -> ([], LineSeparator, [])
-            Just (b, _, a) -> (b, LineSeparator, a)
-    AST [sexprToAst before] <> sexprToAst after
--- ! Types token
-sexprToAst (IntTypeToken : xs) = do
-    AST [IntTypeAST] <> sexprToAst xs
-sexprToAst (CharTypeToken : xs) = do
-    AST [CharTypeAST] <> sexprToAst xs
-sexprToAst (StringTypeToken : xs) = do
-    AST [StringTypeAST] <> sexprToAst xs
 -- ! Fun token
 sexprToAst (FunToken : name : returnType : args : body : xs) = do
     let returnType2 = case returnType of
@@ -270,6 +255,21 @@ sexprToAst (LambdaToken : xs) = do
             ListToken x -> x
             _ -> [args]
     LambdaAST (sexprToAst args2) (sexprToAst body)
+-- ! Line separator token
+sexprToAst x | case splitAtValue LineSeparator x of
+            Nothing -> False
+            Just (_, _, _) -> True = do
+    let (before, _, after) = case splitAtValue LineSeparator x of
+            Nothing -> ([], LineSeparator, [])
+            Just (b, _, a) -> (b, LineSeparator, a)
+    AST [sexprToAst before] <> sexprToAst after
+-- ! Types token
+sexprToAst (IntTypeToken : xs) = do
+    AST [IntTypeAST] <> sexprToAst xs
+sexprToAst (CharTypeToken : xs) = do
+    AST [CharTypeAST] <> sexprToAst xs
+sexprToAst (StringTypeToken : xs) = do
+    AST [StringTypeAST] <> sexprToAst xs
 -- ! Int token
 sexprToAst (IntToken x : xs) = do
     AST [IntAST x] <> sexprToAst xs
