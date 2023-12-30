@@ -66,6 +66,7 @@ parseToken =
     <|> (parseKeyword "else" ElseToken)
     <|> (parseKeyword "lambda" LambdaToken)
     <|> (parseKeyword "for" ForToken)
+    <|> (parseKeyword "while" WhileToken)
     <|> (parseKeyword "fun" FunToken)
     <|> (parseKeyword ":" FunTypeToken)
     -- Types
@@ -129,6 +130,8 @@ mergeSymbols (SymbolToken x : IfToken : xs) = mergeSymbols (SymbolToken (x ++ "i
 mergeSymbols (SymbolToken x : ElseToken : xs) = mergeSymbols (SymbolToken (x ++ "else") : xs)
 mergeSymbols (SymbolToken x : LambdaToken : xs) = mergeSymbols (SymbolToken (x ++ "lambda") : xs)
 mergeSymbols (SymbolToken x : FunToken : xs) = mergeSymbols (SymbolToken (x ++ "fun") : xs)
+mergeSymbols (SymbolToken x : ForToken : xs) = mergeSymbols (SymbolToken (x ++ "for") : xs)
+mergeSymbols (SymbolToken x : WhileToken : xs) = mergeSymbols (SymbolToken (x ++ "while") : xs)
 -- merge all consecutive numbers (ex: 1 2 3 -> 123)
 mergeSymbols (IntToken x : IntToken y : xs) = mergeSymbols (IntToken (x * 10 + y) : xs)
 -- Delete all spaces
@@ -210,6 +213,15 @@ sexprToAst x | case splitAtValue CommaToken x of
         -- add a CommaToken at the end of the list
         -- so after can be wrapped in an AST[] even if it's the last element
         _ -> AST [sexprToAst before] <> sexprToAst (after ++ [CommaToken])
+-- ! While token
+sexprToAst (WhileToken : cond : expr : xs) = do
+    let cond2 = case cond of
+            ListToken x -> x
+            _ -> [cond]
+    let expr2 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    AST [WhileAST (sexprToAst cond2) (sexprToAst expr2)] <> sexprToAst xs
 -- ! For token
 sexprToAst (ForToken : ici : expr : xs) = do
     let ici2 = case ici of
