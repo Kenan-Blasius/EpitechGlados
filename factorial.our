@@ -22,6 +22,12 @@ fun main () : int
 {
     int a = factorial(a, 'a'); int b = factorial(b, 'b');
 
+    string my_UTF16_string = "This is a string with UTF16 characters: éèàçù and some chinese characters: 你好吗？ and some emojis: 😂😄🤣🌟";
+    char my_chinese_char = '你';
+    char my_emoji_char = '😂';
+    // Variable name with UTF16 characters
+    int 你好吗 = 42;
+
     for (int i = 0; i < 10; i++) {
         a = a + 1;
     }

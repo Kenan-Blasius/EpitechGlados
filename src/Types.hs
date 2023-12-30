@@ -200,8 +200,8 @@ printAST = printASTIndented 0
         printASTIndented depth IntTypeAST = indent depth ++ "IntTypeAST\n"
         printASTIndented depth CharTypeAST = indent depth ++ "CharTypeAST\n"
         printASTIndented depth StringTypeAST = indent depth ++ "StringTypeAST\n"
-        printASTIndented depth (StringAST value) = indent depth ++ "StringAST " ++ show value ++ "\n"
-        printASTIndented depth (CharAST value) = indent depth ++ "CharAST " ++ show value ++ "\n"
+        printASTIndented depth (StringAST value) = indent depth ++ "StringAST " ++ value ++ "\n"
+        printASTIndented depth (CharAST value) = indent depth ++ "CharAST '" ++ [value] ++ "'\n"
         printASTIndented depth (ForAST initer cond incr expr) =
             indent depth ++ "ForAST\n" ++
                 printASTIndented (depth + 1) initer ++

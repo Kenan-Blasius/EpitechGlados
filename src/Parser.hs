@@ -29,8 +29,8 @@ parseIntToken = Parser f
 parseSymbolToken :: Parser Token
 parseSymbolToken = Parser f
     where
-        -- parse absolutely any char
-        f x = case runParser (parseAnyChar ['\0' .. '\255']) x of
+        -- parse absolutely any char in UTF-16
+        f x = case runParser (parseAnyChar [chr i | i <- [0x0000 .. 0x10FFFF]]) x of
             Just (y, ys) -> Just (SymbolToken [y], ys)
             Nothing -> Nothing
 
@@ -38,8 +38,8 @@ parseStringToken :: Parser Token
 parseStringToken = Parser f
     where
         f x = case runParser (parseChar '\"') x of
-            -- parse all chars except "
-            Just (_, ys) -> case runParser (parseMany (parseAnyChar [chr i | i <- [0 .. 255], chr i /= '\"'])) ys of
+            -- parse all chars in UTF-16 except "
+            Just (_, ys) -> case runParser (parseMany (parseAnyChar [chr i | i <- [0x0000 .. 0x10FFFF], chr i /= '\"'])) ys of
                 Just (z, zs) -> case runParser (parseChar '\"') zs of
                     Just (_, ws) -> Just (StringToken z, ws)
                     Nothing -> throw (ParserError "Missing \" token")
@@ -50,8 +50,8 @@ parseCharToken :: Parser Token
 parseCharToken = Parser f
     where
         f x = case runParser (parseChar '\'') x of
-            -- parse all chars except '
-            Just (_, ys) -> case runParser (parseAnyChar [chr i | i <- [0 .. 255], chr i /= '\'']) ys of
+            -- parse all chars in UTF-16 except '
+            Just (_, ys) -> case runParser (parseAnyChar [chr i | i <- [0x0000 .. 0x10FFFF], chr i /= '\'']) ys of
                 Just (z, zs) -> case runParser (parseChar '\'') zs of
                     Just (_, ws) -> Just (CharToken z, ws)
                     Nothing -> throw (ParserError "Missing ' token")
@@ -132,6 +132,7 @@ mergeSymbols (SymbolToken x : LambdaToken : xs) = mergeSymbols (SymbolToken (x +
 mergeSymbols (SymbolToken x : FunToken : xs) = mergeSymbols (SymbolToken (x ++ "fun") : xs)
 mergeSymbols (SymbolToken x : ForToken : xs) = mergeSymbols (SymbolToken (x ++ "for") : xs)
 mergeSymbols (SymbolToken x : WhileToken : xs) = mergeSymbols (SymbolToken (x ++ "while") : xs)
+mergeSymbols (SymbolToken x : IntToken y : xs) = mergeSymbols (SymbolToken (x ++ show y) : xs)
 -- merge all consecutive numbers (ex: 1 2 3 -> 123)
 mergeSymbols (IntToken x : IntToken y : xs) = mergeSymbols (IntToken (x * 10 + y) : xs)
 -- Delete all spaces
