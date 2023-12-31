@@ -33,6 +33,7 @@ data Token = OpenParenthesis
             | CloseParenthesis
             | SpaceToken
             | IfToken
+            | ElseIfToken
             | ElseToken
             | ForToken
             | WhileToken
@@ -64,6 +65,7 @@ instance Show Token where
     show CloseParenthesis = "ClosePARENTHESIS"
     show SpaceToken = "SPACE"
     show IfToken = "IF"
+    show ElseIfToken = "ELSEIF"
     show ElseToken = "ELSE"
     show ForToken = "FOR"
     show WhileToken = "WHILE"
@@ -94,6 +96,7 @@ instance Eq Token where
     CloseParenthesis == CloseParenthesis = True
     SpaceToken == SpaceToken = True
     IfToken == IfToken = True
+    ElseIfToken == ElseIfToken = True
     ElseToken == ElseToken = True
     ForToken == ForToken = True
     WhileToken == WhileToken = True
@@ -124,6 +127,7 @@ instance Eq Token where
 
 data AST = AST [AST] -- list of AST
          | IfAST AST AST -- cond expr1
+         | ElseIfAST AST AST -- cond expr
          | ElseAST AST -- expr
          | DefineAST String AST -- name expr
          | ForAST AST AST AST AST -- init cond incr expr
@@ -145,6 +149,7 @@ data AST = AST [AST] -- list of AST
 instance Eq AST where
     AST x == AST y = x == y
     IfAST cond1 expr1 == IfAST cond2 expr3 = cond1 == cond2 && expr1 == expr3
+    ElseIfAST cond1 expr1 == ElseIfAST cond2 expr2 = cond1 == cond2 && expr1 == expr2
     ElseAST expr1 == ElseAST expr2 = expr1 == expr2
     DefineAST name1 expr1 == DefineAST name2 expr2 = name1 == name2 && expr1 == expr2
     ForAST init1 cond1 incr1 expr1 == ForAST init2 cond2 incr2 expr2 = init1 == init2 && cond1 == cond2 && incr1 == incr2 && expr1 == expr2
@@ -210,6 +215,10 @@ printAST = printASTIndented 0
                 printASTIndented (depth + 1) expr
         printASTIndented depth (WhileAST cond expr) =
             indent depth ++ "WhileAST\n" ++
+                printASTIndented (depth + 1) cond ++
+                printASTIndented (depth + 1) expr
+        printASTIndented depth (ElseIfAST cond expr) =
+            indent depth ++ "ElseIfAST\n" ++
                 printASTIndented (depth + 1) cond ++
                 printASTIndented (depth + 1) expr
 

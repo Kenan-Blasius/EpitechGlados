@@ -5,6 +5,8 @@ fun factorial (int n, char c) /* lol this is a comment to try to break something
     print(n);
     if (n == 0) {
         return 1;
+    } else if (n == 1) {
+        return 1;
     } else {
         // here i break the line to see the AST split with multiple lines
         n = n * factorial(n-1);

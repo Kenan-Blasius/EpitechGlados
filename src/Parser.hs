@@ -133,6 +133,8 @@ mergeSymbols (SymbolToken x : FunToken : xs) = mergeSymbols (SymbolToken (x ++ "
 mergeSymbols (SymbolToken x : ForToken : xs) = mergeSymbols (SymbolToken (x ++ "for") : xs)
 mergeSymbols (SymbolToken x : WhileToken : xs) = mergeSymbols (SymbolToken (x ++ "while") : xs)
 mergeSymbols (SymbolToken x : IntToken y : xs) = mergeSymbols (SymbolToken (x ++ show y) : xs)
+-- merge else if to elif
+mergeSymbols (ElseToken : xs) | (head (filter (/= SpaceToken) xs)) == IfToken = mergeSymbols (ElseIfToken : (tail (dropWhile (/= IfToken) xs)))
 -- merge all consecutive numbers (ex: 1 2 3 -> 123)
 mergeSymbols (IntToken x : IntToken y : xs) = mergeSymbols (IntToken (x * 10 + y) : xs)
 -- Delete all spaces
@@ -262,6 +264,15 @@ sexprToAst (IfToken : cond : expr : xs) = do
             ListToken x -> x
             _ -> [expr]
     AST [IfAST (sexprToAst cond2) (sexprToAst expr12)] <> sexprToAst xs
+-- ! Else if token
+sexprToAst (ElseIfToken : cond : expr : xs) = do
+    let cond2 = case cond of
+            ListToken x -> x
+            _ -> [cond]
+    let expr12 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    AST [ElseIfAST (sexprToAst cond2) (sexprToAst expr12)] <> sexprToAst xs
 -- ! Else token
 sexprToAst (ElseToken : expr : xs) = do
     let expr2 = case expr of
