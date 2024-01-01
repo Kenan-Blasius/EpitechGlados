@@ -3,14 +3,20 @@
 fun factorial (int n, char c) /* lol this is a comment to try to break something */: my_int // and this is an inline comment
 {
     print(n);
-    if (n == 0) {
-        return 1;
-    } else if (n == 1) {
-        return 1;
+    if (n < 0) {
+        print("n should be positive");
+        return 0;
     } else {
-        // here i break the line to see the AST split with multiple lines
-        n = n * factorial(n-1);
-        return n;
+        print("n is positive. Let's compute the factorial!");
+        if (n == 0) {
+            return 1;
+        } else if (n == 1) {
+            return 1;
+        }else {
+            // here i break the line to see the AST split with multiple lines
+            n = n * factorial(n-1);
+            return n;
+        }
     }
     print("This should not be printed");
 }
@@ -23,6 +29,10 @@ fun factorial (int n, char c) /* lol this is a comment to try to break something
 fun main () : int
 {
     int a = factorial(a, 'a'); int b = factorial(b, 'b');
+
+    if (a == b) {
+        print("a and b are equal");
+    }
 
     string my_UTF16_string = "This is a string with UTF16 characters: éèàçù and some chinese characters: 你好吗？ and some emojis: 😂😄🤣🌟";
     char my_chinese_char = '你';

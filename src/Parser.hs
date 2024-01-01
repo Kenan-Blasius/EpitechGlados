@@ -200,6 +200,17 @@ splitAtValue val (x:xs)
                     Nothing -> Nothing
                     Just (before, v, after) -> Just (x:before, v, after)
 
+getIfChain :: [Token] -> ([Token], [Token])
+getIfChain [] = ([], [])
+getIfChain (ElseIfToken : cond : expr : xs) = do
+    let (ifChain, rest) = getIfChain xs
+    (ElseIfToken : cond : expr : ifChain, rest)
+getIfChain (ElseToken : expr : xs) = do
+    let (ifChain, rest) = getIfChain xs
+    (ElseToken : expr : ifChain, rest)
+getIfChain xs = do
+    ([], xs)
+
 sexprToAst :: [Token] -> AST
 sexprToAst [] = DeadLeafAST
 -- ! Comma token
@@ -256,6 +267,24 @@ sexprToAst (FunToken : name : returnType : args : body : xs) = do
             _ -> [body]
     AST [FunAST (show name) (sexprToAst returnType2) (sexprToAst args2) (sexprToAst body2)] <> sexprToAst xs
 -- ! If token
+sexprToAst (IfToken : cond : expr : ElseIfToken : xs) = do
+    let cond2 = case cond of
+            ListToken x -> x
+            _ -> [cond]
+    let expr2 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    let (ifChain, rest) = getIfChain (ElseIfToken : xs)
+    AST [IfAST (sexprToAst cond2) (sexprToAst expr2) (sexprToAst ifChain)] <> sexprToAst rest
+sexprToAst (IfToken : cond : expr : ElseToken : xs) = do
+    let cond2 = case cond of
+            ListToken x -> x
+            _ -> [cond]
+    let expr2 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    let (ifChain, rest) = getIfChain (ElseToken : xs)
+    AST [IfAST (sexprToAst cond2) (sexprToAst expr2) (sexprToAst ifChain)] <> sexprToAst rest
 sexprToAst (IfToken : cond : expr : xs) = do
     let cond2 = case cond of
             ListToken x -> x
@@ -263,8 +292,26 @@ sexprToAst (IfToken : cond : expr : xs) = do
     let expr12 = case expr of
             ListToken x -> x
             _ -> [expr]
-    AST [IfAST (sexprToAst cond2) (sexprToAst expr12)] <> sexprToAst xs
+    AST [IfAST (sexprToAst cond2) (sexprToAst expr12) DeadLeafAST] <> sexprToAst xs
 -- ! Else if token
+sexprToAst (ElseIfToken : cond : expr : ElseIfToken : xs) = do
+    let cond2 = case cond of
+            ListToken x -> x
+            _ -> [cond]
+    let expr2 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    let (ifChain, rest) = getIfChain (ElseIfToken : xs)
+    AST [ElseIfAST (sexprToAst cond2) (sexprToAst expr2) (sexprToAst ifChain)] <> sexprToAst rest
+sexprToAst (ElseIfToken : cond : expr : ElseToken : xs) = do
+    let cond2 = case cond of
+            ListToken x -> x
+            _ -> [cond]
+    let expr2 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    let (ifChain, rest) = getIfChain (ElseToken : xs)
+    AST [ElseIfAST (sexprToAst cond2) (sexprToAst expr2) (sexprToAst ifChain)] <> sexprToAst rest
 sexprToAst (ElseIfToken : cond : expr : xs) = do
     let cond2 = case cond of
             ListToken x -> x
@@ -272,7 +319,7 @@ sexprToAst (ElseIfToken : cond : expr : xs) = do
     let expr12 = case expr of
             ListToken x -> x
             _ -> [expr]
-    AST [ElseIfAST (sexprToAst cond2) (sexprToAst expr12)] <> sexprToAst xs
+    AST [ElseIfAST (sexprToAst cond2) (sexprToAst expr12) DeadLeafAST] <> sexprToAst xs
 -- ! Else token
 sexprToAst (ElseToken : expr : xs) = do
     let expr2 = case expr of
