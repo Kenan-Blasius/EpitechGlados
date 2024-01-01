@@ -29,8 +29,8 @@ parseIntToken = Parser f
 parseSymbolToken :: Parser Token
 parseSymbolToken = Parser f
     where
-        -- parse absolutely any char
-        f x = case runParser (parseAnyChar ['\0' .. '\255']) x of
+        -- parse absolutely any char in UTF-16
+        f x = case runParser (parseAnyChar [chr i | i <- [0x0000 .. 0x10FFFF]]) x of
             Just (y, ys) -> Just (SymbolToken [y], ys)
             Nothing -> Nothing
 
@@ -38,8 +38,8 @@ parseStringToken :: Parser Token
 parseStringToken = Parser f
     where
         f x = case runParser (parseChar '\"') x of
-            -- parse all chars except "
-            Just (_, ys) -> case runParser (parseMany (parseAnyChar [chr i | i <- [0 .. 255], chr i /= '\"'])) ys of
+            -- parse all chars in UTF-16 except "
+            Just (_, ys) -> case runParser (parseMany (parseAnyChar [chr i | i <- [0x0000 .. 0x10FFFF], chr i /= '\"'])) ys of
                 Just (z, zs) -> case runParser (parseChar '\"') zs of
                     Just (_, ws) -> Just (StringToken z, ws)
                     Nothing -> throw (ParserError "Missing \" token")
@@ -50,8 +50,8 @@ parseCharToken :: Parser Token
 parseCharToken = Parser f
     where
         f x = case runParser (parseChar '\'') x of
-            -- parse all chars except '
-            Just (_, ys) -> case runParser (parseAnyChar [chr i | i <- [0 .. 255], chr i /= '\'']) ys of
+            -- parse all chars in UTF-16 except '
+            Just (_, ys) -> case runParser (parseAnyChar [chr i | i <- [0x0000 .. 0x10FFFF], chr i /= '\'']) ys of
                 Just (z, zs) -> case runParser (parseChar '\'') zs of
                     Just (_, ws) -> Just (CharToken z, ws)
                     Nothing -> throw (ParserError "Missing ' token")
@@ -65,6 +65,8 @@ parseToken =
     <|> (parseKeyword "if" IfToken)
     <|> (parseKeyword "else" ElseToken)
     <|> (parseKeyword "lambda" LambdaToken)
+    <|> (parseKeyword "for" ForToken)
+    <|> (parseKeyword "while" WhileToken)
     <|> (parseKeyword "fun" FunToken)
     <|> (parseKeyword ":" FunTypeToken)
     -- Types
@@ -128,6 +130,11 @@ mergeSymbols (SymbolToken x : IfToken : xs) = mergeSymbols (SymbolToken (x ++ "i
 mergeSymbols (SymbolToken x : ElseToken : xs) = mergeSymbols (SymbolToken (x ++ "else") : xs)
 mergeSymbols (SymbolToken x : LambdaToken : xs) = mergeSymbols (SymbolToken (x ++ "lambda") : xs)
 mergeSymbols (SymbolToken x : FunToken : xs) = mergeSymbols (SymbolToken (x ++ "fun") : xs)
+mergeSymbols (SymbolToken x : ForToken : xs) = mergeSymbols (SymbolToken (x ++ "for") : xs)
+mergeSymbols (SymbolToken x : WhileToken : xs) = mergeSymbols (SymbolToken (x ++ "while") : xs)
+mergeSymbols (SymbolToken x : IntToken y : xs) = mergeSymbols (SymbolToken (x ++ show y) : xs)
+-- merge else if to elif
+mergeSymbols (ElseToken : xs) | (head (filter (/= SpaceToken) xs)) == IfToken = mergeSymbols (ElseIfToken : (tail (dropWhile (/= IfToken) xs)))
 -- merge all consecutive numbers (ex: 1 2 3 -> 123)
 mergeSymbols (IntToken x : IntToken y : xs) = mergeSymbols (IntToken (x * 10 + y) : xs)
 -- Delete all spaces
@@ -193,6 +200,17 @@ splitAtValue val (x:xs)
                     Nothing -> Nothing
                     Just (before, v, after) -> Just (x:before, v, after)
 
+getIfChain :: [Token] -> ([Token], [Token])
+getIfChain [] = ([], [])
+getIfChain (ElseIfToken : cond : expr : xs) = do
+    let (ifChain, rest) = getIfChain xs
+    (ElseIfToken : cond : expr : ifChain, rest)
+getIfChain (ElseToken : expr : xs) = do
+    let (ifChain, rest) = getIfChain xs
+    (ElseToken : expr : ifChain, rest)
+getIfChain xs = do
+    ([], xs)
+
 sexprToAst :: [Token] -> AST
 sexprToAst [] = DeadLeafAST
 -- ! Comma token
@@ -209,21 +227,33 @@ sexprToAst x | case splitAtValue CommaToken x of
         -- add a CommaToken at the end of the list
         -- so after can be wrapped in an AST[] even if it's the last element
         _ -> AST [sexprToAst before] <> sexprToAst (after ++ [CommaToken])
--- ! Line separator token
-sexprToAst x | case splitAtValue LineSeparator x of
-            Nothing -> False
-            Just (_, _, _) -> True = do
-    let (before, _, after) = case splitAtValue LineSeparator x of
+-- ! While token
+sexprToAst (WhileToken : cond : expr : xs) = do
+    let cond2 = case cond of
+            ListToken x -> x
+            _ -> [cond]
+    let expr2 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    AST [WhileAST (sexprToAst cond2) (sexprToAst expr2)] <> sexprToAst xs
+-- ! For token
+sexprToAst (ForToken : ici : expr : xs) = do
+    let ici2 = case ici of
+            ListToken x -> x
+            _ -> [ici]
+    let expr2 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    let (initer, _, rest) = case splitAtValue LineSeparator ici2 of
             Nothing -> ([], LineSeparator, [])
             Just (b, _, a) -> (b, LineSeparator, a)
-    AST [sexprToAst before] <> sexprToAst after
--- ! Types token
-sexprToAst (IntTypeToken : xs) = do
-    AST [IntTypeAST] <> sexprToAst xs
-sexprToAst (CharTypeToken : xs) = do
-    AST [CharTypeAST] <> sexprToAst xs
-sexprToAst (StringTypeToken : xs) = do
-    AST [StringTypeAST] <> sexprToAst xs
+    let (cond, _, rest2) = case splitAtValue LineSeparator rest of
+            Nothing -> ([], LineSeparator, [])
+            Just (b, _, a) -> (b, LineSeparator, a)
+    let (incr, _, _) = case splitAtValue LineSeparator (rest2 ++ [LineSeparator]) of
+            Nothing -> ([], LineSeparator, [])
+            Just (b, _, a) -> (b, LineSeparator, a)
+    AST [ForAST (sexprToAst initer) (sexprToAst cond) (sexprToAst incr) (sexprToAst expr2)] <> sexprToAst xs
 -- ! Fun token
 sexprToAst (FunToken : name : returnType : args : body : xs) = do
     let returnType2 = case returnType of
@@ -237,6 +267,24 @@ sexprToAst (FunToken : name : returnType : args : body : xs) = do
             _ -> [body]
     AST [FunAST (show name) (sexprToAst returnType2) (sexprToAst args2) (sexprToAst body2)] <> sexprToAst xs
 -- ! If token
+sexprToAst (IfToken : cond : expr : ElseIfToken : xs) = do
+    let cond2 = case cond of
+            ListToken x -> x
+            _ -> [cond]
+    let expr2 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    let (ifChain, rest) = getIfChain (ElseIfToken : xs)
+    AST [IfAST (sexprToAst cond2) (sexprToAst expr2) (sexprToAst ifChain)] <> sexprToAst rest
+sexprToAst (IfToken : cond : expr : ElseToken : xs) = do
+    let cond2 = case cond of
+            ListToken x -> x
+            _ -> [cond]
+    let expr2 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    let (ifChain, rest) = getIfChain (ElseToken : xs)
+    AST [IfAST (sexprToAst cond2) (sexprToAst expr2) (sexprToAst ifChain)] <> sexprToAst rest
 sexprToAst (IfToken : cond : expr : xs) = do
     let cond2 = case cond of
             ListToken x -> x
@@ -244,7 +292,34 @@ sexprToAst (IfToken : cond : expr : xs) = do
     let expr12 = case expr of
             ListToken x -> x
             _ -> [expr]
-    AST [IfAST (sexprToAst cond2) (sexprToAst expr12)] <> sexprToAst xs
+    AST [IfAST (sexprToAst cond2) (sexprToAst expr12) DeadLeafAST] <> sexprToAst xs
+-- ! Else if token
+sexprToAst (ElseIfToken : cond : expr : ElseIfToken : xs) = do
+    let cond2 = case cond of
+            ListToken x -> x
+            _ -> [cond]
+    let expr2 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    let (ifChain, rest) = getIfChain (ElseIfToken : xs)
+    AST [ElseIfAST (sexprToAst cond2) (sexprToAst expr2) (sexprToAst ifChain)] <> sexprToAst rest
+sexprToAst (ElseIfToken : cond : expr : ElseToken : xs) = do
+    let cond2 = case cond of
+            ListToken x -> x
+            _ -> [cond]
+    let expr2 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    let (ifChain, rest) = getIfChain (ElseToken : xs)
+    AST [ElseIfAST (sexprToAst cond2) (sexprToAst expr2) (sexprToAst ifChain)] <> sexprToAst rest
+sexprToAst (ElseIfToken : cond : expr : xs) = do
+    let cond2 = case cond of
+            ListToken x -> x
+            _ -> [cond]
+    let expr12 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    AST [ElseIfAST (sexprToAst cond2) (sexprToAst expr12) DeadLeafAST] <> sexprToAst xs
 -- ! Else token
 sexprToAst (ElseToken : expr : xs) = do
     let expr2 = case expr of
@@ -270,6 +345,21 @@ sexprToAst (LambdaToken : xs) = do
             ListToken x -> x
             _ -> [args]
     LambdaAST (sexprToAst args2) (sexprToAst body)
+-- ! Line separator token
+sexprToAst x | case splitAtValue LineSeparator x of
+            Nothing -> False
+            Just (_, _, _) -> True = do
+    let (before, _, after) = case splitAtValue LineSeparator x of
+            Nothing -> ([], LineSeparator, [])
+            Just (b, _, a) -> (b, LineSeparator, a)
+    AST [sexprToAst before] <> sexprToAst after
+-- ! Types token
+sexprToAst (IntTypeToken : xs) = do
+    AST [IntTypeAST] <> sexprToAst xs
+sexprToAst (CharTypeToken : xs) = do
+    AST [CharTypeAST] <> sexprToAst xs
+sexprToAst (StringTypeToken : xs) = do
+    AST [StringTypeAST] <> sexprToAst xs
 -- ! Int token
 sexprToAst (IntToken x : xs) = do
     AST [IntAST x] <> sexprToAst xs
