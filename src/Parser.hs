@@ -12,6 +12,9 @@ module Parser (
     parseLine,
     mergeSymbols,
     parseFile,
+
+    getSubList,
+    tokenListToSexpr,
 ) where
 
 import ParserModule
