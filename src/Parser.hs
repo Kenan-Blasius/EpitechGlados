@@ -133,6 +133,18 @@ mergeSymbols (SymbolToken x : FunToken : xs) = mergeSymbols (SymbolToken (x ++ "
 mergeSymbols (SymbolToken x : ForToken : xs) = mergeSymbols (SymbolToken (x ++ "for") : xs)
 mergeSymbols (SymbolToken x : WhileToken : xs) = mergeSymbols (SymbolToken (x ++ "while") : xs)
 mergeSymbols (SymbolToken x : IntToken y : xs) = mergeSymbols (SymbolToken (x ++ show y) : xs)
+
+mergeSymbols (IntTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("int" ++ x) : xs)
+mergeSymbols (CharTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("char" ++ x) : xs)
+mergeSymbols (StringTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("string" ++ x) : xs)
+mergeSymbols (IfToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("if" ++ x) : xs)
+mergeSymbols (ElseToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("else" ++ x) : xs)
+mergeSymbols (LambdaToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("lambda" ++ x) : xs)
+mergeSymbols (FunToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("fun" ++ x) : xs)
+mergeSymbols (ForToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("for" ++ x) : xs)
+mergeSymbols (WhileToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("while" ++ x) : xs)
+mergeSymbols (IntToken x : SymbolToken y : xs) = mergeSymbols (SymbolToken (show x ++ y) : xs)
+
 -- merge else if to elif
 mergeSymbols (ElseToken : xs) | (head (filter (/= SpaceToken) xs)) == IfToken = mergeSymbols (ElseIfToken : (tail (dropWhile (/= IfToken) xs)))
 -- merge all consecutive numbers (ex: 1 2 3 -> 123)

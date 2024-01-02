@@ -39,6 +39,8 @@ fun main () : int
     char my_emoji_char = '😂';
     // Variable name with UTF16 characters
     int 你好吗 = 42;
+    int 42var = 42;
+    int forme = 42;
 
     for (int i = 0; i < 10; i++) {
         a = a + 1;
