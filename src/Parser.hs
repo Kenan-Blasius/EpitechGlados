@@ -1,5 +1,17 @@
 module Parser (
     parser,
+
+    parseKeyword,
+    parseIntToken,
+    parseSymbolToken,
+    parseStringToken,
+    parseCharToken,
+
+    parseToken,
+
+    parseLine,
+    mergeSymbols,
+    parseFile,
 ) where
 
 import ParserModule
