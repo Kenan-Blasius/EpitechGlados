@@ -21,7 +21,7 @@ import Types
 import Control.Applicative
 import Data.Char (chr)
 import Control.Exception
-import Debug.Trace
+-- import Debug.Trace
 
 -- INFO: Token Parser
 parseKeyword :: String -> Token -> Parser Token
