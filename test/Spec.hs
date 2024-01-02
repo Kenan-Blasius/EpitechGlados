@@ -183,11 +183,104 @@ showTokenTest =
         TestCase (assertEqual "showToken" "ClosePARENTHESIS" (show (CloseParenthesis))),
         TestCase (assertEqual "showToken" "SPACE" (show (SpaceToken))),
         TestCase (assertEqual "showToken" "IF" (show (IfToken))),
+        TestCase (assertEqual "showToken" "ELSEIF" (show (ElseIfToken))),
+        TestCase (assertEqual "showToken" "ELSE" (show (ElseToken))),
+        TestCase (assertEqual "showToken" "FOR" (show (ForToken))),
+        TestCase (assertEqual "showToken" "WHILE" (show (WhileToken))),
+        TestCase (assertEqual "showToken" "FUN" (show (FunToken))),
+        TestCase (assertEqual "showToken" "FUNTYPE" (show (FunTypeToken))),
+        TestCase (assertEqual "showToken" "INT" (show (IntTypeToken))),
+        TestCase (assertEqual "showToken" "CHAR" (show (CharTypeToken))),
+        TestCase (assertEqual "showToken" "STRING" (show (StringTypeToken))),
+        TestCase (assertEqual "showToken" "OpenBRACKET" (show (OpenBracket))),
+        TestCase (assertEqual "showToken" "CloseBRACKET" (show (CloseBracket))),
+        TestCase (assertEqual "showToken" "OpenBRACES" (show (OpenBraces))),
+        TestCase (assertEqual "showToken" "CloseBRACES" (show (CloseBraces))),
+        TestCase (assertEqual "showToken" "/*" (show (CommentStart))),
+        TestCase (assertEqual "showToken" "*/" (show (CommentEnd))),
+        TestCase (assertEqual "showToken" "//" (show (InlineCommentStart))),
         TestCase (assertEqual "showToken" "DEFINE" (show (DefineToken))),
         TestCase (assertEqual "showToken" "LAMBDA" (show (LambdaToken))),
         TestCase (assertEqual "showToken" "42" (show (IntToken 42))),
         TestCase (assertEqual "showToken" "\"Hello World\"" (show (SymbolToken "\"Hello World\""))),
+        TestCase (assertEqual "showToken" "\"Hello World\"" (show (StringToken "Hello World"))),
+        TestCase (assertEqual "showToken" "'c'" (show (CharToken 'c'))),
+        TestCase (assertEqual "showToken" "COMMA" (show (CommaToken))),
+        TestCase (assertEqual "showToken" "LineSEPARATOR" (show (LineSeparator))),
         TestCase (assertEqual "showToken" "[1,2,3]" (show (ListToken [IntToken 1, IntToken 2, IntToken 3])))
+    ]
+
+equalsTokenTest :: Test
+equalsTokenTest =
+    TestList
+    [
+        TestCase (assertEqual "equalsToken" True (OpenParenthesis == OpenParenthesis)),
+        TestCase (assertEqual "equalsToken" True (CloseParenthesis == CloseParenthesis)),
+        TestCase (assertEqual "equalsToken" True (SpaceToken == SpaceToken)),
+        TestCase (assertEqual "equalsToken" True (IfToken == IfToken)),
+        TestCase (assertEqual "equalsToken" True (ElseIfToken == ElseIfToken)),
+        TestCase (assertEqual "equalsToken" True (ElseToken == ElseToken)),
+        TestCase (assertEqual "equalsToken" True (ForToken == ForToken)),
+        TestCase (assertEqual "equalsToken" True (WhileToken == WhileToken)),
+        TestCase (assertEqual "equalsToken" True (FunToken == FunToken)),
+        TestCase (assertEqual "equalsToken" True (FunTypeToken == FunTypeToken)),
+        TestCase (assertEqual "equalsToken" True (IntTypeToken == IntTypeToken)),
+        TestCase (assertEqual "equalsToken" True (CharTypeToken == CharTypeToken)),
+        TestCase (assertEqual "equalsToken" True (StringTypeToken == StringTypeToken)),
+        TestCase (assertEqual "equalsToken" True (OpenBracket == OpenBracket)),
+        TestCase (assertEqual "equalsToken" True (CloseBracket == CloseBracket)),
+        TestCase (assertEqual "equalsToken" True (OpenBraces == OpenBraces)),
+        TestCase (assertEqual "equalsToken" True (CloseBraces == CloseBraces)),
+        TestCase (assertEqual "equalsToken" True (CommentStart == CommentStart)),
+        TestCase (assertEqual "equalsToken" True (CommentEnd == CommentEnd)),
+        TestCase (assertEqual "equalsToken" True (InlineCommentStart == InlineCommentStart)),
+        TestCase (assertEqual "equalsToken" True (DefineToken == DefineToken)),
+        TestCase (assertEqual "equalsToken" True (LambdaToken == LambdaToken)),
+        TestCase (assertEqual "equalsToken" True ((IntToken 42) == (IntToken 42))),
+        TestCase (assertEqual "equalsToken" True ((SymbolToken "\"Hello World\"") == (SymbolToken "\"Hello World\""))),
+        TestCase (assertEqual "equalsToken" True ((StringToken "Hello World") == (StringToken "Hello World"))),
+        TestCase (assertEqual "equalsToken" True ((CharToken 'c') == (CharToken 'c'))),
+        TestCase (assertEqual "equalsToken" True (CommaToken == CommaToken)),
+        TestCase (assertEqual "equalsToken" True (LineSeparator == LineSeparator)),
+        TestCase (assertEqual "equalsToken" True ((ListToken [IntToken 1, IntToken 2, IntToken 3]) == (ListToken [IntToken 1, IntToken 2, IntToken 3]))),
+
+        TestCase (assertEqual "equalsToken" False (OpenParenthesis == CloseParenthesis)),
+        TestCase (assertEqual "equalsToken" False (CloseParenthesis == SpaceToken)),
+        TestCase (assertEqual "equalsToken" False (SpaceToken == IfToken)),
+        TestCase (assertEqual "equalsToken" False (IfToken == ElseIfToken)),
+        TestCase (assertEqual "equalsToken" False (ElseIfToken == ElseToken)),
+        TestCase (assertEqual "equalsToken" False (ElseToken == ForToken)),
+        TestCase (assertEqual "equalsToken" False (ForToken == WhileToken)),
+        TestCase (assertEqual "equalsToken" False (WhileToken == FunToken)),
+        TestCase (assertEqual "equalsToken" False (FunToken == FunTypeToken)),
+        TestCase (assertEqual "equalsToken" False (FunTypeToken == IntTypeToken)),
+        TestCase (assertEqual "equalsToken" False (IntTypeToken == CharTypeToken)),
+        TestCase (assertEqual "equalsToken" False (CharTypeToken == StringTypeToken)),
+        TestCase (assertEqual "equalsToken" False (StringTypeToken == OpenBracket)),
+        TestCase (assertEqual "equalsToken" False (OpenBracket == CloseBracket)),
+        TestCase (assertEqual "equalsToken" False (CloseBracket == OpenBraces)),
+        TestCase (assertEqual "equalsToken" False (OpenBraces == CloseBraces)),
+        TestCase (assertEqual "equalsToken" False (CloseBraces == CommentStart)),
+        TestCase (assertEqual "equalsToken" False (CommentStart == CommentEnd))
+    ]
+
+equalsASTTest :: Test
+equalsASTTest =
+    TestList
+    [
+        TestCase (assertEqual "equalsAST" True (AST [] == AST [])),
+        TestCase (assertEqual "equalsAST" True (AST [DeadLeafAST] == AST [DeadLeafAST])),
+        TestCase (assertEqual "equalsAST" True (AST [IntAST 42] == AST [IntAST 42])),
+        TestCase (assertEqual "equalsAST" True (AST [SymbolAST "\"Hello World\""] == AST [SymbolAST "\"Hello World\""])),
+        TestCase (assertEqual "equalsAST" True (AST [CharAST 'c'] == AST [CharAST 'c'])),
+        TestCase (assertEqual "equalsAST" True (AST [AST [IntAST 1, IntAST 2, IntAST 3]] == AST [AST [IntAST 1, IntAST 2, IntAST 3]])),
+        TestCase (assertEqual "equalsAST" True (AST [DefineAST "my_var" (AST [IntAST 42])] == AST [DefineAST "my_var" (AST [IntAST 42])])),
+        TestCase (assertEqual "equalsAST" True (AST [IfAST (AST [IntAST 1, SymbolAST "<", IntAST 2]) (AST [IntAST 41]) (AST [ElseIfAST (AST [IntAST 1, SymbolAST ">", IntAST 2]) (AST [IntAST 42]) (AST [ElseAST (AST [IntAST 43])])])] == AST [IfAST (AST [IntAST 1, SymbolAST "<", IntAST 2]) (AST [IntAST 41]) (AST [ElseIfAST (AST [IntAST 1, SymbolAST ">", IntAST 2]) (AST [IntAST 42]) (AST [ElseAST (AST [IntAST 43])])])])),
+        TestCase (assertEqual "equalsAST" True (AST [ForAST (AST [IntTypeAST,SymbolAST "i",SymbolAST "=",IntAST 0]) (AST [SymbolAST "i",SymbolAST "<",IntAST 10]) (AST [SymbolAST "i++"]) (AST [AST [SymbolAST "a",SymbolAST "=",SymbolAST "a",SymbolAST "+",IntAST 1]])] == AST [ForAST (AST [IntTypeAST,SymbolAST "i",SymbolAST "=",IntAST 0]) (AST [SymbolAST "i",SymbolAST "<",IntAST 10]) (AST [SymbolAST "i++"]) (AST [AST [SymbolAST "a",SymbolAST "=",SymbolAST "a",SymbolAST "+",IntAST 1]])])),
+        TestCase (assertEqual "equalsAST" True (AST [WhileAST (AST [SymbolAST "i",SymbolAST "<",IntAST 10]) (AST [AST [SymbolAST "a",SymbolAST "=",SymbolAST "a",SymbolAST "+",IntAST 1]])] == AST [WhileAST (AST [SymbolAST "i",SymbolAST "<",IntAST 10]) (AST [AST [SymbolAST "a",SymbolAST "=",SymbolAST "a",SymbolAST "+",IntAST 1]])])),
+        TestCase (assertEqual "equalsAST" True (AST [FunAST "main" (AST [AST [IntTypeAST,SymbolAST "n"],AST [CharTypeAST,SymbolAST "c"]]) (AST [IntTypeAST]) (AST [AST [SymbolAST "return",IntAST 0]])] == AST [FunAST "main" (AST [AST [IntTypeAST,SymbolAST "n"],AST [CharTypeAST,SymbolAST "c"]]) (AST [IntTypeAST]) (AST [AST [SymbolAST "return",IntAST 0]])])),
+        TestCase (assertEqual "equalsAST" True (StringAST "Hello World" == StringAST "Hello World")),
+        TestCase (assertEqual "equalsAST" True (StringTypeAST == StringTypeAST))
     ]
 
 printASTTest :: Test
@@ -206,6 +299,8 @@ testParsingFunction =
         [
             TestLabel "showFile" showFileTest,
             TestLabel "showToken" showTokenTest,
+            TestLabel "equalsToken" equalsTokenTest,
+            TestLabel "equalsAST" equalsASTTest,
             TestLabel "printAST" printASTTest,
 
             TestLabel "parseChar" parseCharTest,
