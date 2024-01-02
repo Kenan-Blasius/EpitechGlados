@@ -50,7 +50,6 @@ data Token = OpenParenthesis
             | CommentEnd
             | InlineCommentStart
             | DefineToken
-            | LambdaToken
             | IntToken Int
             | SymbolToken String
             | StringToken String
@@ -82,7 +81,6 @@ instance Show Token where
     show CommentEnd = "*/"
     show InlineCommentStart = "//"
     show DefineToken = "DEFINE"
-    show LambdaToken = "LAMBDA"
     show (IntToken x) = show x
     show (SymbolToken x) = x
     show (StringToken x) = "\"" ++ x ++ "\""
@@ -113,7 +111,6 @@ instance Eq Token where
     CommentEnd == CommentEnd = True
     InlineCommentStart == InlineCommentStart = True
     DefineToken == DefineToken = True
-    LambdaToken == LambdaToken = True
     (IntToken x) == (IntToken y) = x == y
     (SymbolToken x) == (SymbolToken y) = x == y
     (StringToken x) == (StringToken y) = x == y
@@ -137,7 +134,6 @@ data AST = AST [AST] -- list of AST
          | IntTypeAST -- type
          | CharTypeAST -- type
          | StringTypeAST -- type
-         | LambdaAST AST AST -- args body
          | LambdaClosure [String] AST Environment
          | IntAST Int -- value
          | SymbolAST String -- name
@@ -158,7 +154,6 @@ instance Eq AST where
     IntTypeAST == IntTypeAST = True
     CharTypeAST == CharTypeAST = True
     StringTypeAST == StringTypeAST = True
-    LambdaAST args1 body1 == LambdaAST args2 body2 = args1 == args2 && body1 == body2
     LambdaClosure args1 body1 env1 == LambdaClosure args2 body2 env2 = args1 == args2 && body1 == body2 && env1 == env2
     IntAST x == IntAST y = x == y
     SymbolAST x == SymbolAST y = x == y
@@ -180,8 +175,6 @@ printAST = printASTIndented 0
         printASTIndented depth (SymbolAST name) = indent depth ++ "SymbolAST " ++ name ++ "\n"
         printASTIndented depth (DefineAST name expr) =
             indent depth ++ "DefineAST " ++ name ++ "\n" ++ printASTIndented (depth + 1) expr
-        printASTIndented depth (LambdaAST args body) =
-            indent depth ++ "LambdaAST\n" ++ printASTIndented (depth + 1) args ++ printASTIndented (depth + 1) body
         printASTIndented depth (IfAST cond expr1 elseIfExpr) =
             indent depth ++ "IfAST\n" ++
                 printASTIndented (depth + 1) cond ++

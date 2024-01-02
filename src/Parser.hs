@@ -76,7 +76,6 @@ parseToken =
     (parseKeyword "#define" DefineToken)
     <|> (parseKeyword "if" IfToken)
     <|> (parseKeyword "else" ElseToken)
-    <|> (parseKeyword "lambda" LambdaToken)
     <|> (parseKeyword "for" ForToken)
     <|> (parseKeyword "while" WhileToken)
     <|> (parseKeyword "fun" FunToken)
@@ -140,7 +139,6 @@ mergeSymbols (SymbolToken x : CharTypeToken : xs) = mergeSymbols (SymbolToken (x
 mergeSymbols (SymbolToken x : StringTypeToken : xs) = mergeSymbols (SymbolToken (x ++ "string") : xs)
 mergeSymbols (SymbolToken x : IfToken : xs) = mergeSymbols (SymbolToken (x ++ "if") : xs)
 mergeSymbols (SymbolToken x : ElseToken : xs) = mergeSymbols (SymbolToken (x ++ "else") : xs)
-mergeSymbols (SymbolToken x : LambdaToken : xs) = mergeSymbols (SymbolToken (x ++ "lambda") : xs)
 mergeSymbols (SymbolToken x : FunToken : xs) = mergeSymbols (SymbolToken (x ++ "fun") : xs)
 mergeSymbols (SymbolToken x : ForToken : xs) = mergeSymbols (SymbolToken (x ++ "for") : xs)
 mergeSymbols (SymbolToken x : WhileToken : xs) = mergeSymbols (SymbolToken (x ++ "while") : xs)
@@ -151,7 +149,6 @@ mergeSymbols (CharTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("
 mergeSymbols (StringTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("string" ++ x) : xs)
 mergeSymbols (IfToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("if" ++ x) : xs)
 mergeSymbols (ElseToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("else" ++ x) : xs)
-mergeSymbols (LambdaToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("lambda" ++ x) : xs)
 mergeSymbols (FunToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("fun" ++ x) : xs)
 mergeSymbols (ForToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("for" ++ x) : xs)
 mergeSymbols (WhileToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("while" ++ x) : xs)
@@ -362,13 +359,6 @@ sexprToAst (DefineToken : name : expr : xs) = do
                 ListToken x -> x
                 _ -> [expr]
         AST [DefineAST (show name) (sexprToAst expr2)] <> sexprToAst xs
--- ! Lambda token
-sexprToAst (LambdaToken : xs) = do
-    let (args, body) = (head xs, tail xs)
-    let args2 = case args of
-            ListToken x -> x
-            _ -> [args]
-    LambdaAST (sexprToAst args2) (sexprToAst body)
 -- ! Line separator token
 sexprToAst x | case splitAtValue LineSeparator x of
             Nothing -> False
