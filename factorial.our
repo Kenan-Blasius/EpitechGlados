@@ -1,6 +1,6 @@
 #define my_int int
 
-fun factorial (int n, char c) /* lol this is a comment to try to break something */: my_int // and this is an inline comment
+fun factorial (int n, char c) /* lol this is a comment to try to break something */: (const my_int) // and this is an inline comment
 {
     print(n);
     if (n < 0) {

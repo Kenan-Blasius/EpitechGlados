@@ -21,7 +21,7 @@ import Types
 import Control.Applicative
 import Data.Char (chr)
 import Control.Exception
--- import Debug.Trace
+import Debug.Trace
 
 -- INFO: Token Parser
 parseKeyword :: String -> Token -> Parser Token
@@ -196,7 +196,7 @@ tokenListToSexpr (CommentStart : xs) = do
     tokenListToSexpr rest
 -- Create a sub list for function type
 tokenListToSexpr (FunTypeToken : xs) = do
-    ListToken [FunTypeToken, head xs] : tokenListToSexpr (tail xs)
+    ListToken [FunTypeToken, head (tokenListToSexpr xs)] : (tail (tokenListToSexpr xs))
 -- all between parenthesis is a sub list of tokens
 tokenListToSexpr (OpenParenthesis : xs) = do
     let (subList, rest) = getSubList OpenParenthesis CloseParenthesis xs
@@ -275,6 +275,9 @@ sexprToAst (ForToken : ici : expr : xs) = do
             Nothing -> ([], LineSeparator, [])
             Just (b, _, a) -> (b, LineSeparator, a)
     AST [ForAST (sexprToAst initer) (sexprToAst cond) (sexprToAst incr) (sexprToAst expr2)] <> sexprToAst xs
+-- ! Fun type token
+sexprToAst (FunTypeToken : xs) = do
+    FunTypeAST (sexprToAst xs)
 -- ! Fun token
 sexprToAst (FunToken : name : returnType : args : body : xs) = do
     let returnType2 = case returnType of
