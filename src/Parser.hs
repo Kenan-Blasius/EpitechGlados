@@ -1,5 +1,17 @@
 module Parser (
     parser,
+
+    parseKeyword,
+    parseIntToken,
+    parseSymbolToken,
+    parseStringToken,
+    parseCharToken,
+
+    parseToken,
+
+    parseLine,
+    mergeSymbols,
+    parseFile,
 ) where
 
 import ParserModule
@@ -9,7 +21,7 @@ import Types
 import Control.Applicative
 import Data.Char (chr)
 import Control.Exception
--- import Debug.Trace
+import Debug.Trace
 
 -- INFO: Token Parser
 parseKeyword :: String -> Token -> Parser Token
@@ -64,7 +76,6 @@ parseToken =
     (parseKeyword "#define" DefineToken)
     <|> (parseKeyword "if" IfToken)
     <|> (parseKeyword "else" ElseToken)
-    <|> (parseKeyword "lambda" LambdaToken)
     <|> (parseKeyword "for" ForToken)
     <|> (parseKeyword "while" WhileToken)
     <|> (parseKeyword "fun" FunToken)
@@ -128,11 +139,21 @@ mergeSymbols (SymbolToken x : CharTypeToken : xs) = mergeSymbols (SymbolToken (x
 mergeSymbols (SymbolToken x : StringTypeToken : xs) = mergeSymbols (SymbolToken (x ++ "string") : xs)
 mergeSymbols (SymbolToken x : IfToken : xs) = mergeSymbols (SymbolToken (x ++ "if") : xs)
 mergeSymbols (SymbolToken x : ElseToken : xs) = mergeSymbols (SymbolToken (x ++ "else") : xs)
-mergeSymbols (SymbolToken x : LambdaToken : xs) = mergeSymbols (SymbolToken (x ++ "lambda") : xs)
 mergeSymbols (SymbolToken x : FunToken : xs) = mergeSymbols (SymbolToken (x ++ "fun") : xs)
 mergeSymbols (SymbolToken x : ForToken : xs) = mergeSymbols (SymbolToken (x ++ "for") : xs)
 mergeSymbols (SymbolToken x : WhileToken : xs) = mergeSymbols (SymbolToken (x ++ "while") : xs)
 mergeSymbols (SymbolToken x : IntToken y : xs) = mergeSymbols (SymbolToken (x ++ show y) : xs)
+
+mergeSymbols (IntTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("int" ++ x) : xs)
+mergeSymbols (CharTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("char" ++ x) : xs)
+mergeSymbols (StringTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("string" ++ x) : xs)
+mergeSymbols (IfToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("if" ++ x) : xs)
+mergeSymbols (ElseToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("else" ++ x) : xs)
+mergeSymbols (FunToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("fun" ++ x) : xs)
+mergeSymbols (ForToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("for" ++ x) : xs)
+mergeSymbols (WhileToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("while" ++ x) : xs)
+mergeSymbols (IntToken x : SymbolToken y : xs) = mergeSymbols (SymbolToken (show x ++ y) : xs)
+
 -- merge else if to elif
 mergeSymbols (ElseToken : xs) | (head (filter (/= SpaceToken) xs)) == IfToken = mergeSymbols (ElseIfToken : (tail (dropWhile (/= IfToken) xs)))
 -- merge all consecutive numbers (ex: 1 2 3 -> 123)
@@ -175,7 +196,7 @@ tokenListToSexpr (CommentStart : xs) = do
     tokenListToSexpr rest
 -- Create a sub list for function type
 tokenListToSexpr (FunTypeToken : xs) = do
-    ListToken [FunTypeToken, head xs] : tokenListToSexpr (tail xs)
+    ListToken [FunTypeToken, head (tokenListToSexpr xs)] : (tail (tokenListToSexpr xs))
 -- all between parenthesis is a sub list of tokens
 tokenListToSexpr (OpenParenthesis : xs) = do
     let (subList, rest) = getSubList OpenParenthesis CloseParenthesis xs
@@ -254,6 +275,9 @@ sexprToAst (ForToken : ici : expr : xs) = do
             Nothing -> ([], LineSeparator, [])
             Just (b, _, a) -> (b, LineSeparator, a)
     AST [ForAST (sexprToAst initer) (sexprToAst cond) (sexprToAst incr) (sexprToAst expr2)] <> sexprToAst xs
+-- ! Fun type token
+sexprToAst (FunTypeToken : xs) = do
+    FunTypeAST (sexprToAst xs)
 -- ! Fun token
 sexprToAst (FunToken : name : returnType : args : body : xs) = do
     let returnType2 = case returnType of
@@ -338,13 +362,6 @@ sexprToAst (DefineToken : name : expr : xs) = do
                 ListToken x -> x
                 _ -> [expr]
         AST [DefineAST (show name) (sexprToAst expr2)] <> sexprToAst xs
--- ! Lambda token
-sexprToAst (LambdaToken : xs) = do
-    let (args, body) = (head xs, tail xs)
-    let args2 = case args of
-            ListToken x -> x
-            _ -> [args]
-    LambdaAST (sexprToAst args2) (sexprToAst body)
 -- ! Line separator token
 sexprToAst x | case splitAtValue LineSeparator x of
             Nothing -> False

@@ -1,3 +1,4 @@
+import Parser
 import ParserModule
 import Types
 import Test.HUnit
@@ -183,11 +184,102 @@ showTokenTest =
         TestCase (assertEqual "showToken" "ClosePARENTHESIS" (show (CloseParenthesis))),
         TestCase (assertEqual "showToken" "SPACE" (show (SpaceToken))),
         TestCase (assertEqual "showToken" "IF" (show (IfToken))),
+        TestCase (assertEqual "showToken" "ELSEIF" (show (ElseIfToken))),
+        TestCase (assertEqual "showToken" "ELSE" (show (ElseToken))),
+        TestCase (assertEqual "showToken" "FOR" (show (ForToken))),
+        TestCase (assertEqual "showToken" "WHILE" (show (WhileToken))),
+        TestCase (assertEqual "showToken" "FUN" (show (FunToken))),
+        TestCase (assertEqual "showToken" "FUNTYPE" (show (FunTypeToken))),
+        TestCase (assertEqual "showToken" "INT" (show (IntTypeToken))),
+        TestCase (assertEqual "showToken" "CHAR" (show (CharTypeToken))),
+        TestCase (assertEqual "showToken" "STRING" (show (StringTypeToken))),
+        TestCase (assertEqual "showToken" "OpenBRACKET" (show (OpenBracket))),
+        TestCase (assertEqual "showToken" "CloseBRACKET" (show (CloseBracket))),
+        TestCase (assertEqual "showToken" "OpenBRACES" (show (OpenBraces))),
+        TestCase (assertEqual "showToken" "CloseBRACES" (show (CloseBraces))),
+        TestCase (assertEqual "showToken" "/*" (show (CommentStart))),
+        TestCase (assertEqual "showToken" "*/" (show (CommentEnd))),
+        TestCase (assertEqual "showToken" "//" (show (InlineCommentStart))),
         TestCase (assertEqual "showToken" "DEFINE" (show (DefineToken))),
-        TestCase (assertEqual "showToken" "LAMBDA" (show (LambdaToken))),
         TestCase (assertEqual "showToken" "42" (show (IntToken 42))),
         TestCase (assertEqual "showToken" "\"Hello World\"" (show (SymbolToken "\"Hello World\""))),
+        TestCase (assertEqual "showToken" "\"Hello World\"" (show (StringToken "Hello World"))),
+        TestCase (assertEqual "showToken" "'c'" (show (CharToken 'c'))),
+        TestCase (assertEqual "showToken" "COMMA" (show (CommaToken))),
+        TestCase (assertEqual "showToken" "LineSEPARATOR" (show (LineSeparator))),
         TestCase (assertEqual "showToken" "[1,2,3]" (show (ListToken [IntToken 1, IntToken 2, IntToken 3])))
+    ]
+
+equalsTokenTest :: Test
+equalsTokenTest =
+    TestList
+    [
+        TestCase (assertEqual "equalsToken" True (OpenParenthesis == OpenParenthesis)),
+        TestCase (assertEqual "equalsToken" True (CloseParenthesis == CloseParenthesis)),
+        TestCase (assertEqual "equalsToken" True (SpaceToken == SpaceToken)),
+        TestCase (assertEqual "equalsToken" True (IfToken == IfToken)),
+        TestCase (assertEqual "equalsToken" True (ElseIfToken == ElseIfToken)),
+        TestCase (assertEqual "equalsToken" True (ElseToken == ElseToken)),
+        TestCase (assertEqual "equalsToken" True (ForToken == ForToken)),
+        TestCase (assertEqual "equalsToken" True (WhileToken == WhileToken)),
+        TestCase (assertEqual "equalsToken" True (FunToken == FunToken)),
+        TestCase (assertEqual "equalsToken" True (FunTypeToken == FunTypeToken)),
+        TestCase (assertEqual "equalsToken" True (IntTypeToken == IntTypeToken)),
+        TestCase (assertEqual "equalsToken" True (CharTypeToken == CharTypeToken)),
+        TestCase (assertEqual "equalsToken" True (StringTypeToken == StringTypeToken)),
+        TestCase (assertEqual "equalsToken" True (OpenBracket == OpenBracket)),
+        TestCase (assertEqual "equalsToken" True (CloseBracket == CloseBracket)),
+        TestCase (assertEqual "equalsToken" True (OpenBraces == OpenBraces)),
+        TestCase (assertEqual "equalsToken" True (CloseBraces == CloseBraces)),
+        TestCase (assertEqual "equalsToken" True (CommentStart == CommentStart)),
+        TestCase (assertEqual "equalsToken" True (CommentEnd == CommentEnd)),
+        TestCase (assertEqual "equalsToken" True (InlineCommentStart == InlineCommentStart)),
+        TestCase (assertEqual "equalsToken" True (DefineToken == DefineToken)),
+        TestCase (assertEqual "equalsToken" True ((IntToken 42) == (IntToken 42))),
+        TestCase (assertEqual "equalsToken" True ((SymbolToken "\"Hello World\"") == (SymbolToken "\"Hello World\""))),
+        TestCase (assertEqual "equalsToken" True ((StringToken "Hello World") == (StringToken "Hello World"))),
+        TestCase (assertEqual "equalsToken" True ((CharToken 'c') == (CharToken 'c'))),
+        TestCase (assertEqual "equalsToken" True (CommaToken == CommaToken)),
+        TestCase (assertEqual "equalsToken" True (LineSeparator == LineSeparator)),
+        TestCase (assertEqual "equalsToken" True ((ListToken [IntToken 1, IntToken 2, IntToken 3]) == (ListToken [IntToken 1, IntToken 2, IntToken 3]))),
+
+        TestCase (assertEqual "equalsToken" False (OpenParenthesis == CloseParenthesis)),
+        TestCase (assertEqual "equalsToken" False (CloseParenthesis == SpaceToken)),
+        TestCase (assertEqual "equalsToken" False (SpaceToken == IfToken)),
+        TestCase (assertEqual "equalsToken" False (IfToken == ElseIfToken)),
+        TestCase (assertEqual "equalsToken" False (ElseIfToken == ElseToken)),
+        TestCase (assertEqual "equalsToken" False (ElseToken == ForToken)),
+        TestCase (assertEqual "equalsToken" False (ForToken == WhileToken)),
+        TestCase (assertEqual "equalsToken" False (WhileToken == FunToken)),
+        TestCase (assertEqual "equalsToken" False (FunToken == FunTypeToken)),
+        TestCase (assertEqual "equalsToken" False (FunTypeToken == IntTypeToken)),
+        TestCase (assertEqual "equalsToken" False (IntTypeToken == CharTypeToken)),
+        TestCase (assertEqual "equalsToken" False (CharTypeToken == StringTypeToken)),
+        TestCase (assertEqual "equalsToken" False (StringTypeToken == OpenBracket)),
+        TestCase (assertEqual "equalsToken" False (OpenBracket == CloseBracket)),
+        TestCase (assertEqual "equalsToken" False (CloseBracket == OpenBraces)),
+        TestCase (assertEqual "equalsToken" False (OpenBraces == CloseBraces)),
+        TestCase (assertEqual "equalsToken" False (CloseBraces == CommentStart)),
+        TestCase (assertEqual "equalsToken" False (CommentStart == CommentEnd))
+    ]
+
+equalsASTTest :: Test
+equalsASTTest =
+    TestList
+    [
+        TestCase (assertEqual "equalsAST" True (AST [] == AST [])),
+        TestCase (assertEqual "equalsAST" True (AST [DeadLeafAST] == AST [DeadLeafAST])),
+        TestCase (assertEqual "equalsAST" True (AST [IntAST 42] == AST [IntAST 42])),
+        TestCase (assertEqual "equalsAST" True (AST [SymbolAST "\"Hello World\""] == AST [SymbolAST "\"Hello World\""])),
+        TestCase (assertEqual "equalsAST" True (AST [CharAST 'c'] == AST [CharAST 'c'])),
+        TestCase (assertEqual "equalsAST" True (AST [AST [IntAST 1, IntAST 2, IntAST 3]] == AST [AST [IntAST 1, IntAST 2, IntAST 3]])),
+        TestCase (assertEqual "equalsAST" True (AST [DefineAST "my_var" (AST [IntAST 42])] == AST [DefineAST "my_var" (AST [IntAST 42])])),
+        TestCase (assertEqual "equalsAST" True (AST [IfAST (AST [IntAST 1, SymbolAST "<", IntAST 2]) (AST [IntAST 41]) (AST [ElseIfAST (AST [IntAST 1, SymbolAST ">", IntAST 2]) (AST [IntAST 42]) (AST [ElseAST (AST [IntAST 43])])])] == AST [IfAST (AST [IntAST 1, SymbolAST "<", IntAST 2]) (AST [IntAST 41]) (AST [ElseIfAST (AST [IntAST 1, SymbolAST ">", IntAST 2]) (AST [IntAST 42]) (AST [ElseAST (AST [IntAST 43])])])])),
+        TestCase (assertEqual "equalsAST" True (AST [ForAST (AST [IntTypeAST,SymbolAST "i",SymbolAST "=",IntAST 0]) (AST [SymbolAST "i",SymbolAST "<",IntAST 10]) (AST [SymbolAST "i++"]) (AST [AST [SymbolAST "a",SymbolAST "=",SymbolAST "a",SymbolAST "+",IntAST 1]])] == AST [ForAST (AST [IntTypeAST,SymbolAST "i",SymbolAST "=",IntAST 0]) (AST [SymbolAST "i",SymbolAST "<",IntAST 10]) (AST [SymbolAST "i++"]) (AST [AST [SymbolAST "a",SymbolAST "=",SymbolAST "a",SymbolAST "+",IntAST 1]])])),
+        TestCase (assertEqual "equalsAST" True (AST [WhileAST (AST [SymbolAST "i",SymbolAST "<",IntAST 10]) (AST [AST [SymbolAST "a",SymbolAST "=",SymbolAST "a",SymbolAST "+",IntAST 1]])] == AST [WhileAST (AST [SymbolAST "i",SymbolAST "<",IntAST 10]) (AST [AST [SymbolAST "a",SymbolAST "=",SymbolAST "a",SymbolAST "+",IntAST 1]])])),
+        TestCase (assertEqual "equalsAST" True (AST [FunAST "main" (AST [AST [IntTypeAST,SymbolAST "n"],AST [CharTypeAST,SymbolAST "c"]]) (AST [IntTypeAST]) (AST [AST [SymbolAST "return",IntAST 0]])] == AST [FunAST "main" (AST [AST [IntTypeAST,SymbolAST "n"],AST [CharTypeAST,SymbolAST "c"]]) (AST [IntTypeAST]) (AST [AST [SymbolAST "return",IntAST 0]])])),
+        TestCase (assertEqual "equalsAST" True (StringAST "Hello World" == StringAST "Hello World")),
+        TestCase (assertEqual "equalsAST" True (StringTypeAST == StringTypeAST))
     ]
 
 printASTTest :: Test
@@ -200,13 +292,195 @@ printASTTest =
         TestCase (assertEqual "printAST" "AST\n|   DefineAST my_var\n|   |   AST\n|   |   |   SymbolAST \"Hello World\"\n" (printAST (AST [DefineAST "my_var" (AST [SymbolAST "\"Hello World\""])])))
     ]
 
+parseKeywordTest :: Test
+parseKeywordTest =
+    TestList
+    [
+        TestCase (assertEqual "parseKeyword" (Just (IfToken, " (1 2)")) (runParser (parseKeyword "if" IfToken) "if (1 2)")),
+        TestCase (assertEqual "parseKeyword" (Just (ElseToken, " if (1 2)")) (runParser (parseKeyword "else" ElseToken) "else if (1 2)")),
+        TestCase (assertEqual "parseKeyword" (Just (ElseToken, " (1 2)")) (runParser (parseKeyword "else" ElseToken) "else (1 2)")),
+        TestCase (assertEqual "parseKeyword" (Just (ForToken, " (1 2)")) (runParser (parseKeyword "for" ForToken) "for (1 2)")),
+        TestCase (assertEqual "parseKeyword" Nothing (runParser (parseKeyword "if" IfToken) "i(1 2)")),
+        TestCase (assertEqual "parseKeyword" Nothing (runParser (parseKeyword "else" ElseToken) "elesif(1 2)")),
+        TestCase (assertEqual "parseKeyword" Nothing (runParser (parseKeyword "else" ElseToken) "lese"))
+    ]
+
+parseIntTokenTest :: Test
+parseIntTokenTest =
+    TestList
+    [
+        TestCase (assertEqual "parseIntToken" (Just (IntToken 42, " (1 2)")) (runParser parseIntToken "42 (1 2)")),
+        TestCase (assertEqual "parseIntToken" (Just (IntToken 42, "(1 2)")) (runParser parseIntToken "42(1 2)")),
+        TestCase (assertEqual "parseIntToken" Nothing (runParser parseIntToken "i42 (1 2)")),
+        TestCase (assertEqual "parseIntToken" Nothing (runParser parseIntToken "if (1 2)"))
+    ]
+
+parseSymbolTokenTest :: Test
+parseSymbolTokenTest =
+    TestList
+    [
+        TestCase (assertEqual "parseSymbolToken" (Just (SymbolToken "H", "ello World (1 2)")) (runParser parseSymbolToken "Hello World (1 2)")),
+        TestCase (assertEqual "parseSymbolToken" (Just (SymbolToken "f", "i(1 2)")) (runParser parseSymbolToken "fi(1 2)"))
+    ]
+
+parseStringTokenTest :: Test
+parseStringTokenTest =
+    TestList
+    [
+        TestCase (assertEqual "parseStringToken" (Just (StringToken "Hello World", " (1 2)")) (runParser parseStringToken "\"Hello World\" (1 2)")),
+        TestCase (assertEqual "parseStringToken" (Just (StringToken "Hello World", "(1 2)")) (runParser parseStringToken "\"Hello World\"(1 2)")),
+        TestCase (assertEqual "parseStringToken" Nothing (runParser parseStringToken "i\"Hello World\" (1 2)"))
+    ]
+
+parseCharTokenTest :: Test
+parseCharTokenTest =
+    TestList
+    [
+        TestCase (assertEqual "parseCharToken" (Just (CharToken 'c', " (1 2)")) (runParser parseCharToken "'c' (1 2)")),
+        TestCase (assertEqual "parseCharToken" (Just (CharToken 'c', "(1 2)")) (runParser parseCharToken "'c'(1 2)")),
+        TestCase (assertEqual "parseCharToken" Nothing (runParser parseCharToken "i'c' (1 2)"))
+    ]
+
+parseTokenTest :: Test
+parseTokenTest =
+    TestList
+    [
+        TestCase (assertEqual "parseToken" (Just (IntToken 42, " (1 2)")) (runParser parseToken "42 (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (SymbolToken "H", "ello World (1 2)")) (runParser parseToken "Hello World (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (StringToken "Hello World", " (1 2)")) (runParser parseToken "\"Hello World\" (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (CharToken 'c', " (1 2)")) (runParser parseToken "'c' (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (OpenParenthesis, " (1 2)")) (runParser parseToken "( (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (CloseParenthesis, " (1 2)")) (runParser parseToken ") (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (OpenBracket, " (1 2)")) (runParser parseToken "[ (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (CloseBracket, " (1 2)")) (runParser parseToken "] (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (OpenBraces, " (1 2)")) (runParser parseToken "{ (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (CloseBraces, " (1 2)")) (runParser parseToken "} (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (CommaToken, " (1 2)")) (runParser parseToken ", (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (LineSeparator, " (1 2)")) (runParser parseToken "; (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (IfToken, " (1 2)")) (runParser parseToken "if (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (ElseToken, " if (1 2)")) (runParser parseToken "else if (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (ElseToken, " (1 2)")) (runParser parseToken "else (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (ForToken, " (1 2)")) (runParser parseToken "for (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (WhileToken, " (1 2)")) (runParser parseToken "while (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (FunToken, " (1 2)")) (runParser parseToken "fun (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (FunTypeToken, " (1 2)")) (runParser parseToken ": (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (IntTypeToken, " (1 2)")) (runParser parseToken "int (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (CharTypeToken, " (1 2)")) (runParser parseToken "char (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (StringTypeToken, " (1 2)")) (runParser parseToken "string (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (CommentStart, " (1 2)")) (runParser parseToken "/* (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (CommentEnd, " (1 2)")) (runParser parseToken "*/ (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (InlineCommentStart, " (1 2)")) (runParser parseToken "// (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (DefineToken, " (1 2)")) (runParser parseToken "#define (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (SpaceToken, "(1 2)")) (runParser parseToken " (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (SpaceToken, "(1 2)")) (runParser parseToken "\t(1 2)"))
+    ]
+
+parseLineTest :: Test
+parseLineTest =
+    TestList
+    [
+        TestCase (do
+            result <- parseLine "42" 0
+            assertEqual "parseLine" ([IntToken 42]) (result)
+        ),
+        TestCase (do
+            result <- parseLine "Hello World" 0
+            assertEqual "parseLine" ([SymbolToken "H", SymbolToken "e", SymbolToken "l", SymbolToken "l", SymbolToken "o", SpaceToken, SymbolToken "W", SymbolToken "o", SymbolToken "r", SymbolToken "l", SymbolToken "d"]) (result)
+        )
+    ]
+
+parseFileTest :: Test
+parseFileTest =
+    TestList
+    [
+        TestCase (do
+            result <- parseFile (File ["42"]) 0
+            assertEqual "parseFile" ([IntToken 42]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["Hello World"]) 0
+            assertEqual "parseFile" ([SymbolToken "Hello", SymbolToken "World"]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["42", "Hello World"]) 0
+            assertEqual "parseFile" ([IntToken 42, SymbolToken "Hello", SymbolToken "World"]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["if (1 < 2)"]) 0
+            assertEqual "parseFile" ([IfToken, OpenParenthesis, IntToken 1, SymbolToken "<", IntToken 2, CloseParenthesis]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["else if (1 > 2)"]) 0
+            assertEqual "parseFile" ([ElseIfToken, OpenParenthesis, IntToken 1, SymbolToken ">", IntToken 2, CloseParenthesis]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["else (1 > 2)"]) 0
+            assertEqual "parseFile" ([ElseToken, OpenParenthesis, IntToken 1, SymbolToken ">", IntToken 2, CloseParenthesis]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["fun my_fun (int n) : int // similar to C"]) 0
+            assertEqual "parseFile" ([FunToken, SymbolToken "my_fun", OpenParenthesis, IntTypeToken, SymbolToken "n", CloseParenthesis, FunTypeToken, IntTypeToken]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["int a = factorial(a, 'a');;; int b = factorial(b, 'b');"]) 0
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "a", SymbolToken "=", SymbolToken "factorial", OpenParenthesis, SymbolToken "a", CommaToken, CharToken 'a', CloseParenthesis, LineSeparator, IntTypeToken, SymbolToken "b", SymbolToken "=", SymbolToken "factorial", OpenParenthesis, SymbolToken "b", CommaToken, CharToken 'b', CloseParenthesis, LineSeparator]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["int int_my_int = 42"]) 0
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "int_my_int", SymbolToken "=", IntToken 42]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["char char_my_char = 'c'"]) 0
+            assertEqual "parseFile" ([CharTypeToken, SymbolToken "char_my_char", SymbolToken "=", CharToken 'c']) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["string string_my_string = \"Hello World\""]) 0
+            assertEqual "parseFile" ([StringTypeToken, SymbolToken "string_my_string", SymbolToken "=", StringToken "Hello World"]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["int if_my_if = 42"]) 0
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "if_my_if", SymbolToken "=", IntToken 42]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["int else_my_else = 42"]) 0
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "else_my_else", SymbolToken "=", IntToken 42]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["int fun_my_fun = 42"]) 0
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "fun_my_fun", SymbolToken "=", IntToken 42]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["int for_my_for = 42"]) 0
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "for_my_for", SymbolToken "=", IntToken 42]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["int while_my_while = 42"]) 0
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "while_my_while", SymbolToken "=", IntToken 42]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["int 42_my_42 = 42"]) 0
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "42_my_42", SymbolToken "=", IntToken 42]) (result)
+        )
+    ]
+
 testParsingFunction :: Test
 testParsingFunction =
     TestList
         [
             TestLabel "showFile" showFileTest,
             TestLabel "showToken" showTokenTest,
+            TestLabel "equalsToken" equalsTokenTest,
+            TestLabel "equalsAST" equalsASTTest,
             TestLabel "printAST" printASTTest,
+
+            TestLabel "parseKeyword" parseKeywordTest,
+            TestLabel "parseIntToken" parseIntTokenTest,
+            TestLabel "parseSymbolToken" parseSymbolTokenTest,
+            TestLabel "parseStringToken" parseStringTokenTest,
+            TestLabel "parseCharToken" parseCharTokenTest,
+            TestLabel "parseToken" parseTokenTest,
+            TestLabel "parseLine" parseLineTest,
+            TestLabel "parseFile" parseFileTest,
 
             TestLabel "parseChar" parseCharTest,
             TestLabel "parseString" parseStringTest,
