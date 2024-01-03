@@ -125,6 +125,24 @@ sizeInstructionOfAst _ size = trace ("sizeInstructionOfAst No AST node found. Cu
 -- | DeadLeafAST
 
 
+astConditionToBytecode :: AST -> [Bytecode] -> [Bytecode]
+astConditionToBytecode (AST []) bytecode = bytecode
+astConditionToBytecode (EqualAST cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "=="]
+astConditionToBytecode (LessThanAST cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "<"]
+astConditionToBytecode (GreaterThanAST cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp ">"]
+astConditionToBytecode (LessThanEqualAST cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "<="]
+astConditionToBytecode (GreaterThanEqualAST cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp ">="]
+astConditionToBytecode (NotEqualAST cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "!="]
+astConditionToBytecode x bytecode = trace ("astConditionToBytecode NO AST CONDITION NODE FOUND: " ++ show x) bytecode
+
+valueSimpleToBytecode :: AST -> [Bytecode]
+valueSimpleToBytecode (AST []) = []
+valueSimpleToBytecode (AST (x:xs)) = trace ("valueSimpleToBytecode AST (x:xs): " ++ show x) $
+    case x of
+        IntAST x -> trace ("valueSimpleToBytecode IntAST: " ++ show x) [LoadConst x]
+        SymbolAST x -> trace ("valueSimpleToBytecode SymbolAST: " ++ show x) [LoadVar x]
+        _ -> trace ("valueSimpleToBytecode NO AST SIMPLE NODE FOUND: " ++ show x) []
+valueSimpleToBytecode x = trace ("valueSimpleToBytecode NO AST SIMPLE NODE FOUND: " ++ show x) []
 
 -- INFO: This function takes an AST and returns a list of Bytecode instructions
 --       that can be executed by the VM.
@@ -134,12 +152,14 @@ astToBytecode' (AST (x:xs)) bytecode = trace ("Processing AST node: " ++ show x)
     case x of
         IntAST x -> trace ("IntAST: " ++ show x) $ astToBytecode' (AST xs) (bytecode ++ [LoadConst x])
         (AST [SymbolAST "return", IntAST x']) -> trace ("return IntAST: " ++ show x') $ astToBytecode' (AST xs) (bytecode ++ [LoadConst x', Return])
-        IfAST (EqualAST cond1 cond2) (AST expr1) (AST elseIfExpr1) -> trace ("IfAST: " ++ show cond1 ++ " == " ++ show cond2 ++ " " ++ show expr1 ++ " " ++ show elseIfExpr1) $ do
-            let (condAST1, condBytecode1) = trace ("condAST1: " ++ show cond1) astToBytecode' cond1 bytecode
-            let (condAST2, condBytecode2) = trace ("condAST2: " ++ show cond2) astToBytecode' cond2 bytecode
+        IfAST cond (AST expr1) (AST elseIfExpr1) -> trace ("IfAST: " ++ show cond ++ " |expr1| " ++ show expr1 ++ " |do| " ++ show elseIfExpr1) $ do
+            -- let (condAST1, condBytecode1) = trace ("condAST1: " ++ show cond1) astToBytecode' cond1 bytecode
+            -- let (condAST2, condBytecode2) = trace ("condAST2: " ++ show cond2) astToBytecode' cond2 bytecode
+            let condBytecode = trace ("condBytecode1: " ++ show cond) astConditionToBytecode cond bytecode
             let (expr1AST, expr1Bytecode) = trace ("expr1AST: " ++ show expr1) astToBytecode' (AST expr1) bytecode
             let (elseIfExpr1AST, elseIfExpr1Bytecode) = trace ("elseIfExpr1: " ++ show elseIfExpr1 ++ "\n\n") astToBytecode' (AST elseIfExpr1) bytecode
-            ( AST xs, bytecode ++ condBytecode1 ++ condBytecode2 ++ [JumpIfFalse (sizeInstructionOfAst (AST expr1) 0)] ++ expr1Bytecode ++ elseIfExpr1Bytecode)
+            ( AST xs, bytecode ++ condBytecode ++ [JumpIfFalse (sizeInstructionOfAst (AST expr1) 0)] ++ expr1Bytecode ++ elseIfExpr1Bytecode)
+            -- ( AST xs, bytecode ++ condBytecode1 ++ condBytecode2 ++ [CompareOp "=="] ++ [JumpIfFalse (sizeInstructionOfAst (AST expr1) 0)] ++ expr1Bytecode ++ elseIfExpr1Bytecode)
         ElseAST (AST expr1) -> trace ("ElseAST: " ++ show expr1) $ do
             let (expr1AST, expr1Bytecode) = trace ("expr1AST: " ++ show expr1) astToBytecode' (AST expr1) bytecode
             (AST xs, bytecode ++ expr1Bytecode)
