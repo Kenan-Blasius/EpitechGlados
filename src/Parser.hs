@@ -99,7 +99,6 @@ parseToken =
     <|> (parseKeyword " " SpaceToken)
     <|> (parseKeyword "\t" SpaceToken)
     -- Operators
-    <|> (parseKeyword "=" AssignToken)
     <|> (parseKeyword "++" IncrementToken)
     <|> (parseKeyword "--" DecrementToken)
     <|> (parseKeyword "+=" PlusEqualToken)
@@ -107,20 +106,21 @@ parseToken =
     <|> (parseKeyword "*=" TimesEqualToken)
     <|> (parseKeyword "/=" DivideEqualToken)
     <|> (parseKeyword "%=" ModuloEqualToken)
+    <|> (parseKeyword "&&" AndToken)
+    <|> (parseKeyword "||" OrToken)
+    <|> (parseKeyword "==" EqualToken)
+    <|> (parseKeyword "!=" NotEqualToken)
+    <|> (parseKeyword "<=" LessThanEqualToken)
+    <|> (parseKeyword ">=" GreaterThanEqualToken)
     <|> (parseKeyword "+" PlusToken)
     <|> (parseKeyword "-" MinusToken)
     <|> (parseKeyword "*" TimesToken)
     <|> (parseKeyword "/" DivideToken)
     <|> (parseKeyword "%" ModuloToken)
-    <|> (parseKeyword "&&" AndToken)
-    <|> (parseKeyword "||" OrToken)
-    <|> (parseKeyword "!" NotToken)
-    <|> (parseKeyword "==" EqualToken)
-    <|> (parseKeyword "!=" NotEqualToken)
     <|> (parseKeyword "<" LessThanToken)
-    <|> (parseKeyword "<=" LessThanEqualToken)
     <|> (parseKeyword ">" GreaterThanToken)
-    <|> (parseKeyword ">=" GreaterThanEqualToken)
+    <|> (parseKeyword "!" NotToken)
+    <|> (parseKeyword "=" AssignToken)
     -- List
     <|> (parseKeyword "(" OpenParenthesis)
     <|> (parseKeyword ")" CloseParenthesis)
@@ -279,10 +279,79 @@ operatorsBeforeAST token ast xs = do
             Just (b, _, a) -> (b, token, a)
     ast (sexprToAst before)
 
-operatorsASTCheck :: Token -> [Token] -> Bool
-operatorsASTCheck token xs = case splitAtValue token xs of
+listOperatorsASTCheck :: [Token] -> [Token] -> Bool
+listOperatorsASTCheck [] _ = True
+listOperatorsASTCheck (token : tokens) xs = case splitAtValue token xs of
             Nothing -> False
-            Just (_, _, _) -> True
+            Just (_, _, _) -> listOperatorsASTCheck tokens xs
+
+pemdasTreeAction :: Token -> (AST -> AST -> AST) -> [Token] -> AST
+pemdasTreeAction token ast xs = do
+    let (before, _, after) = case splitAtValue token xs of
+            Nothing -> ([], token, [])
+            Just (b, _, a) -> (b, token, a)
+    ast (pemdasTree before) (pemdasTree after)
+
+pemdasTreeAction2 :: Token -> Token -> (AST -> AST -> AST) -> (AST -> AST -> AST) -> [Token] -> AST
+pemdasTreeAction2 token1 token2 ast1 ast2 xs = do
+    let (before, _, after) = case splitAtValue token1 xs of
+            Nothing -> ([], token1, [])
+            Just (b, _, a) -> (b, token1, a)
+    let (before2, _, after2) = case splitAtValue token2 xs of
+            Nothing -> ([], token2, [])
+            Just (b, _, a) -> (b, token2, a)
+    if length before > length before2 then do
+        ast1 (pemdasTree before) (pemdasTree after)
+    else do
+        ast2 (pemdasTree before2) (pemdasTree after2)
+
+pemdasTree :: [Token] -> AST
+pemdasTree [] = DeadLeafAST
+-- ! Plus and Minus token
+pemdasTree x | listOperatorsASTCheck [PlusToken, MinusToken] x = pemdasTreeAction2 PlusToken MinusToken PlusAST MinusAST x
+-- ! Plus token
+pemdasTree x | listOperatorsASTCheck [PlusToken] x = pemdasTreeAction PlusToken PlusAST x
+-- ! Minus token
+pemdasTree x | listOperatorsASTCheck [MinusToken] x = pemdasTreeAction MinusToken MinusAST x
+
+-- ! Modulo, Divide and Times token
+pemdasTree x | listOperatorsASTCheck [ModuloToken, DivideToken, TimesToken] x = do
+    let (beforeModulo, _, _) = case splitAtValue ModuloToken x of
+            Nothing -> ([], ModuloToken, [])
+            Just (b, _, a) -> (b, ModuloToken, a)
+    let (beforeDivide, _, _) = case splitAtValue DivideToken x of
+            Nothing -> ([], DivideToken, [])
+            Just (b, _, a) -> (b, DivideToken, a)
+    let (beforeTimes, _, _) = case splitAtValue TimesToken x of
+            Nothing -> ([], TimesToken, [])
+            Just (b, _, a) -> (b, TimesToken, a)
+    -- % * /
+    -- % / *
+    -- * % /
+    if length beforeDivide > length beforeModulo then do
+        pemdasTreeAction2 ModuloToken TimesToken ModuloAST TimesAST x
+    -- / * %
+    -- / % *
+    else if length beforeTimes > length beforeDivide then do
+        pemdasTreeAction2 ModuloToken DivideToken ModuloAST DivideAST x
+    -- * / %
+    else do
+        pemdasTreeAction2 DivideToken TimesToken DivideAST TimesAST x
+
+-- ! Modulo and Divide token
+pemdasTree x | listOperatorsASTCheck [ModuloToken, DivideToken] x = pemdasTreeAction2 ModuloToken DivideToken ModuloAST DivideAST x
+-- ! Modulo and Times token
+pemdasTree x | listOperatorsASTCheck [ModuloToken, TimesToken] x = pemdasTreeAction2 ModuloToken TimesToken ModuloAST TimesAST x
+-- ! Divide and Times token
+pemdasTree x | listOperatorsASTCheck [DivideToken, TimesToken] x = pemdasTreeAction2 DivideToken TimesToken DivideAST TimesAST x
+-- ! Modulo token
+pemdasTree x | listOperatorsASTCheck [ModuloToken] x = pemdasTreeAction ModuloToken ModuloAST x
+-- ! Divide token
+pemdasTree x | listOperatorsASTCheck [DivideToken] x = pemdasTreeAction DivideToken DivideAST x
+-- ! Times token
+pemdasTree x | listOperatorsASTCheck [TimesToken] x = pemdasTreeAction TimesToken TimesAST x
+
+pemdasTree x = sexprToAst x
 
 sexprToAst :: [Token] -> AST
 sexprToAst [] = DeadLeafAST
@@ -423,29 +492,29 @@ sexprToAst x | case splitAtValue LineSeparator x of
             Just (b, _, a) -> (b, LineSeparator, a)
     AST [sexprToAst before] <> sexprToAst after
 -- ! Symbol Tree
-sexprToAst x | operatorsASTCheck AssignToken x =            binaryOperatorsAST AssignToken AssignAST x
-sexprToAst x | operatorsASTCheck PlusEqualToken x =         binaryOperatorsAST PlusEqualToken PlusEqualAST x
-sexprToAst x | operatorsASTCheck MinusEqualToken x =        binaryOperatorsAST MinusEqualToken MinusEqualAST x
-sexprToAst x | operatorsASTCheck TimesEqualToken x =        binaryOperatorsAST TimesEqualToken TimesEqualAST x
-sexprToAst x | operatorsASTCheck DivideEqualToken x =       binaryOperatorsAST DivideEqualToken DivideEqualAST x
-sexprToAst x | operatorsASTCheck ModuloEqualToken x =       binaryOperatorsAST ModuloEqualToken ModuloEqualAST x
-sexprToAst x | operatorsASTCheck MinusToken x =             binaryOperatorsAST MinusToken MinusAST x
-sexprToAst x | operatorsASTCheck PlusToken x =              binaryOperatorsAST PlusToken PlusAST x
-sexprToAst x | operatorsASTCheck ModuloToken x =            binaryOperatorsAST ModuloToken ModuloAST x
-sexprToAst x | operatorsASTCheck DivideToken x =            binaryOperatorsAST DivideToken DivideAST x
-sexprToAst x | operatorsASTCheck TimesToken x =             binaryOperatorsAST TimesToken TimesAST x
-sexprToAst x | operatorsASTCheck AndToken x =               binaryOperatorsAST AndToken AndAST x
-sexprToAst x | operatorsASTCheck OrToken x =                binaryOperatorsAST OrToken OrAST x
-sexprToAst x | operatorsASTCheck EqualToken x =             binaryOperatorsAST EqualToken EqualAST x
-sexprToAst x | operatorsASTCheck NotEqualToken x =          binaryOperatorsAST NotEqualToken NotEqualAST x
-sexprToAst x | operatorsASTCheck LessThanToken x =          binaryOperatorsAST LessThanToken LessThanAST x
-sexprToAst x | operatorsASTCheck LessThanEqualToken x =     binaryOperatorsAST LessThanEqualToken LessThanEqualAST x
-sexprToAst x | operatorsASTCheck GreaterThanToken x =       binaryOperatorsAST GreaterThanToken GreaterThanAST x
-sexprToAst x | operatorsASTCheck GreaterThanEqualToken x =  binaryOperatorsAST GreaterThanEqualToken GreaterThanEqualAST x
+sexprToAst x | listOperatorsASTCheck [AssignToken] x =            binaryOperatorsAST AssignToken AssignAST x
+sexprToAst x | listOperatorsASTCheck [PlusEqualToken] x =         binaryOperatorsAST PlusEqualToken PlusEqualAST x
+sexprToAst x | listOperatorsASTCheck [MinusEqualToken] x =        binaryOperatorsAST MinusEqualToken MinusEqualAST x
+sexprToAst x | listOperatorsASTCheck [TimesEqualToken] x =        binaryOperatorsAST TimesEqualToken TimesEqualAST x
+sexprToAst x | listOperatorsASTCheck [DivideEqualToken] x =       binaryOperatorsAST DivideEqualToken DivideEqualAST x
+sexprToAst x | listOperatorsASTCheck [ModuloEqualToken] x =       binaryOperatorsAST ModuloEqualToken ModuloEqualAST x
+sexprToAst x | listOperatorsASTCheck [MinusToken] x =             pemdasTree x
+sexprToAst x | listOperatorsASTCheck [PlusToken] x =              pemdasTree x
+sexprToAst x | listOperatorsASTCheck [ModuloToken] x =            pemdasTree x
+sexprToAst x | listOperatorsASTCheck [DivideToken] x =            pemdasTree x
+sexprToAst x | listOperatorsASTCheck [TimesToken] x =             pemdasTree x
+sexprToAst x | listOperatorsASTCheck [AndToken] x =               binaryOperatorsAST AndToken AndAST x
+sexprToAst x | listOperatorsASTCheck [OrToken] x =                binaryOperatorsAST OrToken OrAST x
+sexprToAst x | listOperatorsASTCheck [EqualToken] x =             binaryOperatorsAST EqualToken EqualAST x
+sexprToAst x | listOperatorsASTCheck [NotEqualToken] x =          binaryOperatorsAST NotEqualToken NotEqualAST x
+sexprToAst x | listOperatorsASTCheck [LessThanToken] x =          binaryOperatorsAST LessThanToken LessThanAST x
+sexprToAst x | listOperatorsASTCheck [LessThanEqualToken] x =     binaryOperatorsAST LessThanEqualToken LessThanEqualAST x
+sexprToAst x | listOperatorsASTCheck [GreaterThanToken] x =       binaryOperatorsAST GreaterThanToken GreaterThanAST x
+sexprToAst x | listOperatorsASTCheck [GreaterThanEqualToken] x =  binaryOperatorsAST GreaterThanEqualToken GreaterThanEqualAST x
 
-sexprToAst x | operatorsASTCheck IncrementToken x =         operatorsBeforeAST IncrementToken IncrementAST x
-sexprToAst x | operatorsASTCheck DecrementToken x =         operatorsBeforeAST DecrementToken DecrementAST x
-sexprToAst x | operatorsASTCheck NotToken x =               operatorsAfterAST NotToken NotAST x
+sexprToAst x | listOperatorsASTCheck [IncrementToken] x =         operatorsBeforeAST IncrementToken IncrementAST x
+sexprToAst x | listOperatorsASTCheck [DecrementToken] x =         operatorsBeforeAST DecrementToken DecrementAST x
+sexprToAst x | listOperatorsASTCheck [NotToken] x =               operatorsAfterAST NotToken NotAST x
 -- ! Types token
 sexprToAst (IntTypeToken : xs) = do
     AST [IntTypeAST] <> sexprToAst xs
