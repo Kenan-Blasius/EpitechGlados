@@ -153,13 +153,10 @@ astToBytecode' (AST (x:xs)) bytecode = trace ("Processing AST node: " ++ show x)
         IntAST x -> trace ("IntAST: " ++ show x) $ astToBytecode' (AST xs) (bytecode ++ [LoadConst x])
         (AST [SymbolAST "return", IntAST x']) -> trace ("return IntAST: " ++ show x') $ astToBytecode' (AST xs) (bytecode ++ [LoadConst x', Return])
         IfAST cond (AST expr1) (AST elseIfExpr1) -> trace ("IfAST: " ++ show cond ++ " |expr1| " ++ show expr1 ++ " |do| " ++ show elseIfExpr1) $ do
-            -- let (condAST1, condBytecode1) = trace ("condAST1: " ++ show cond1) astToBytecode' cond1 bytecode
-            -- let (condAST2, condBytecode2) = trace ("condAST2: " ++ show cond2) astToBytecode' cond2 bytecode
             let condBytecode = trace ("condBytecode1: " ++ show cond) astConditionToBytecode cond bytecode
             let (expr1AST, expr1Bytecode) = trace ("expr1AST: " ++ show expr1) astToBytecode' (AST expr1) bytecode
             let (elseIfExpr1AST, elseIfExpr1Bytecode) = trace ("elseIfExpr1: " ++ show elseIfExpr1 ++ "\n\n") astToBytecode' (AST elseIfExpr1) bytecode
             ( AST xs, bytecode ++ condBytecode ++ [JumpIfFalse (sizeInstructionOfAst (AST expr1) 0)] ++ expr1Bytecode ++ elseIfExpr1Bytecode)
-            -- ( AST xs, bytecode ++ condBytecode1 ++ condBytecode2 ++ [CompareOp "=="] ++ [JumpIfFalse (sizeInstructionOfAst (AST expr1) 0)] ++ expr1Bytecode ++ elseIfExpr1Bytecode)
         ElseAST (AST expr1) -> trace ("ElseAST: " ++ show expr1) $ do
             let (expr1AST, expr1Bytecode) = trace ("expr1AST: " ++ show expr1) astToBytecode' (AST expr1) bytecode
             (AST xs, bytecode ++ expr1Bytecode)
