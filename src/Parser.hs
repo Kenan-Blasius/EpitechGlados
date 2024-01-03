@@ -15,6 +15,9 @@ module Parser (
 
     getSubList,
     tokenListToSexpr,
+
+    splitAtValue,
+    splitAtLastValue,
 ) where
 
 import ParserModule
@@ -264,7 +267,7 @@ splitAtLastValue :: Eq a => a -> [a] -> Maybe ([a], a, [a])
 splitAtLastValue _ [] = Nothing
 -- splitAtValue until we ge nothing
 splitAtLastValue val (x:xs) = case splitAtValue val xs of
-    Nothing -> Just ([], x, xs)
+    Nothing -> Nothing
     Just (before, v, after) -> case splitAtLastValue val xs of
         Nothing -> Just (x:before, v, after)
         Just (before2, v2, after2) -> Just (x:before2, v2, after2)

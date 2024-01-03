@@ -521,6 +521,24 @@ tokenListToSexprTest =
         )
     ]
 
+splitAtValueTest :: Test
+splitAtValueTest =
+    TestList
+    [
+        TestCase (assertEqual "splitAtValue" (Just ("Hello", ' ', "World")) (splitAtValue ' ' "Hello World")),
+        TestCase (assertEqual "splitAtValue" (Just ("Hello", ' ', "World Me!")) (splitAtValue ' ' "Hello World Me!")),
+        TestCase (assertEqual "splitAtValue" (Nothing) (splitAtValue ' ' "Hello_World"))
+    ]
+
+splitAtLastValueTest :: Test
+splitAtLastValueTest =
+    TestList
+    [
+        TestCase (assertEqual "splitAtLastValue" (Just ("Hello", ' ', "World")) (splitAtLastValue ' ' "Hello World")),
+        TestCase (assertEqual "splitAtLastValue" (Just ("Hello World", ' ', "Me!")) (splitAtLastValue ' ' "Hello World Me!")),
+        TestCase (assertEqual "splitAtLastValue" (Nothing) (splitAtLastValue ' ' "Hello_World"))
+    ]
+
 testParsingFunction :: Test
 testParsingFunction =
     TestList
@@ -541,6 +559,9 @@ testParsingFunction =
             TestLabel "parseFile" parseFileTest,
 
             TestLabel "tokenListToSexpr" tokenListToSexprTest,
+
+            TestLabel "splitAtValue" splitAtValueTest,
+            TestLabel "splitAtLastValue" splitAtLastValueTest,
 
             TestLabel "parseChar" parseCharTest,
             TestLabel "parseString" parseStringTest,
