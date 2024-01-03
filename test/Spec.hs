@@ -407,15 +407,15 @@ parseFileTest =
         ),
         TestCase (do
             result <- parseFile (File ["if (1 < 2)"]) 0
-            assertEqual "parseFile" ([IfToken, OpenParenthesis, IntToken 1, SymbolToken "<", IntToken 2, CloseParenthesis]) (result)
+            assertEqual "parseFile" ([IfToken, OpenParenthesis, IntToken 1, LessThanToken, IntToken 2, CloseParenthesis]) (result)
         ),
         TestCase (do
             result <- parseFile (File ["else if (1 > 2)"]) 0
-            assertEqual "parseFile" ([ElseIfToken, OpenParenthesis, IntToken 1, SymbolToken ">", IntToken 2, CloseParenthesis]) (result)
+            assertEqual "parseFile" ([ElseIfToken, OpenParenthesis, IntToken 1, GreaterThanToken, IntToken 2, CloseParenthesis]) (result)
         ),
         TestCase (do
             result <- parseFile (File ["else (1 > 2)"]) 0
-            assertEqual "parseFile" ([ElseToken, OpenParenthesis, IntToken 1, SymbolToken ">", IntToken 2, CloseParenthesis]) (result)
+            assertEqual "parseFile" ([ElseToken, OpenParenthesis, IntToken 1, GreaterThanToken, IntToken 2, CloseParenthesis]) (result)
         ),
         TestCase (do
             result <- parseFile (File ["fun my_fun (int n) : int // similar to C"]) 0
@@ -423,43 +423,74 @@ parseFileTest =
         ),
         TestCase (do
             result <- parseFile (File ["int a = factorial(a, 'a');;; int b = factorial(b, 'b');"]) 0
-            assertEqual "parseFile" ([IntTypeToken, SymbolToken "a", SymbolToken "=", SymbolToken "factorial", OpenParenthesis, SymbolToken "a", CommaToken, CharToken 'a', CloseParenthesis, LineSeparator, IntTypeToken, SymbolToken "b", SymbolToken "=", SymbolToken "factorial", OpenParenthesis, SymbolToken "b", CommaToken, CharToken 'b', CloseParenthesis, LineSeparator]) (result)
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "a", AssignToken, SymbolToken "factorial", OpenParenthesis, SymbolToken "a", CommaToken, CharToken 'a', CloseParenthesis, LineSeparator, IntTypeToken, SymbolToken "b", AssignToken, SymbolToken "factorial", OpenParenthesis, SymbolToken "b", CommaToken, CharToken 'b', CloseParenthesis, LineSeparator]) (result)
         ),
         TestCase (do
             result <- parseFile (File ["int int_my_int = 42"]) 0
-            assertEqual "parseFile" ([IntTypeToken, SymbolToken "int_my_int", SymbolToken "=", IntToken 42]) (result)
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "int_my_int", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
             result <- parseFile (File ["char char_my_char = 'c'"]) 0
-            assertEqual "parseFile" ([CharTypeToken, SymbolToken "char_my_char", SymbolToken "=", CharToken 'c']) (result)
+            assertEqual "parseFile" ([CharTypeToken, SymbolToken "char_my_char", AssignToken, CharToken 'c']) (result)
         ),
         TestCase (do
             result <- parseFile (File ["string string_my_string = \"Hello World\""]) 0
-            assertEqual "parseFile" ([StringTypeToken, SymbolToken "string_my_string", SymbolToken "=", StringToken "Hello World"]) (result)
+            assertEqual "parseFile" ([StringTypeToken, SymbolToken "string_my_string", AssignToken, StringToken "Hello World"]) (result)
         ),
         TestCase (do
             result <- parseFile (File ["int if_my_if = 42"]) 0
-            assertEqual "parseFile" ([IntTypeToken, SymbolToken "if_my_if", SymbolToken "=", IntToken 42]) (result)
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "if_my_if", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
             result <- parseFile (File ["int else_my_else = 42"]) 0
-            assertEqual "parseFile" ([IntTypeToken, SymbolToken "else_my_else", SymbolToken "=", IntToken 42]) (result)
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "else_my_else", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
             result <- parseFile (File ["int fun_my_fun = 42"]) 0
-            assertEqual "parseFile" ([IntTypeToken, SymbolToken "fun_my_fun", SymbolToken "=", IntToken 42]) (result)
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "fun_my_fun", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
             result <- parseFile (File ["int for_my_for = 42"]) 0
-            assertEqual "parseFile" ([IntTypeToken, SymbolToken "for_my_for", SymbolToken "=", IntToken 42]) (result)
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "for_my_for", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
             result <- parseFile (File ["int while_my_while = 42"]) 0
-            assertEqual "parseFile" ([IntTypeToken, SymbolToken "while_my_while", SymbolToken "=", IntToken 42]) (result)
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "while_my_while", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
             result <- parseFile (File ["int 42_my_42 = 42"]) 0
-            assertEqual "parseFile" ([IntTypeToken, SymbolToken "42_my_42", SymbolToken "=", IntToken 42]) (result)
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "42_my_42", AssignToken, IntToken 42]) (result)
+        )
+    ]
+
+tokenListToSexprTest :: Test
+tokenListToSexprTest =
+    TestList
+    [
+        TestCase (do
+            tokenList <- parseFile (File ["42"]) 0
+            let result = tokenListToSexpr $ tokenList
+            assertEqual "tokenListToSexpr" [IntToken 42] (result)
+        ),
+        TestCase (do
+            tokenList <- parseFile (File ["Hello World"]) 0
+            let result = tokenListToSexpr $ tokenList
+            assertEqual "tokenListToSexpr" [SymbolToken "Hello", SymbolToken "World"] (result)
+        ),
+        TestCase (do
+            tokenList <- parseFile (File ["Hello World (42)"]) 0
+            let result = tokenListToSexpr $ tokenList
+            assertEqual "tokenListToSexpr" [SymbolToken "Hello", SymbolToken "World", ListToken [IntToken 42]] (result)
+        ),
+        TestCase (do
+            tokenList <- parseFile (File ["fun factorial (int n, char c) /* lol this is a comment to try to break something */: (const my_int) // and this is an inline comment"]) 0
+            let result = tokenListToSexpr $ tokenList
+            assertEqual "tokenListToSexpr" [FunToken, SymbolToken "factorial", ListToken [IntTypeToken, SymbolToken "n", CommaToken, CharTypeToken, SymbolToken "c"], ListToken [FunTypeToken, ListToken [SymbolToken "const", SymbolToken "my_int"]]] (result)
+        ),
+        TestCase (do
+            tokenList <- parseFile (File ["fun factorial ((int n), (char c)) /* lol this is a comment to try to break something */: (const my_int) // and this is an inline comment"]) 0
+            let result = tokenListToSexpr $ tokenList
+            assertEqual "tokenListToSexpr" [FunToken, SymbolToken "factorial", ListToken [ListToken [IntTypeToken, SymbolToken "n"], CommaToken, ListToken [CharTypeToken, SymbolToken "c"]], ListToken [FunTypeToken, ListToken [SymbolToken "const", SymbolToken "my_int"]]] (result)
         )
     ]
 
@@ -481,6 +512,8 @@ testParsingFunction =
             TestLabel "parseToken" parseTokenTest,
             TestLabel "parseLine" parseLineTest,
             TestLabel "parseFile" parseFileTest,
+
+            TestLabel "tokenListToSexpr" tokenListToSexprTest,
 
             TestLabel "parseChar" parseCharTest,
             TestLabel "parseString" parseStringTest,

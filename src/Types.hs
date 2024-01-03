@@ -56,6 +56,30 @@ data Token = OpenParenthesis
             | CharToken Char
             | CommaToken
             | LineSeparator
+
+            | AssignToken
+            | IncrementToken
+            | DecrementToken
+            | PlusEqualToken
+            | MinusEqualToken
+            | TimesEqualToken
+            | DivideEqualToken
+            | ModuloEqualToken
+            | PlusToken
+            | MinusToken
+            | TimesToken
+            | DivideToken
+            | ModuloToken
+            | AndToken
+            | OrToken
+            | NotToken
+            | EqualToken
+            | NotEqualToken
+            | LessThanToken
+            | LessThanEqualToken
+            | GreaterThanToken
+            | GreaterThanEqualToken
+
             | ListToken [Token]
             -- deriving Show
 
@@ -87,6 +111,30 @@ instance Show Token where
     show (CharToken x) = show x
     show CommaToken = "COMMA"
     show LineSeparator = "LineSEPARATOR"
+
+    show AssignToken = "Assign"
+    show IncrementToken = "Increment"
+    show DecrementToken = "Decrement"
+    show PlusEqualToken = "PlusEqual"
+    show MinusEqualToken = "MinusEqual"
+    show TimesEqualToken = "TimesEqual"
+    show DivideEqualToken = "DivideEqual"
+    show ModuloEqualToken = "ModuloEqual"
+    show PlusToken = "Plus"
+    show MinusToken = "Minus"
+    show TimesToken = "Times"
+    show DivideToken = "Divide"
+    show ModuloToken = "Modulo"
+    show AndToken = "And"
+    show OrToken = "Or"
+    show NotToken = "Not"
+    show EqualToken = "Equal"
+    show NotEqualToken = "NotEqual"
+    show LessThanToken = "LessThan"
+    show LessThanEqualToken = "LessThanEqual"
+    show GreaterThanToken = "GreaterThan"
+    show GreaterThanEqualToken = "GreaterThanEqual"
+
     show (ListToken x) = show x
 
 instance Eq Token where
@@ -117,6 +165,30 @@ instance Eq Token where
     (CharToken x) == (CharToken y) = x == y
     CommaToken == CommaToken = True
     LineSeparator == LineSeparator = True
+
+    AssignToken == AssignToken = True
+    IncrementToken == IncrementToken = True
+    DecrementToken == DecrementToken = True
+    PlusEqualToken == PlusEqualToken = True
+    MinusEqualToken == MinusEqualToken = True
+    TimesEqualToken == TimesEqualToken = True
+    DivideEqualToken == DivideEqualToken = True
+    ModuloEqualToken == ModuloEqualToken = True
+    PlusToken == PlusToken = True
+    MinusToken == MinusToken = True
+    TimesToken == TimesToken = True
+    DivideToken == DivideToken = True
+    ModuloToken == ModuloToken = True
+    AndToken == AndToken = True
+    OrToken == OrToken = True
+    NotToken == NotToken = True
+    EqualToken == EqualToken = True
+    NotEqualToken == NotEqualToken = True
+    LessThanToken == LessThanToken = True
+    LessThanEqualToken == LessThanEqualToken = True
+    GreaterThanToken == GreaterThanToken = True
+    GreaterThanEqualToken == GreaterThanEqualToken = True
+
     (ListToken x) == (ListToken y) = x == y
     _ == _ = False
 
@@ -139,6 +211,52 @@ data AST = AST [AST] -- list of AST
          | SymbolAST String -- name
          | StringAST String -- value
          | CharAST Char -- value
+
+            -- =
+         | AssignAST AST AST -- left right
+            -- ==
+         | EqualAST AST AST -- left right
+            -- <
+         | LessThanAST AST AST -- left right
+            -- >
+         | GreaterThanAST AST AST -- left right
+            -- <=
+         | LessThanEqualAST AST AST -- left right
+            -- >=
+         | GreaterThanEqualAST AST AST -- left right
+            -- !=
+         | NotEqualAST AST AST -- left right
+            -- +
+         | PlusAST AST AST -- left right
+            -- -
+         | MinusAST AST AST -- left right
+            -- *
+         | TimesAST AST AST -- left right
+            -- /
+         | DivideAST AST AST -- left right
+            -- %
+         | ModuloAST AST AST -- left right
+            -- &&
+         | AndAST AST AST -- left right
+            -- ||
+         | OrAST AST AST -- left right
+            -- +=
+         | PlusEqualAST AST AST -- left right
+            -- -=
+         | MinusEqualAST AST AST -- left right
+            -- *=
+         | TimesEqualAST AST AST -- left right
+            -- /=
+         | DivideEqualAST AST AST -- left right
+            -- %=
+         | ModuloEqualAST AST AST -- left right
+            -- !
+         | NotAST AST -- expr
+            -- ++
+         | IncrementAST AST -- left
+            -- --
+         | DecrementAST AST -- left
+
          | DeadLeafAST
          deriving Show
 
@@ -159,6 +277,30 @@ instance Eq AST where
     SymbolAST x == SymbolAST y = x == y
     StringAST x == StringAST y = x == y
     CharAST x == CharAST y = x == y
+
+    AssignAST left1 right1 == AssignAST left2 right2 = left1 == left2 && right1 == right2
+    EqualAST left1 right1 == EqualAST left2 right2 = left1 == left2 && right1 == right2
+    LessThanAST left1 right1 == LessThanAST left2 right2 = left1 == left2 && right1 == right2
+    GreaterThanAST left1 right1 == GreaterThanAST left2 right2 = left1 == left2 && right1 == right2
+    LessThanEqualAST left1 right1 == LessThanEqualAST left2 right2 = left1 == left2 && right1 == right2
+    GreaterThanEqualAST left1 right1 == GreaterThanEqualAST left2 right2 = left1 == left2 && right1 == right2
+    NotEqualAST left1 right1 == NotEqualAST left2 right2 = left1 == left2 && right1 == right2
+    PlusAST left1 right1 == PlusAST left2 right2 = left1 == left2 && right1 == right2
+    MinusAST left1 right1 == MinusAST left2 right2 = left1 == left2 && right1 == right2
+    TimesAST left1 right1 == TimesAST left2 right2 = left1 == left2 && right1 == right2
+    DivideAST left1 right1 == DivideAST left2 right2 = left1 == left2 && right1 == right2
+    ModuloAST left1 right1 == ModuloAST left2 right2 = left1 == left2 && right1 == right2
+    AndAST left1 right1 == AndAST left2 right2 = left1 == left2 && right1 == right2
+    OrAST left1 right1 == OrAST left2 right2 = left1 == left2 && right1 == right2
+    PlusEqualAST left1 right1 == PlusEqualAST left2 right2 = left1 == left2 && right1 == right2
+    MinusEqualAST left1 right1 == MinusEqualAST left2 right2 = left1 == left2 && right1 == right2
+    TimesEqualAST left1 right1 == TimesEqualAST left2 right2 = left1 == left2 && right1 == right2
+    DivideEqualAST left1 right1 == DivideEqualAST left2 right2 = left1 == left2 && right1 == right2
+    ModuloEqualAST left1 right1 == ModuloEqualAST left2 right2 = left1 == left2 && right1 == right2
+    NotAST expr1 == NotAST expr2 = expr1 == expr2
+    IncrementAST left1 == IncrementAST left2 = left1 == left2
+    DecrementAST left1 == DecrementAST left2 = left1 == left2
+
     DeadLeafAST == DeadLeafAST = True
     _ == _ = False
 
@@ -216,6 +358,89 @@ printAST = printASTIndented 0
                 printASTIndented (depth + 1) cond ++
                 printASTIndented (depth + 1) expr ++
                 printASTIndented (depth + 1) elseIfExpr
+
+        printASTIndented depth (AssignAST left right) =
+            indent depth ++ "AssignAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (EqualAST left right) =
+            indent depth ++ "EqualAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (LessThanAST left right) =
+            indent depth ++ "LessThanAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (GreaterThanAST left right) =
+            indent depth ++ "GreaterThanAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (LessThanEqualAST left right) =
+            indent depth ++ "LessThanEqualAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (GreaterThanEqualAST left right) =
+            indent depth ++ "GreaterThanEqualAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (NotEqualAST left right) =
+            indent depth ++ "NotEqualAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (PlusAST left right) =
+            indent depth ++ "PlusAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (MinusAST left right) =
+            indent depth ++ "MinusAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (TimesAST left right) =
+            indent depth ++ "TimesAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (DivideAST left right) =
+            indent depth ++ "DivideAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (ModuloAST left right) =
+            indent depth ++ "ModuloAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (AndAST left right) =
+            indent depth ++ "AndAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (OrAST left right) =
+            indent depth ++ "OrAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (PlusEqualAST left right) =
+            indent depth ++ "PlusEqualAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (MinusEqualAST left right) =
+            indent depth ++ "MinusEqualAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (TimesEqualAST left right) =
+            indent depth ++ "TimesEqualAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (DivideEqualAST left right) =
+            indent depth ++ "DivideEqualAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (ModuloEqualAST left right) =
+            indent depth ++ "ModuloEqualAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (NotAST expr) =
+            indent depth ++ "NotAST\n" ++ printASTIndented (depth + 1) expr
+        printASTIndented depth (IncrementAST left) =
+            indent depth ++ "IncrementAST\n" ++ printASTIndented (depth + 1) left
+        printASTIndented depth (DecrementAST left) =
+            indent depth ++ "DecrementAST\n" ++ printASTIndented (depth + 1) left
 
 -- Overload the ++ operator for AST
 instance Semigroup AST where

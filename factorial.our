@@ -1,5 +1,8 @@
 #define my_int int
 
+// PEMDAS check
+int pemdas = (1 + 2) * 3 / 4 - 5;
+
 fun factorial (int n, char c) /* lol this is a comment to try to break something */: (const my_int) // and this is an inline comment
 {
     print(n);
