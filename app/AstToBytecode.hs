@@ -6,84 +6,6 @@ import Data.Maybe
 import Data.Char
 import Debug.Trace
 
--- * --
--- ; Opcode Definitions
--- LOAD_CONST      0x01
--- LOAD_VAR        0x02
--- STORE_VAR       0x03
--- BINARY_OP       0x04
--- UNARY_OP        0x05
--- COMPARE_OP      0x06
--- JUMP_IF_TRUE    0x07
--- JUMP_IF_FALSE   0x08
--- JUMP            0x09
--- POP             0x0A
--- DUP             0x0B
--- CALL            0x0C
--- RETURN          0x0D
--- BUILD_LIST      0x0E
--- INDEX           0x0F
--- ATTRIBUTE       0x10
--- CREATE_OBJECT   0x11
-
-data Bytecode = LoadConst Int
-              | LoadVar String
-              | StoreVar String
-              | BinaryOp String
-              | UnaryOp String
-              | CompareOp String
-              | JumpIfTrue Int
-              | JumpIfFalse Int
-              | Jump Int
-              | Pop
-              | Dup
-              | Call Int
-              | Return
-              | BuildList Int
-              | Index
-              | Attribute String
-              | CreateObject Int
-              deriving Eq
-
-instance Show Bytecode where
-    show (LoadConst x) = "LOAD_CONST " ++ show x
-    show (LoadVar x) = "LOAD_VAR " ++ x
-    show (StoreVar x) = "STORE_VAR " ++ x
-    show (BinaryOp x) = "BINARY_OP " ++ x
-    show (UnaryOp x) = "UNARY_OP " ++ x
-    show (CompareOp x) = "COMPARE_OP " ++ x
-    show (JumpIfTrue x) = "JUMP_IF_TRUE " ++ show x
-    show (JumpIfFalse x) = "JUMP_IF_FALSE " ++ show x
-    show (Jump x) = "JUMP " ++ show x
-    show Pop = "POP"
-    show Dup = "DUP"
-    show (Call x) = "CALL " ++ show x
-    show Return = "RETURN"
-    show (BuildList x) = "BUILD_LIST " ++ show x
-    show Index = "INDEX"
-    show (Attribute x) = "ATTRIBUTE " ++ x
-    show (CreateObject x) = "CREATE_OBJECT " ++ show x
-
-
-sizeInstructionOfAst :: AST -> Int -> Int
-sizeInstructionOfAst expr size = case expr of
-    AST [] -> trace ("sizeInstructionOfAst AST []: " ++ show expr ++ ". Current size: " ++ show size) size
-    IntAST x -> trace ("sizeInstructionOfAst IntAST: " ++ show x ++ ". Current size: " ++ show (size + 1)) (size + 1)
-    SymbolAST x -> trace ("sizeInstructionOfAst SymbolAST: " ++ x ++ ". Current size: " ++ show (size + 1)) (size + 1)
-    IfAST (AST cond) (AST expr1) (AST elseIfExpr1) ->
-        trace ("sizeInstructionOfAst IfAST. Current size: " ++ show (size + 1)) $
-        sizeInstructionOfAst (AST cond) $
-        sizeInstructionOfAst (AST expr1) $
-        sizeInstructionOfAst (AST elseIfExpr1) $
-        size + 1
-    AST (x:xs) -> trace ("sizeInstructionOfAst AST (x:xs): " ++ show x ++ ". Current size: " ++ show size) $
-        sizeInstructionOfAst (AST xs) $
-        sizeInstructionOfAst x $
-        size
-    _ -> trace ("sizeInstructionOfAst error bytecode: " ++ show expr ++ ". Current size: " ++ show size) size
-sizeInstructionOfAst _ size = trace ("sizeInstructionOfAst No AST node found. Current size: " ++ show size) size
--- simpleOperation _ _ = error "Unknown AST node"
-
 -- | IfAST AST AST AST
 -- | ElseIfAST AST AST AST
 -- | ElseAST AST
@@ -123,6 +45,29 @@ sizeInstructionOfAst _ size = trace ("sizeInstructionOfAst No AST node found. Cu
 -- | IncrementAST AST
 -- | DecrementAST AST
 -- | DeadLeafAST
+
+
+
+
+sizeInstructionOfAst :: AST -> Int -> Int
+sizeInstructionOfAst expr size = case expr of
+    AST [] -> trace ("sizeInstructionOfAst AST []: " ++ show expr ++ ". Current size: " ++ show size) size
+    IntAST x -> trace ("sizeInstructionOfAst IntAST: " ++ show x ++ ". Current size: " ++ show (size + 1)) (size + 1)
+    SymbolAST x -> trace ("sizeInstructionOfAst SymbolAST: " ++ x ++ ". Current size: " ++ show (size + 1)) (size + 1)
+    IfAST (AST cond) (AST expr1) (AST elseIfExpr1) ->
+        trace ("sizeInstructionOfAst IfAST. Current size: " ++ show (size + 1)) $
+        sizeInstructionOfAst (AST cond) $
+        sizeInstructionOfAst (AST expr1) $
+        sizeInstructionOfAst (AST elseIfExpr1) $
+        size + 1
+    AST (x:xs) -> trace ("sizeInstructionOfAst AST (x:xs): " ++ show x ++ ". Current size: " ++ show size) $
+        sizeInstructionOfAst (AST xs) $
+        sizeInstructionOfAst x $
+        size
+    _ -> trace ("sizeInstructionOfAst error bytecode: " ++ show expr ++ ". Current size: " ++ show size) size
+sizeInstructionOfAst _ size = trace ("sizeInstructionOfAst No AST node found. Current size: " ++ show size) size
+-- simpleOperation _ _ = error "Unknown AST node"
+
 
 
 astConditionToBytecode :: AST -> [Bytecode] -> [Bytecode]

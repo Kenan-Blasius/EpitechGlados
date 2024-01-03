@@ -2,8 +2,8 @@ module Main (main) where
 
 import System.Environment
 import Types
--- import Eval
 import AstToBytecode
+import BytecodeToBinary
 import Parser
 
 -- INFO: Main function
@@ -19,7 +19,11 @@ main = do
             putStrLn $ show ast
             let byt = []
             putStrLn "-----------------"
-            let (_, evaluatedAST) = astToBytecode' ast byt
-            print (evaluatedAST)
+            let (_, bytecode) = astToBytecode' ast byt
+            print bytecode
+
+            -- putStrLn (printBytecode bytecode)
+            bytecodeToBinary bytecode
+
         _ -> do
             putStrLn "No file given as an argument"
