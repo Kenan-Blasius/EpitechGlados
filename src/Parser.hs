@@ -34,6 +34,15 @@ parseKeyword str token = Parser f
             Just (_, xs) -> Just (token, xs)
             Nothing -> Nothing
 
+parseFloatToken :: Parser Token
+parseFloatToken = Parser f
+    where
+        f x = do
+            num <- runParser parseInt x
+            dot <- runParser (parseChar '.') (snd num)
+            num2 <- runParser parseInt (snd dot)
+            Just (FloatToken (fromIntegral (fst num) + (fromIntegral (fst num2) / (10 ^ (length (show (fst num2)))))), snd num2)
+
 parseIntToken :: Parser Token
 parseIntToken = Parser f
     where
@@ -132,6 +141,7 @@ parseToken =
     <|> (parseStringToken)
     <|> (parseCharToken)
     -- Numbers
+    <|> (parseFloatToken)
     <|> (parseIntToken)
     -- Symbols (others)
     <|> (parseSymbolToken)
@@ -186,6 +196,7 @@ mergeSymbols (ElseToken : xs) | (head (filter (/= SpaceToken) xs)) == IfToken = 
 mergeSymbols (IntToken x : IntToken y : xs) = mergeSymbols (IntToken (x * 10 + y) : xs)
 -- merge negative numbers (ex: - 123 -> -123)
 mergeSymbols (MinusToken : IntToken x : xs) = mergeSymbols (IntToken (-x) : xs)
+mergeSymbols (MinusToken : FloatToken x : xs) = mergeSymbols (FloatToken (-x) : xs)
 -- Delete all spaces
 mergeSymbols (SpaceToken : xs) = mergeSymbols xs
 -- Concat all LineSeparator
@@ -536,6 +547,9 @@ sexprToAst (StringTypeToken : xs) = do
 -- ! Int token
 sexprToAst (IntToken x : xs) = do
     AST [IntAST x] <> sexprToAst xs
+-- ! Float token
+sexprToAst (FloatToken x : xs) = do
+    AST [FloatAST x] <> sexprToAst xs
 -- ! Symbol token
 sexprToAst (SymbolToken x : xs) = do
     AST [SymbolAST x] <> sexprToAst xs

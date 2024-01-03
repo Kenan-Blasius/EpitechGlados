@@ -51,6 +51,7 @@ data Token = OpenParenthesis
             | InlineCommentStart
             | DefineToken
             | IntToken Int
+            | FloatToken Float
             | SymbolToken String
             | StringToken String
             | CharToken Char
@@ -106,6 +107,7 @@ instance Show Token where
     show InlineCommentStart = "//"
     show DefineToken = "DEFINE"
     show (IntToken x) = show x
+    show (FloatToken x) = show x
     show (SymbolToken x) = x
     show (StringToken x) = "\"" ++ x ++ "\""
     show (CharToken x) = show x
@@ -160,6 +162,7 @@ instance Eq Token where
     InlineCommentStart == InlineCommentStart = True
     DefineToken == DefineToken = True
     (IntToken x) == (IntToken y) = x == y
+    (FloatToken x) == (FloatToken y) = x == y
     (SymbolToken x) == (SymbolToken y) = x == y
     (StringToken x) == (StringToken y) = x == y
     (CharToken x) == (CharToken y) = x == y
@@ -208,6 +211,7 @@ data AST = AST [AST] -- list of AST
          | StringTypeAST -- type
          | LambdaClosure [String] AST Environment
          | IntAST Int -- value
+         | FloatAST Float -- value
          | SymbolAST String -- name
          | StringAST String -- value
          | CharAST Char -- value
@@ -274,6 +278,7 @@ instance Eq AST where
     StringTypeAST == StringTypeAST = True
     LambdaClosure args1 body1 env1 == LambdaClosure args2 body2 env2 = args1 == args2 && body1 == body2 && env1 == env2
     IntAST x == IntAST y = x == y
+    FloatAST x == FloatAST y = x == y
     SymbolAST x == SymbolAST y = x == y
     StringAST x == StringAST y = x == y
     CharAST x == CharAST y = x == y
@@ -314,6 +319,7 @@ printAST = printASTIndented 0
         printASTIndented :: Int -> AST -> String
         printASTIndented depth DeadLeafAST = indent depth ++ "DeadLeafAST\n"
         printASTIndented depth (IntAST value) = indent depth ++ "IntAST " ++ show value ++ "\n"
+        printASTIndented depth (FloatAST value) = indent depth ++ "FloatAST " ++ show value ++ "\n"
         printASTIndented depth (SymbolAST name) = indent depth ++ "SymbolAST " ++ name ++ "\n"
         printASTIndented depth (DefineAST name expr) =
             indent depth ++ "DefineAST " ++ name ++ "\n" ++ printASTIndented (depth + 1) expr
