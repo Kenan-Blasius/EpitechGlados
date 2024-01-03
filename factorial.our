@@ -1,13 +1,12 @@
 #define my_int int
 
-// PEMDAS check
-int pemdas = (1 + -2) * 3 / 4 - 5;
-
-int pemdasHardcore = (595 / (1 - 8) * 5) + 2 - 18 % (2 + 1);
-int pemdasHardcore2 = (595 / (1 - 8) * 5) + 2 - 18 % (2 + 1) * 2;
-int pemdasHardcore3 = ((20 + 5 * 3) - (7 % 3)) / 2 + (15 - 3 * 2) % 4;
-int pemdasHardcore4 = (((20 + 5 * 3) - (7 % 3)) / 2 + (15 - 3 * 2) % 4) * ((12 / 6 + 3) - (2 * 4) % 5) + (((9 * 3) - (7 + 2)) / (4 % 3)) - ((18 / 2) + (5 * 2) % 3) + ((10 - 3) * (6 + 2 % 4)) / ((16 - 3 * 2) + (5 / 2)) % 7;
-int pemdasHardcore5 = 20 + 5 * 3 - 7 % 3 / 2 + 15 - 3 * 2 % 4 * 12 / 6 + 3 - 2 * 4 % 5 + 9 * 3 - 7 + 2 / 4 % 3 / 18 / 2 + 5 * 2 % 3 + 10 - 3 * 6 + 2 % 4 / 16 - 3 * 2 + 5 / 2 % 7;
+// // PEMDAS check
+// int pemdas = (1 + -2) * 3 / 4 - 5;
+// int pemdasHardcore = (595 / (1 - 8) * 5) + 2 - 18 % (2 + 1);
+// int pemdasHardcore2 = (595 / (1 - 8) * 5) + 2 - 18 % (2 + 1) * 2;
+// int pemdasHardcore3 = ((20 + 5 * 3) - (7 % 3)) / 2 + (15 - 3 * 2) % 4;
+// int pemdasHardcore4 = (((20 + 5 * 3) - (7 % 3)) / 2 + (15 - 3 * 2) % 4) * ((12 / 6 + 3) - (2 * 4) % 5) + (((9 * 3) - (7 + 2)) / (4 % 3)) - ((18 / 2) + (5 * 2) % 3) + ((10 - 3) * (6 + 2 % 4)) / ((16 - 3 * 2) + (5 / 2)) % 7;
+// int pemdasHardcore5 = 20 + 5 * 3 - 7 % 3 / 2 + 15 - 3 * 2 % 4 * 12 / 6 + 3 - 2 * 4 % 5 + 9 * 3 - 7 + 2 / 4 % 3 / 18 / 2 + 5 * 2 % 3 + 10 - 3 * 6 + 2 % 4 / 16 - 3 * 2 + 5 / 2 % 7;
 
 fun factorial (int n, char c) /* lol this is a comment to try to break something */: (const my_int) // and this is an inline comment
 {
@@ -39,28 +38,28 @@ fun main () : int
 {
     int a = factorial(a, 'a'); int b = factorial(b, 'b');
 
-    if (a == b) {
-        print("a and b are equal");
-    }
+    // if (a == b) {
+    //     print("a and b are equal");
+    // }
 
-    string my_UTF16_string = "This is a string with UTF16 characters: éèàçù and some chinese characters: 你好吗？ and some emojis: 😂😄🤣🌟";
-    char my_chinese_char = '你';
-    char my_emoji_char = '😂';
-    // Variable name with UTF16 characters
-    int 你好吗 = 42;
-    int 42var = 42;
-    int forme = 42;
+    // string my_UTF16_string = "This is a string with UTF16 characters: éèàçù and some chinese characters: 你好吗？ and some emojis: 😂😄🤣🌟";
+    // char my_chinese_char = '你';
+    // char my_emoji_char = '😂';
+    // // Variable name with UTF16 characters
+    // int 你好吗 = 42;
+    // int 42var = 42;
+    // int forme = 42;
 
-    float myFloat = -84.42;
+    // float myFloat = -84.42;
 
-    for (int i = 0; i < 10; i++) {
-        a = a + 1;
-    }
+    // for (int i = 0; i < 10; i++) {
+    //     a = a + 1;
+    // }
 
-    int count = 0;
-    while (count < 10) {
-        count = count + 1;
-    }
+    // int count = 0;
+    // while (count < 10) {
+    //     count = count + 1;
+    // }
 
     print(a);
 
