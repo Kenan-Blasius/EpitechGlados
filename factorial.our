@@ -1,7 +1,7 @@
 #define my_int int
 
 // PEMDAS check
-int pemdas = (1 + 2) * 3 / 4 - 5;
+int pemdas = (1 + -2) * 3 / 4 - 5;
 
 int pemdasHardcore = (595 / (1 - 8) * 5) + 2 - 18 % (2 + 1);
 int pemdasHardcore2 = (595 / (1 - 8) * 5) + 2 - 18 % (2 + 1) * 2;

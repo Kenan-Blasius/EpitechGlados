@@ -184,6 +184,8 @@ mergeSymbols (IntToken x : SymbolToken y : xs) = mergeSymbols (SymbolToken (show
 mergeSymbols (ElseToken : xs) | (head (filter (/= SpaceToken) xs)) == IfToken = mergeSymbols (ElseIfToken : (tail (dropWhile (/= IfToken) xs)))
 -- merge all consecutive numbers (ex: 1 2 3 -> 123)
 mergeSymbols (IntToken x : IntToken y : xs) = mergeSymbols (IntToken (x * 10 + y) : xs)
+-- merge negative numbers (ex: - 123 -> -123)
+mergeSymbols (MinusToken : IntToken x : xs) = mergeSymbols (IntToken (-x) : xs)
 -- Delete all spaces
 mergeSymbols (SpaceToken : xs) = mergeSymbols xs
 -- Concat all LineSeparator
