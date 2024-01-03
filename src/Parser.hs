@@ -98,6 +98,29 @@ parseToken =
     -- Spacer
     <|> (parseKeyword " " SpaceToken)
     <|> (parseKeyword "\t" SpaceToken)
+    -- Operators
+    <|> (parseKeyword "=" AssignToken)
+    <|> (parseKeyword "++" IncrementToken)
+    <|> (parseKeyword "--" DecrementToken)
+    <|> (parseKeyword "+=" PlusEqualToken)
+    <|> (parseKeyword "-=" MinusEqualToken)
+    <|> (parseKeyword "*=" TimesEqualToken)
+    <|> (parseKeyword "/=" DivideEqualToken)
+    <|> (parseKeyword "%=" ModuloEqualToken)
+    <|> (parseKeyword "+" PlusToken)
+    <|> (parseKeyword "-" MinusToken)
+    <|> (parseKeyword "*" TimesToken)
+    <|> (parseKeyword "/" DivideToken)
+    <|> (parseKeyword "%" ModuloToken)
+    <|> (parseKeyword "&&" AndToken)
+    <|> (parseKeyword "||" OrToken)
+    <|> (parseKeyword "!" NotToken)
+    <|> (parseKeyword "==" EqualToken)
+    <|> (parseKeyword "!=" NotEqualToken)
+    <|> (parseKeyword "<" LessThanToken)
+    <|> (parseKeyword "<=" LessThanEqualToken)
+    <|> (parseKeyword ">" GreaterThanToken)
+    <|> (parseKeyword ">=" GreaterThanEqualToken)
     -- List
     <|> (parseKeyword "(" OpenParenthesis)
     <|> (parseKeyword ")" CloseParenthesis)
@@ -234,6 +257,32 @@ getIfChain (ElseToken : expr : xs) = do
     (ElseToken : expr : ifChain, rest)
 getIfChain xs = do
     ([], xs)
+
+binaryOperatorsAST :: Token -> (AST -> AST -> AST) -> [Token] -> AST
+binaryOperatorsAST token ast xs = do
+    let (before, _, after) = case splitAtValue token xs of
+            Nothing -> ([], token, [])
+            Just (b, _, a) -> (b, token, a)
+    ast (sexprToAst before) (sexprToAst after)
+
+operatorsAfterAST :: Token -> (AST -> AST) -> [Token] -> AST
+operatorsAfterAST token ast xs = do
+    let (_, _, after) = case splitAtValue token xs of
+            Nothing -> ([], token, [])
+            Just (b, _, a) -> (b, token, a)
+    ast (sexprToAst after)
+
+operatorsBeforeAST :: Token -> (AST -> AST) -> [Token] -> AST
+operatorsBeforeAST token ast xs = do
+    let (before, _, _) = case splitAtValue token xs of
+            Nothing -> ([], token, [])
+            Just (b, _, a) -> (b, token, a)
+    ast (sexprToAst before)
+
+operatorsASTCheck :: Token -> [Token] -> Bool
+operatorsASTCheck token xs = case splitAtValue token xs of
+            Nothing -> False
+            Just (_, _, _) -> True
 
 sexprToAst :: [Token] -> AST
 sexprToAst [] = DeadLeafAST
@@ -373,6 +422,30 @@ sexprToAst x | case splitAtValue LineSeparator x of
             Nothing -> ([], LineSeparator, [])
             Just (b, _, a) -> (b, LineSeparator, a)
     AST [sexprToAst before] <> sexprToAst after
+-- ! Symbol Tree
+sexprToAst x | operatorsASTCheck AssignToken x =            binaryOperatorsAST AssignToken AssignAST x
+sexprToAst x | operatorsASTCheck PlusEqualToken x =         binaryOperatorsAST PlusEqualToken PlusEqualAST x
+sexprToAst x | operatorsASTCheck MinusEqualToken x =        binaryOperatorsAST MinusEqualToken MinusEqualAST x
+sexprToAst x | operatorsASTCheck TimesEqualToken x =        binaryOperatorsAST TimesEqualToken TimesEqualAST x
+sexprToAst x | operatorsASTCheck DivideEqualToken x =       binaryOperatorsAST DivideEqualToken DivideEqualAST x
+sexprToAst x | operatorsASTCheck ModuloEqualToken x =       binaryOperatorsAST ModuloEqualToken ModuloEqualAST x
+sexprToAst x | operatorsASTCheck MinusToken x =             binaryOperatorsAST MinusToken MinusAST x
+sexprToAst x | operatorsASTCheck PlusToken x =              binaryOperatorsAST PlusToken PlusAST x
+sexprToAst x | operatorsASTCheck ModuloToken x =            binaryOperatorsAST ModuloToken ModuloAST x
+sexprToAst x | operatorsASTCheck DivideToken x =            binaryOperatorsAST DivideToken DivideAST x
+sexprToAst x | operatorsASTCheck TimesToken x =             binaryOperatorsAST TimesToken TimesAST x
+sexprToAst x | operatorsASTCheck AndToken x =               binaryOperatorsAST AndToken AndAST x
+sexprToAst x | operatorsASTCheck OrToken x =                binaryOperatorsAST OrToken OrAST x
+sexprToAst x | operatorsASTCheck EqualToken x =             binaryOperatorsAST EqualToken EqualAST x
+sexprToAst x | operatorsASTCheck NotEqualToken x =          binaryOperatorsAST NotEqualToken NotEqualAST x
+sexprToAst x | operatorsASTCheck LessThanToken x =          binaryOperatorsAST LessThanToken LessThanAST x
+sexprToAst x | operatorsASTCheck LessThanEqualToken x =     binaryOperatorsAST LessThanEqualToken LessThanEqualAST x
+sexprToAst x | operatorsASTCheck GreaterThanToken x =       binaryOperatorsAST GreaterThanToken GreaterThanAST x
+sexprToAst x | operatorsASTCheck GreaterThanEqualToken x =  binaryOperatorsAST GreaterThanEqualToken GreaterThanEqualAST x
+
+sexprToAst x | operatorsASTCheck IncrementToken x =         operatorsBeforeAST IncrementToken IncrementAST x
+sexprToAst x | operatorsASTCheck DecrementToken x =         operatorsBeforeAST DecrementToken DecrementAST x
+sexprToAst x | operatorsASTCheck NotToken x =               operatorsAfterAST NotToken NotAST x
 -- ! Types token
 sexprToAst (IntTypeToken : xs) = do
     AST [IntTypeAST] <> sexprToAst xs
