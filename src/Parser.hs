@@ -249,6 +249,15 @@ splitAtValue val (x:xs)
                     Nothing -> Nothing
                     Just (before, v, after) -> Just (x:before, v, after)
 
+splitAtLastValue :: Eq a => a -> [a] -> Maybe ([a], a, [a])
+splitAtLastValue _ [] = Nothing
+-- splitAtValue until we ge nothing
+splitAtLastValue val (x:xs) = case splitAtValue val xs of
+    Nothing -> Just ([], x, xs)
+    Just (before, v, after) -> case splitAtLastValue val xs of
+        Nothing -> Just (x:before, v, after)
+        Just (before2, v2, after2) -> Just (x:before2, v2, after2)
+
 getIfChain :: [Token] -> ([Token], [Token])
 getIfChain [] = ([], [])
 getIfChain (ElseIfToken : cond : expr : xs) = do
@@ -296,10 +305,10 @@ pemdasTreeAction token ast xs = do
 
 pemdasTreeAction2 :: Token -> Token -> (AST -> AST -> AST) -> (AST -> AST -> AST) -> [Token] -> AST
 pemdasTreeAction2 token1 token2 ast1 ast2 xs = do
-    let (before, _, after) = case splitAtValue token1 xs of
+    let (before, _, after) = case splitAtLastValue token1 xs of
             Nothing -> ([], token1, [])
             Just (b, _, a) -> (b, token1, a)
-    let (before2, _, after2) = case splitAtValue token2 xs of
+    let (before2, _, after2) = case splitAtLastValue token2 xs of
             Nothing -> ([], token2, [])
             Just (b, _, a) -> (b, token2, a)
     if length before > length before2 then do
@@ -318,13 +327,13 @@ pemdasTree x | listOperatorsASTCheck [MinusToken] x = pemdasTreeAction MinusToke
 
 -- ! Modulo, Divide and Times token
 pemdasTree x | listOperatorsASTCheck [ModuloToken, DivideToken, TimesToken] x = do
-    let (beforeModulo, _, _) = case splitAtValue ModuloToken x of
+    let (beforeModulo, _, _) = case splitAtLastValue ModuloToken x of
             Nothing -> ([], ModuloToken, [])
             Just (b, _, a) -> (b, ModuloToken, a)
-    let (beforeDivide, _, _) = case splitAtValue DivideToken x of
+    let (beforeDivide, _, _) = case splitAtLastValue DivideToken x of
             Nothing -> ([], DivideToken, [])
             Just (b, _, a) -> (b, DivideToken, a)
-    let (beforeTimes, _, _) = case splitAtValue TimesToken x of
+    let (beforeTimes, _, _) = case splitAtLastValue TimesToken x of
             Nothing -> ([], TimesToken, [])
             Just (b, _, a) -> (b, TimesToken, a)
     -- % * /
