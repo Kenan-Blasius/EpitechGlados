@@ -2,7 +2,8 @@ module Main (main) where
 
 import System.Environment
 import Types
--- import Eval
+import AstToBytecode
+import BytecodeToBinary
 import Parser
 
 -- INFO: Main function
@@ -16,8 +17,13 @@ main = do
             file <- return $ File (lines contents)
             ast <- parser file
             putStrLn $ show ast
-            -- let env = []
-            -- let (_, evaluatedAST) = evalAST env ast
-            -- print (evaluatedAST)
+            let byt = []
+            putStrLn "-----------------"
+            let (_, bytecode) = astToBytecode' ast byt
+            print bytecode
+
+            -- putStrLn (printBytecode bytecode)
+            bytecodeToBinary bytecode
+
         _ -> do
             putStrLn "No file given as an argument"
