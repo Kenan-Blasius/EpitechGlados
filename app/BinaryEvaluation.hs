@@ -1,4 +1,5 @@
 import System.Environment
+import System.Exit (exitFailure)
 
 import Types
 import Debug.Trace
@@ -64,43 +65,65 @@ binaryOpCall 45 (x:y:xs) = (x - y) : xs
 binaryOpCall _ _ = []
 
 compareOpCall :: Word8 -> [Int] -> [Int]
-compareOpCall 60 (x:y:xs) = (if x < y then 1 else 0) : xs
-compareOpCall 62 (x:y:xs) = (if x > y then 1 else 0) : xs
-compareOpCall 61 (x:y:xs) = (if x == y then 1 else 0) : xs
-compareOpCall _ _ = []
+compareOpCall 60 (x:y:xs) = trace ("x = " ++ show y ++ " < y = " ++ show x) ((if y < x then 1 else 0) : xs)
+compareOpCall 62 (x:y:xs) = trace ("x = " ++ show y ++ " > y = " ++ show x) ((if y > x then 1 else 0) : xs)
+compareOpCall 61 (x:y:xs) = trace ("x = " ++ show x ++ " == y = " ++ show y) ((if x == y then 1 else 0) : xs)
+compareOpCall _ stack = trace ("stack = " ++ show stack) stack
 
 -- checkLastInStack :: [Int] -> [Int]
 -- checkLastInStack [] = []
 -- checkLastInStack (x:xs) = if x == 0 then xs else x : xs
 
 
---           opcode   values    stack   (new_stack, PC)
-evalValue :: Word8 -> [Word8] -> [Int] -> ([Int], Int)
-evalValue 0x01 values stack = trace ("LOAD_CONST "    ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), 1)
-evalValue 0x02 values stack = trace ("LOAD_VAR "      ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), 1)
-evalValue 0x03 values stack = trace ("STORE_VAR "     ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), 0)
-evalValue 0x04 values stack = trace ("BINARY_OP "     ++ show (word8ToInt (values !! 0))) (binaryOpCall (values !! 0) stack, 1)
-evalValue 0x05 values stack = trace ("UNARY_OP "      ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), 0)
-evalValue 0x06 values stack = trace ("COMPARE_OP "    ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), 0)
-evalValue 0x07 values stack = trace ("JUMP_IF_TRUE "  ++ show (word8ToInt (values !! 0))) (if (stack !! 0) /= 0 then (stack, word8ToInt (values !! 0)) else (stack, 1))
-evalValue 0x08 values stack = trace ("JUMP_IF_FALSE " ++ show (word8ToInt (values !! 0))) (if (stack !! 0) == 0 then (stack, word8ToInt (values !! 0)) else (stack, 1))
-evalValue 0x09 values stack = trace ("JUMP "          ++ show (word8ToInt (values !! 0))) (stack, word8ToInt (values !! 0))
-evalValue 0x0A values stack = trace  "POP "                                               ((word8ToInt (values !! 0) : stack), 0)
-evalValue 0x0B values stack = trace  "DUP "                                               ((word8ToInt (values !! 0) : stack), 0)
-evalValue 0x0C values stack = trace ("CALL "          ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), 0)
-evalValue 0x0D values stack = trace  "RETURN "                                            ((word8ToInt (values !! 0) : stack), 0)
-evalValue 0x0E values stack = trace ("BUILD_LIST "    ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), 0)
-evalValue 0x0F values stack = trace  "INDEX "                                             ((word8ToInt (values !! 0) : stack), 0)
-evalValue 0x10 values stack = trace ("ATTRIBUTE "     ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), 0)
-evalValue 0x11 values stack = trace ("CREATE_OBJECT " ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), 0)
-evalValue _ _ _ = trace "Unknown opcode" ([], 0)
+--           opcode   values    stack     PC    (new_stack, PC)
+evalValue :: Word8 -> [Word8] -> [Int] -> Int -> ([Int], Int)
+-- * OK
+evalValue 0x01 values stack pc = trace ("LOAD_CONST "    ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
+-- * OK
+evalValue 0x02 values stack pc = trace ("LOAD_VAR "      ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
+-- TODO
+evalValue 0x03 values stack pc = trace ("STORE_VAR "     ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
+-- ? IN PROGRESS
+evalValue 0x04 values stack pc = trace ("BINARY_OP "     ++ show (word8ToInt (values !! 0))) (binaryOpCall (values !! 0) stack, pc + 2)
+-- TODO
+evalValue 0x05 values stack pc = trace ("UNARY_OP "      ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
+-- * OK
+evalValue 0x06 values stack pc = trace ("COMPARE_OP "    ++ show (word8ToInt (values !! 0))) (compareOpCall (values !! 0) stack, pc + 2)
+-- * OK
+evalValue 0x07 values stack pc = trace ("JUMP_IF_TRUE "  ++ show (word8ToInt (values !! 0))) (if (stack !! 0) /= 0 then (stack, word8ToInt (values !! 0)) else (stack, pc + 2))
+-- * OK
+evalValue 0x08 values stack pc = trace ("JUMP_IF_FALSE " ++ show (word8ToInt (values !! 0))) (if (stack !! 0) == 0 then (stack, word8ToInt (values !! 0)) else (stack, pc + 2))
+-- * OK
+evalValue 0x09 values stack pc = trace ("JUMP "          ++ show (word8ToInt (values !! 0))) (stack, word8ToInt (values !! 0))
+-- TODO
+evalValue 0x0A values stack pc = trace  "POP "                                               ((word8ToInt (values !! 0) : stack), pc + 1)
+-- TODO
+evalValue 0x0B values stack pc = trace  "DUP "                                               ((word8ToInt (values !! 0) : stack), pc + 1)
+-- TODO
+evalValue 0x0C values stack pc = trace ("CALL "          ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
+-- TODO
+evalValue 0x0D values stack pc = trace  "RETURN "                                            (stack, -1)
+-- TODO
+evalValue 0x0E values stack pc = trace ("BUILD_LIST "    ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
+-- TODO
+evalValue 0x0F values stack pc = trace  "INDEX "                                             ((word8ToInt (values !! 0) : stack), pc + 1)
+-- TODO
+evalValue 0x10 values stack pc = trace ("ATTRIBUTE "     ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
+-- TODO
+evalValue 0x11 values stack pc = trace ("CREATE_OBJECT " ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
+evalValue _ _ _ _ = trace "Unknown opcode" ([], 0)
 
---              bytecodes  stack    (new_bytecodes, new_stack)
-evalEachValue :: [Word8] -> [Int] -> ([Word8], [Int])
-evalEachValue [] stack = trace ("-- End of bytecodes Stack: " ++ show stack) ([], stack)
-evalEachValue (x:xs) stack = do
-    let (new_stack, pc) = evalValue x xs stack
-    evalEachValue (drop pc xs) new_stack
+-- ? we have two bytecodes lists because if we move forward in the list, we can't go back
+--              bytecodes  bytecodes  stack      PC   (new_bytecodes, new_stack)
+evalEachValue :: [Word8] -> [Word8] -> [Int] -> Int -> ([Word8], [Int])
+evalEachValue _ [] stack _ = trace ("-- End of bytecodes Stack: " ++ show stack) ([], stack)
+evalEachValue bytecodes (x:xs) stack pc = do
+    let (new_stack, new_pc) = evalValue x xs stack pc
+    if new_pc == -1 then (bytecodes, new_stack)
+    else if new_pc < pc then error "Invalid PC value"
+    else
+        trace ("pc = " ++ show pc ++ " | " ++ show x ++ " | " ++ show new_stack ++ " | " ++ show (drop pc bytecodes)) $ evalEachValue bytecodes (drop pc bytecodes) new_stack new_pc
+
 
 stringToWord8 :: String -> [Word8]
 stringToWord8 str = unpack (UTF8.fromString str)
@@ -112,8 +135,9 @@ main = do
     case args of
         [filename] -> do
             contents <- readFile filename
-            let (bytecodes, stack) = evalEachValue (stringToWord8 contents) []
-            putStrLn ("Stack: " ++ show stack)
+            let bytecode = stringToWord8 contents
+            let (bytecodes, stack) = evalEachValue bytecode bytecode [] 0
+            putStrLn ("Value returned = " ++ show (stack !! 0))
 
         _ -> do
             putStrLn "No file given as an argument"
