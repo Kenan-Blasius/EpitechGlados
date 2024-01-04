@@ -97,6 +97,7 @@ parseToken =
     <|> (parseKeyword ":" FunTypeToken)
     -- Types
     <|> (parseKeyword "int" IntTypeToken)
+    <|> (parseKeyword "float" FloatTypeToken)
     <|> (parseKeyword "char" CharTypeToken)
     <|> (parseKeyword "string" StringTypeToken)
     -- Comments
@@ -174,6 +175,7 @@ mergeSymbols (InlineCommentStart : _) = []
 -- merge all consecutive symbols (ex: b o n j o u r  -> bonjour)
 mergeSymbols (SymbolToken x : SymbolToken y : xs) = mergeSymbols (SymbolToken (x ++ y) : xs)
 mergeSymbols (SymbolToken x : IntTypeToken : xs) = mergeSymbols (SymbolToken (x ++ "int") : xs)
+mergeSymbols (SymbolToken x : FloatTypeToken : xs) = mergeSymbols (SymbolToken (x ++ "float") : xs)
 mergeSymbols (SymbolToken x : CharTypeToken : xs) = mergeSymbols (SymbolToken (x ++ "char") : xs)
 mergeSymbols (SymbolToken x : StringTypeToken : xs) = mergeSymbols (SymbolToken (x ++ "string") : xs)
 mergeSymbols (SymbolToken x : IfToken : xs) = mergeSymbols (SymbolToken (x ++ "if") : xs)
@@ -184,6 +186,7 @@ mergeSymbols (SymbolToken x : WhileToken : xs) = mergeSymbols (SymbolToken (x ++
 mergeSymbols (SymbolToken x : IntToken y : xs) = mergeSymbols (SymbolToken (x ++ show y) : xs)
 
 mergeSymbols (IntTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("int" ++ x) : xs)
+mergeSymbols (FloatTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("float" ++ x) : xs)
 mergeSymbols (CharTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("char" ++ x) : xs)
 mergeSymbols (StringTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("string" ++ x) : xs)
 mergeSymbols (IfToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("if" ++ x) : xs)
@@ -543,6 +546,8 @@ sexprToAst x | listOperatorsASTCheck [NotToken] x =               operatorsAfter
 -- ! Types token
 sexprToAst (IntTypeToken : xs) = do
     AST [IntTypeAST] <> sexprToAst xs
+sexprToAst (FloatTypeToken : xs) = do
+    AST [FloatTypeAST] <> sexprToAst xs
 sexprToAst (CharTypeToken : xs) = do
     AST [CharTypeAST] <> sexprToAst xs
 sexprToAst (StringTypeToken : xs) = do

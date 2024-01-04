@@ -40,6 +40,7 @@ data Token = OpenParenthesis
             | FunToken
             | FunTypeToken
             | IntTypeToken
+            | FloatTypeToken
             | CharTypeToken
             | StringTypeToken
             | OpenBracket
@@ -96,6 +97,7 @@ instance Show Token where
     show FunToken = "FUN"
     show FunTypeToken = "FUNTYPE"
     show IntTypeToken = "INT"
+    show FloatTypeToken = "FLOAT"
     show CharTypeToken = "CHAR"
     show StringTypeToken = "STRING"
     show OpenBracket = "OpenBRACKET"
@@ -151,6 +153,7 @@ instance Eq Token where
     FunToken == FunToken = True
     FunTypeToken == FunTypeToken = True
     IntTypeToken == IntTypeToken = True
+    FloatTypeToken == FloatTypeToken = True
     CharTypeToken == CharTypeToken = True
     StringTypeToken == StringTypeToken = True
     OpenBracket == OpenBracket = True
@@ -207,6 +210,7 @@ data AST = AST [AST] -- list of AST
          | FunTypeAST AST -- type
          | FunAST String AST AST AST -- name returnType arg expr
          | IntTypeAST -- type
+         | FloatTypeAST -- type
          | CharTypeAST -- type
          | StringTypeAST -- type
          | LambdaClosure [String] AST Environment
@@ -274,6 +278,7 @@ instance Eq AST where
     WhileAST cond1 expr1 == WhileAST cond2 expr2 = cond1 == cond2 && expr1 == expr2
     FunAST name1 type1 arg1 expr1 == FunAST name2 type2 arg2 expr2 = name1 == name2 && type1 == type2 && arg1 == arg2 && expr1 == expr2
     IntTypeAST == IntTypeAST = True
+    FloatTypeAST == FloatTypeAST = True
     CharTypeAST == CharTypeAST = True
     StringTypeAST == StringTypeAST = True
     LambdaClosure args1 body1 env1 == LambdaClosure args2 body2 env2 = args1 == args2 && body1 == body2 && env1 == env2
@@ -345,6 +350,7 @@ printAST = printASTIndented 0
         printASTIndented depth (ElseAST expr) =
             indent depth ++ "ElseAST\n" ++ printASTIndented (depth + 1) expr
         printASTIndented depth IntTypeAST = indent depth ++ "IntTypeAST\n"
+        printASTIndented depth FloatTypeAST = indent depth ++ "FloatTypeAST\n"
         printASTIndented depth CharTypeAST = indent depth ++ "CharTypeAST\n"
         printASTIndented depth StringTypeAST = indent depth ++ "StringTypeAST\n"
         printASTIndented depth (StringAST value) = indent depth ++ "StringAST " ++ value ++ "\n"
