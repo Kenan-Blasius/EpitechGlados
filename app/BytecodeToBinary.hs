@@ -35,6 +35,9 @@ toHexaInt x = [fromIntegral x]
 toHexaString :: String -> [Word8]
 toHexaString x = map (fromIntegral . ord) x
 
+charToWord8 :: Char -> Word8
+charToWord8 = fromIntegral . fromEnum
+
 getLengthOfOperation :: Bytecode -> Int
 getLengthOfOperation (LoadConst _) = 2
 getLengthOfOperation (LoadVar _) = 2
@@ -66,7 +69,7 @@ toHexaInstruction (LoadVar x) next =      trackBytes (getLengthOfOperation (Load
 toHexaInstruction (StoreVar x) next =     trackBytes (getLengthOfOperation (StoreVar x))     >> return (0x03 : toHexaString x)
 toHexaInstruction (BinaryOp x) next =     trackBytes (getLengthOfOperation (BinaryOp x))     >> return (0x04 : toHexaString x)
 toHexaInstruction (UnaryOp x) next =      trackBytes (getLengthOfOperation (UnaryOp x))      >> return (0x05 : toHexaString x)
-toHexaInstruction (CompareOp x) next =    trackBytes (getLengthOfOperation (CompareOp x))    >> return (0x06 : toHexaString x)
+toHexaInstruction (CompareOp x) next =    trackBytes (getLengthOfOperation (CompareOp x))    >> return (0x06 : [charToWord8 (x !! 0)])
 toHexaInstruction (JumpIfTrue x) next = do
     currentBytes <- get
     trackBytes (getLengthOfOperation (JumpIfTrue x)) >> return (0x07 : toHexaInt (currentBytes + (sumOfnNextBytes next x) + 2))
