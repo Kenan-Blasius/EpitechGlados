@@ -483,41 +483,41 @@ data Bytecode = LoadConst Int
               deriving Eq
 
 instance Show Bytecode where
-    show (LoadConst x) = "LOAD_CONST " ++ show x
-    show (LoadVar x) = "LOAD_VAR " ++ x
-    show (StoreVar x) = "STORE_VAR " ++ x
-    show (BinaryOp x) = "BINARY_OP " ++ x
-    show (UnaryOp x) = "UNARY_OP " ++ x
-    show (CompareOp x) = "COMPARE_OP " ++ x
-    show (JumpIfTrue x) = "JUMP_IF_TRUE " ++ show x
-    show (JumpIfFalse x) = "JUMP_IF_FALSE " ++ show x
-    show (Jump x) = "JUMP " ++ show x
-    show Pop = "POP"
-    show Dup = "DUP"
-    show (Call x) = "CALL " ++ show x
-    show Return = "RETURN"
-    show (BuildList x) = "BUILD_LIST " ++ show x
-    show Index = "INDEX"
-    show (Attribute x) = "ATTRIBUTE " ++ x
+    show (LoadConst x) =    "LOAD_CONST " ++ show x
+    show (LoadVar x) =      "LOAD_VAR " ++ x
+    show (StoreVar x) =     "STORE_VAR " ++ x
+    show (BinaryOp x) =     "BINARY_OP " ++ x
+    show (UnaryOp x) =      "UNARY_OP " ++ x
+    show (CompareOp x) =    "COMPARE_OP " ++ x
+    show (JumpIfTrue x) =   "JUMP_IF_TRUE " ++ show x
+    show (JumpIfFalse x) =  "JUMP_IF_FALSE " ++ show x
+    show (Jump x) =         "JUMP " ++ show x
+    show Pop =              "POP"
+    show Dup =              "DUP"
+    show (Call x) =         "CALL " ++ show x
+    show Return =           "RETURN"
+    show (BuildList x) =    "BUILD_LIST " ++ show x
+    show Index =            "INDEX"
+    show (Attribute x) =    "ATTRIBUTE " ++ x
     show (CreateObject x) = "CREATE_OBJECT " ++ show x
 
 printInstruction :: Bytecode -> String
-printInstruction (LoadConst x) = "LOAD_CONST " ++ show x
-printInstruction (LoadVar x) = "LOAD_VAR " ++ x
-printInstruction (StoreVar x) = "STORE_VAR " ++ x
-printInstruction (BinaryOp x) = "BINARY_OP " ++ x
-printInstruction (UnaryOp x) = "UNARY_OP " ++ x
-printInstruction (CompareOp x) = "COMPARE_OP " ++ x
-printInstruction (JumpIfTrue x) = "JUMP_IF_TRUE " ++ show x
-printInstruction (JumpIfFalse x) = "JUMP_IF_FALSE " ++ show x
-printInstruction (Jump x) = "JUMP " ++ show x
-printInstruction Pop = "POP"
-printInstruction Dup = "DUP"
-printInstruction (Call x) = "CALL " ++ show x
-printInstruction Return = "RETURN"
-printInstruction (BuildList x) = "BUILD_LIST " ++ show x
-printInstruction Index = "INDEX"
-printInstruction (Attribute x) = "ATTRIBUTE " ++ x
+printInstruction (LoadConst x) =    "LOAD_CONST " ++ show x
+printInstruction (LoadVar x) =      "LOAD_VAR " ++ x
+printInstruction (StoreVar x) =     "STORE_VAR " ++ x
+printInstruction (BinaryOp x) =     "BINARY_OP " ++ x
+printInstruction (UnaryOp x) =      "UNARY_OP " ++ x
+printInstruction (CompareOp x) =    "COMPARE_OP " ++ x
+printInstruction (JumpIfTrue x) =   "JUMP_IF_TRUE " ++ show x
+printInstruction (JumpIfFalse x) =  "JUMP_IF_FALSE " ++ show x
+printInstruction (Jump x) =         "JUMP " ++ show x
+printInstruction Pop =              "POP"
+printInstruction Dup =              "DUP"
+printInstruction (Call x) =         "CALL " ++ show x
+printInstruction Return =           "RETURN"
+printInstruction (BuildList x) =    "BUILD_LIST " ++ show x
+printInstruction Index =            "INDEX"
+printInstruction (Attribute x) =    "ATTRIBUTE " ++ x
 printInstruction (CreateObject x) = "CREATE_OBJECT " ++ show x
 
 

@@ -44,6 +44,19 @@ executables:
     dependencies:
       - glados
       - split
+  eval-exe:
+    main: BinaryEvaluation.hs
+    source-dirs: app
+    other-modules:
+      - Paths_glados
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - glados
+      - split
+      - utf8-string
 tests:
   glados-test:
     main: Spec.hs
