@@ -29,6 +29,15 @@ import Data.Char (chr)
 import Control.Exception
 -- import Debug.Trace
 
+import System.FilePath (normalise)
+import System.FilePath ((</>))
+import System.Directory (getCurrentDirectory)
+
+getAbsolutePath :: FilePath -> IO FilePath
+getAbsolutePath relativePath = do
+    currentDir <- getCurrentDirectory
+    return $ normalise (currentDir </> relativePath)
+
 -- INFO: Token Parser
 parseKeyword :: String -> Token -> Parser Token
 parseKeyword str token = Parser f
@@ -89,6 +98,7 @@ parseToken :: Parser Token
 parseToken =
     -- KeyWords
     (parseKeyword "#define" DefineToken)
+    <|> (parseKeyword "#include" IncludeToken)
     <|> (parseKeyword "if" IfToken)
     <|> (parseKeyword "else" ElseToken)
     <|> (parseKeyword "for" ForToken)
@@ -153,69 +163,90 @@ parseToken =
     <|> empty
 
 -- INFO: Create token list
-parseLine :: String -> Int -> IO ([Token])
-parseLine str lineNumber =
+parseLine :: String -> Int -> String -> IO ([Token])
+parseLine str lineNumber filename =
     catch (
         -- for each word in the string generate the tokens
         case runParser (parseMany parseToken) str of
             Just (x, _) -> do
                 return (x)
             Nothing -> do
-                throw (ParserError ("Invalid syntax at line " ++ show lineNumber ++ ": " ++ str))
+                throw (ParserError ("Invalid syntax on file: " ++ show filename ++ " at line " ++ show lineNumber ++ ": " ++ str))
         ) handler
     where
         handler :: ParserError -> IO ([Token])
         handler e = do
-            throw (ParserError ("Invalid syntax at line " ++ show lineNumber ++ ":\n" ++ str ++ "\n" ++ show e))
+            throw (ParserError ("Invalid syntax on file: " ++ show filename ++ " at line " ++ show lineNumber ++ ":\n" ++ str ++ "\n" ++ show e))
 
-mergeSymbols :: [Token] -> [Token]
-mergeSymbols [] = []
+includeFile :: String -> [String] -> IO ([Token])
+includeFile str filenames = do
+    contents <- readFile str
+    file <- return $ File (lines contents)
+    parseFile file 1 filenames
+
+mergeSymbols :: [Token] -> [String] -> IO [Token]
+mergeSymbols [] _ = return []
 -- Once we found a InlineCommentStart we ignore all the rest of the line
-mergeSymbols (InlineCommentStart : _) = []
+mergeSymbols (InlineCommentStart : _) _ = return []
+-- include a file
+mergeSymbols (IncludeToken : xs) filenames | head (filter (/= SpaceToken) xs) == StringToken str = do
+    filename <- getAbsolutePath str
+    rest <- mergeSymbols (tail (dropWhile (/= StringToken str) xs)) (filename : filenames)
+    if filename `elem` filenames then do
+        -- throw (ParserError ("Error: Recursive include of file " ++ str))
+        return (rest)
+    else do
+        includedFile <- includeFile str (filename : filenames)
+        return (includedFile ++ rest)
+    where
+        str = case head (filter (/= SpaceToken) xs) of
+            StringToken x -> x
+            _ -> throw (ParserError "Error: Invalid type for include")
 -- merge all consecutive symbols (ex: b o n j o u r  -> bonjour)
-mergeSymbols (SymbolToken x : SymbolToken y : xs) = mergeSymbols (SymbolToken (x ++ y) : xs)
-mergeSymbols (SymbolToken x : IntTypeToken : xs) = mergeSymbols (SymbolToken (x ++ "int") : xs)
-mergeSymbols (SymbolToken x : FloatTypeToken : xs) = mergeSymbols (SymbolToken (x ++ "float") : xs)
-mergeSymbols (SymbolToken x : CharTypeToken : xs) = mergeSymbols (SymbolToken (x ++ "char") : xs)
-mergeSymbols (SymbolToken x : StringTypeToken : xs) = mergeSymbols (SymbolToken (x ++ "string") : xs)
-mergeSymbols (SymbolToken x : IfToken : xs) = mergeSymbols (SymbolToken (x ++ "if") : xs)
-mergeSymbols (SymbolToken x : ElseToken : xs) = mergeSymbols (SymbolToken (x ++ "else") : xs)
-mergeSymbols (SymbolToken x : FunToken : xs) = mergeSymbols (SymbolToken (x ++ "fun") : xs)
-mergeSymbols (SymbolToken x : ForToken : xs) = mergeSymbols (SymbolToken (x ++ "for") : xs)
-mergeSymbols (SymbolToken x : WhileToken : xs) = mergeSymbols (SymbolToken (x ++ "while") : xs)
-mergeSymbols (SymbolToken x : IntToken y : xs) = mergeSymbols (SymbolToken (x ++ show y) : xs)
+mergeSymbols (SymbolToken x : SymbolToken y : xs) filenames = mergeSymbols (SymbolToken (x ++ y) : xs) filenames
+mergeSymbols (SymbolToken x : IntTypeToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "int") : xs) filenames
+mergeSymbols (SymbolToken x : FloatTypeToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "float") : xs) filenames
+mergeSymbols (SymbolToken x : CharTypeToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "char") : xs) filenames
+mergeSymbols (SymbolToken x : StringTypeToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "string") : xs) filenames
+mergeSymbols (SymbolToken x : IfToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "if") : xs) filenames
+mergeSymbols (SymbolToken x : ElseToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "else") : xs) filenames
+mergeSymbols (SymbolToken x : FunToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "fun") : xs) filenames
+mergeSymbols (SymbolToken x : ForToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "for") : xs) filenames
+mergeSymbols (SymbolToken x : WhileToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "while") : xs) filenames
+mergeSymbols (SymbolToken x : IntToken y : xs) filenames = mergeSymbols (SymbolToken (x ++ show y) : xs) filenames
 
-mergeSymbols (IntTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("int" ++ x) : xs)
-mergeSymbols (FloatTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("float" ++ x) : xs)
-mergeSymbols (CharTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("char" ++ x) : xs)
-mergeSymbols (StringTypeToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("string" ++ x) : xs)
-mergeSymbols (IfToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("if" ++ x) : xs)
-mergeSymbols (ElseToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("else" ++ x) : xs)
-mergeSymbols (FunToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("fun" ++ x) : xs)
-mergeSymbols (ForToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("for" ++ x) : xs)
-mergeSymbols (WhileToken : SymbolToken x : xs) = mergeSymbols (SymbolToken ("while" ++ x) : xs)
-mergeSymbols (IntToken x : SymbolToken y : xs) = mergeSymbols (SymbolToken (show x ++ y) : xs)
+mergeSymbols (IntTypeToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("int" ++ x) : xs) filenames
+mergeSymbols (FloatTypeToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("float" ++ x) : xs) filenames
+mergeSymbols (CharTypeToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("char" ++ x) : xs) filenames
+mergeSymbols (StringTypeToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("string" ++ x) : xs) filenames
+mergeSymbols (IfToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("if" ++ x) : xs) filenames
+mergeSymbols (ElseToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("else" ++ x) : xs) filenames
+mergeSymbols (FunToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("fun" ++ x) : xs) filenames
+mergeSymbols (ForToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("for" ++ x) : xs) filenames
+mergeSymbols (WhileToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("while" ++ x) : xs) filenames
+mergeSymbols (IntToken x : SymbolToken y : xs) filenames = mergeSymbols (SymbolToken (show x ++ y) : xs) filenames
 
 -- merge else if to elif
-mergeSymbols (ElseToken : xs) | (head (filter (/= SpaceToken) xs)) == IfToken = mergeSymbols (ElseIfToken : (tail (dropWhile (/= IfToken) xs)))
--- merge all consecutive numbers (ex: 1 2 3 -> 123)
-mergeSymbols (IntToken x : IntToken y : xs) = mergeSymbols (IntToken (x * 10 + y) : xs)
+mergeSymbols (ElseToken : xs) filenames | (head (filter (/= SpaceToken) xs)) == IfToken = mergeSymbols (ElseIfToken : (tail (dropWhile (/= IfToken) xs))) filenames
 -- merge negative numbers (ex: - 123 -> -123)
-mergeSymbols (MinusToken : IntToken x : xs) = mergeSymbols (IntToken (-x) : xs)
-mergeSymbols (MinusToken : FloatToken x : xs) = mergeSymbols (FloatToken (-x) : xs)
+mergeSymbols (MinusToken : IntToken x : xs) filenames = mergeSymbols (IntToken (-x) : xs) filenames
+mergeSymbols (MinusToken : FloatToken x : xs) filenames = mergeSymbols (FloatToken (-x) : xs) filenames
 -- Delete all spaces
-mergeSymbols (SpaceToken : xs) = mergeSymbols xs
+mergeSymbols (SpaceToken : xs) filenames = mergeSymbols xs filenames
 -- Concat all LineSeparator
-mergeSymbols (LineSeparator : LineSeparator : xs) = mergeSymbols (LineSeparator : xs)
+mergeSymbols (LineSeparator : LineSeparator : xs) filenames = mergeSymbols (LineSeparator : xs) filenames
 -- No merge needed
-mergeSymbols (x:xs) = x : mergeSymbols xs
+mergeSymbols (x:xs) filenames = do
+    rest <- mergeSymbols xs filenames
+    return (x : rest)
 
-parseFile :: File -> Int -> IO ([Token])
-parseFile (File []) _ = return ([])
-parseFile (File (x:xs)) lineNumber = do
-    parsedLine <- parseLine x lineNumber
-    rest <- parseFile (File xs) (lineNumber + 1)
-    return ((mergeSymbols parsedLine) ++ rest)
+parseFile :: File -> Int -> [String] -> IO ([Token])
+parseFile (File []) _ _ = return ([])
+parseFile (File (x:xs)) lineNumber filenames = do
+    parsedLine <- parseLine x lineNumber (head filenames)
+    currentLine <- mergeSymbols parsedLine filenames
+    rest <- parseFile (File xs) (lineNumber + 1) filenames
+    return (currentLine ++ rest)
 
 -- INFO: Convert token list to SExpr
 getSubList :: Token -> Token -> [Token] -> ([Token], [Token])
@@ -599,17 +630,20 @@ checkSyntax xs = do
         throw $ (ParserError "Error: Missing } token")
     else if nbCommentStart /= nbCommentEnd then do
         throw $ (ParserError "Error: Missing */ token")
+    else if IncludeToken `elem` xs then do
+        throw $ (ParserError "Error: #include token must be followed by a string for the file to include")
     else do
         return ()
 
-parser :: File -> IO (AST)
-parser file = do
+parser :: File -> String -> IO (AST)
+parser file filename = do
     catch (
         do
         putStrLn "------------------------------------"
         putStrLn $ show file
         putStrLn "------------------------------------"
-        tokenList <- parseFile file 1
+        absoluteFilename <- getAbsolutePath filename
+        tokenList <- parseFile file 1 [absoluteFilename]
         checkSyntax tokenList
         putStrLn $ show $ tokenList
         putStrLn "------------------------------------"

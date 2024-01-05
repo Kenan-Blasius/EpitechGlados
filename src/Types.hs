@@ -51,6 +51,7 @@ data Token = OpenParenthesis
             | CommentEnd
             | InlineCommentStart
             | DefineToken
+            | IncludeToken
             | IntToken Int
             | FloatToken Float
             | SymbolToken String
@@ -108,6 +109,7 @@ instance Show Token where
     show CommentEnd = "*/"
     show InlineCommentStart = "//"
     show DefineToken = "DEFINE"
+    show IncludeToken = "INCLUDE"
     show (IntToken x) = show x
     show (FloatToken x) = show x
     show (SymbolToken x) = x
@@ -164,6 +166,7 @@ instance Eq Token where
     CommentEnd == CommentEnd = True
     InlineCommentStart == InlineCommentStart = True
     DefineToken == DefineToken = True
+    IncludeToken == IncludeToken = True
     (IntToken x) == (IntToken y) = x == y
     (FloatToken x) == (FloatToken y) = x == y
     (SymbolToken x) == (SymbolToken y) = x == y
