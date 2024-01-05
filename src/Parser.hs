@@ -104,6 +104,7 @@ parseToken =
     <|> (parseKeyword "for" ForToken)
     <|> (parseKeyword "while" WhileToken)
     <|> (parseKeyword "fun" FunToken)
+    <|> (parseKeyword "return" ReturnToken)
     <|> (parseKeyword ":" FunTypeToken)
     -- Types
     <|> (parseKeyword "int" IntTypeToken)
@@ -213,6 +214,7 @@ mergeSymbols (SymbolToken x : ElseToken : xs) filenames = mergeSymbols (SymbolTo
 mergeSymbols (SymbolToken x : FunToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "fun") : xs) filenames
 mergeSymbols (SymbolToken x : ForToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "for") : xs) filenames
 mergeSymbols (SymbolToken x : WhileToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "while") : xs) filenames
+mergeSymbols (SymbolToken x : ReturnToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "return") : xs) filenames
 mergeSymbols (SymbolToken x : IntToken y : xs) filenames = mergeSymbols (SymbolToken (x ++ show y) : xs) filenames
 
 mergeSymbols (IntTypeToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("int" ++ x) : xs) filenames
@@ -224,6 +226,7 @@ mergeSymbols (ElseToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolTo
 mergeSymbols (FunToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("fun" ++ x) : xs) filenames
 mergeSymbols (ForToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("for" ++ x) : xs) filenames
 mergeSymbols (WhileToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("while" ++ x) : xs) filenames
+mergeSymbols (ReturnToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("return" ++ x) : xs) filenames
 mergeSymbols (IntToken x : SymbolToken y : xs) filenames = mergeSymbols (SymbolToken (show x ++ y) : xs) filenames
 
 -- merge else if to elif
@@ -550,6 +553,12 @@ sexprToAst x | case splitAtValue LineSeparator x of
             Nothing -> ([], LineSeparator, [])
             Just (b, _, a) -> (b, LineSeparator, a)
     AST [sexprToAst before] <> sexprToAst after
+-- ! Return token
+sexprToAst (ReturnToken : expr : _) = do
+    let expr2 = case expr of
+            ListToken x -> x
+            _ -> [expr]
+    ReturnAST (sexprToAst expr2)
 -- ! Symbol Tree
 sexprToAst x | listOperatorsASTCheck [AssignToken] x =            binaryOperatorsAST AssignToken AssignAST x
 sexprToAst x | listOperatorsASTCheck [PlusEqualToken] x =         binaryOperatorsAST PlusEqualToken PlusEqualAST x
