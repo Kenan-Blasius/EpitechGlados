@@ -273,6 +273,11 @@ tokenListToSexpr [] = []
 tokenListToSexpr (CommentStart : xs) = do
     let (_, rest) = getSubList CommentStart CommentEnd xs
     tokenListToSexpr rest
+-- Fix minus token being assigned to the number even if it should be a binary operator
+tokenListToSexpr (SymbolToken x : IntToken y : xs) | y < 0 = do
+    (SymbolToken x : MinusToken : IntToken (-y) : tokenListToSexpr xs)
+tokenListToSexpr (SymbolToken x : FloatToken y : xs) | y < 0 = do
+    (SymbolToken x : MinusToken : FloatToken (-y) : tokenListToSexpr xs)
 -- Create a sub list for function type
 tokenListToSexpr (FunTypeToken : xs) = do
     ListToken [FunTypeToken, head (tokenListToSexpr xs)] : (tail (tokenListToSexpr xs))
