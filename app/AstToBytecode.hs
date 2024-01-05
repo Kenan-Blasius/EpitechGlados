@@ -10,32 +10,40 @@ import Debug.Trace
 -- | ElseIfAST AST AST AST
 -- | ElseAST AST
 -- | DefineAST String AST
+
 -- | ForAST AST AST AST AST
 -- | WhileAST AST AST
--- | FunTypeAST AST
+
 -- | FunAST String AST AST AST
+-- | LambdaClosure [String] AST Environment
+
+-- | AssignAST AST AST
+-- | FunTypeAST AST
 -- | IntTypeAST
 -- | CharTypeAST
 -- | StringTypeAST
--- | LambdaClosure [String] AST Environment
+
 -- | IntAST Int
 -- | SymbolAST String
 -- | StringAST String
 -- | CharAST Char
--- | AssignAST AST AST
+
 -- | EqualAST AST AST
 -- | LessThanAST AST AST
 -- | GreaterThanAST AST AST
 -- | LessThanEqualAST AST AST
 -- | GreaterThanEqualAST AST AST
 -- | NotEqualAST AST AST
+
 -- | PlusAST AST AST
 -- | MinusAST AST AST
 -- | TimesAST AST AST
 -- | DivideAST AST AST
 -- | ModuloAST AST AST
+
 -- | AndAST AST AST
 -- | OrAST AST AST
+
 -- | PlusEqualAST AST AST
 -- | MinusEqualAST AST AST
 -- | TimesEqualAST AST AST
@@ -91,19 +99,21 @@ valueSimpleToBytecode x = trace ("valueSimpleToBytecode NO AST SIMPLE NODE FOUND
 
 
 
+astStoreValue :: AST -> [Bytecode] -> (AST, [Bytecode])
+astStoreValue (AST [IntTypeAST, SymbolAST x]) bytecode = trace ("Get Value Int symbol " ++ show x) $ ((AST []), (bytecode ++ [StoreVar x]))
+astStoreValue (AST [SymbolAST x]) bytecode = trace ("Get Value Symbol " ++ show x) $ ((AST []), (bytecode ++ [StoreVar x]))
+
+
 
 -- INFO: This function takes an AST and returns a list of Bytecode instructions
 --       that can be executed by the VM.
 astToBytecode' :: AST -> [Bytecode] -> (AST, [Bytecode])
 astToBytecode' (AST []) bytecode = (AST [], bytecode)
 
--- * Define Int
-astToBytecode' (AST [IntTypeAST, SymbolAST x]) bytecode = trace ("AST [IntTypeAST, SymbolAST x]: " ++ show x) $ ((AST []), (bytecode ++ [StoreVar x]))
-
 -- ! only wait for AST ReturnAST
 astToBytecode' (AST [SymbolAST "return", x]) bytecode =
     let (xAST, xBytecode) = astToBytecode' (AST [x]) bytecode
-    in (xAST, xBytecode ++ [Call 1]) -- system call 1 is write
+    in (xAST, xBytecode ++ [Return])
 -- * System calls
 astToBytecode' (AST [SymbolAST "print", x]) bytecode =
     let (xAST, xBytecode) = astToBytecode' (AST [x]) bytecode
@@ -129,10 +139,15 @@ astToBytecode' (ElseAST (AST expr1)) bytecode = trace ("ElseAST: " ++ show expr1
     let (expr1AST, expr1Bytecode) = trace ("expr1AST: " ++ show expr1) astToBytecode' (AST expr1) bytecode
     (AST [], bytecode ++ expr1Bytecode)
 
+astToBytecode' (WhileAST cond (AST expr1)) bytecode = trace ("WhileAST: " ++ show cond ++ " |expr1| " ++ show expr1) $ do
+    let condBytecode = trace ("condBytecode1: " ++ show cond) astConditionToBytecode cond bytecode
+    let (expr1AST, expr1Bytecode) = trace ("expr1AST: " ++ show expr1) astToBytecode' (AST expr1) bytecode
+    (AST [], bytecode ++ condBytecode ++ [JumpIfFalse (sizeInstructionOfAst (AST expr1) 0)] ++ expr1Bytecode ++ [Jump (-(sizeInstructionOfAst (AST expr1) 0 + sizeInstructionOfAst cond 0))])
+
 -- * Assignation operation
 astToBytecode' (AssignAST x y) bytecode = trace ("AssignAST: " ++ show x ++ " = " ++ show y) $
     let (AST yAST, yBytecode) = astToBytecode' y bytecode
-        (AST xAST, xBytecode) = astToBytecode' x bytecode
+        (AST xAST, xBytecode) = astStoreValue x bytecode
     in (AST yAST, yBytecode ++ xBytecode)
 
 -- * Simple operations
@@ -165,10 +180,31 @@ astToBytecode' (SymbolAST x) bytecode = trace ("SymbolAST: " ++ show x) $ astToB
 astToBytecode' (IntAST x) bytecode = trace ("IntAST: " ++ show x) $ astToBytecode' (AST []) (bytecode ++ [LoadConst x])
 
 astToBytecode' a b = trace ("Unknown AST node bytecode: " ++ show a ++ " " ++ show b) (a, b)
--- LOAD_CONST 2
--- LOAD_CONST 6
--- BINARY_OP +
+
+
+-- // begin of loop
 -- LOAD_VAR a
--- STORE_VAR []
--- LOAD_VAR exit
 -- LOAD_CONST 10
+-- COMPARE_OP <
+-- JUMP_IF_FALSE 0 // after
+-- LOAD_VAR a
+-- LOAD_CONST 1
+-- BINARY_OP +
+-- LOAD_VAR a // here it's store_var a
+-- JUMP 0 // before
+
+-- |   WhileAST
+-- |   |   LessThanAST
+-- |   |   |   AST
+-- |   |   |   |   SymbolAST a
+-- |   |   |   AST
+-- |   |   |   |   IntAST 10
+-- |   |   AST
+-- |   |   |   AssignAST
+-- |   |   |   |   AST
+-- |   |   |   |   |   SymbolAST a
+-- |   |   |   |   PlusAST
+-- |   |   |   |   |   AST
+-- |   |   |   |   |   |   SymbolAST a
+-- |   |   |   |   |   AST
+-- |   |   |   |   |   |   IntAST 1
