@@ -621,33 +621,16 @@ sexprToAst (_ : xs) = do
 
 -- INFO: Main function
 checkSyntax :: [Token] -> IO ()
-checkSyntax xs = do
-    let nbOpenParenthesis = length $ filter (== OpenParenthesis) xs
-    let nbCloseParenthesis = length $ filter (== CloseParenthesis) xs
-    let nbOpenBracket = length $ filter (== OpenBracket) xs
-    let nbCloseBracket = length $ filter (== CloseBracket) xs
-    let nbOpenBraces = length $ filter (== OpenBraces) xs
-    let nbCloseBraces = length $ filter (== CloseBraces) xs
-    let nbCommentStart = length $ filter (== CommentStart) xs
-    let nbCommentEnd = length $ filter (== CommentEnd) xs
-    if nbOpenParenthesis < nbCloseParenthesis then do
-        throw $ (ParserError "Error: Missing ( token")
-    else if nbOpenParenthesis > nbCloseParenthesis then do
-        throw $ (ParserError "Error: Missing ) token")
-    else if nbOpenBracket < nbCloseBracket then do
-        throw $ (ParserError "Error: Missing [ token")
-    else if nbOpenBracket > nbCloseBracket then do
-        throw $ (ParserError "Error: Missing ] token")
-    else if nbOpenBraces < nbCloseBraces then do
-        throw $ (ParserError "Error: Missing { token")
-    else if nbOpenBraces > nbCloseBraces then do
-        throw $ (ParserError "Error: Missing } token")
-    else if nbCommentStart /= nbCommentEnd then do
-        throw $ (ParserError "Error: Missing */ token")
-    else if IncludeToken `elem` xs then do
-        throw $ (ParserError "Error: #include token must be followed by a string for the file to include")
-    else do
-        return ()
+checkSyntax xs | IncludeToken `elem` xs = throw $ (ParserError "Error: #include token must be followed by a string for the file to include")
+                | length (filter (== OpenParenthesis) xs) < length (filter (== CloseParenthesis) xs) =  throw $ (ParserError "Error: Missing ( token")
+                | length (filter (== OpenParenthesis) xs) > length (filter (== CloseParenthesis) xs) =  throw $ (ParserError "Error: Missing ) token")
+                | length (filter (== OpenBracket) xs) < length (filter (== CloseBracket) xs) =          throw $ (ParserError "Error: Missing [ token")
+                | length (filter (== OpenBracket) xs) > length (filter (== CloseBracket) xs) =          throw $ (ParserError "Error: Missing ] token")
+                | length (filter (== OpenBraces) xs) < length (filter (== CloseBraces) xs) =            throw $ (ParserError "Error: Missing { token")
+                | length (filter (== OpenBraces) xs) > length (filter (== CloseBraces) xs) =            throw $ (ParserError "Error: Missing } token")
+                | length (filter (== CommentStart) xs) < length (filter (== CommentEnd) xs) =           throw $ (ParserError "Error: Missing /* token")
+                | length (filter (== CommentStart) xs) > length (filter (== CommentEnd) xs) =           throw $ (ParserError "Error: Missing */ token")
+                | otherwise = return ()
 
 parser :: File -> String -> IO (AST)
 parser file filename = do
