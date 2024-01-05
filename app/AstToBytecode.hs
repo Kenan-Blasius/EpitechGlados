@@ -89,6 +89,15 @@ valueSimpleToBytecode (AST (x:xs)) = trace ("valueSimpleToBytecode AST (x:xs): "
         _ -> trace ("valueSimpleToBytecode NO AST SIMPLE NODE FOUND: " ++ show x) []
 valueSimpleToBytecode x = trace ("valueSimpleToBytecode NO AST SIMPLE NODE FOUND: " ++ show x) []
 
+
+exploreAllSymbols :: String -> Int -> [Bytecode]
+exploreAllSymbols "print" x = [LoadConst x, Call 1] -- system call 1 is write
+exploreAllSymbols "exit" x = [LoadConst x, Call 60] -- system call 60 is exit
+
+
+
+
+
 -- INFO: This function takes an AST and returns a list of Bytecode instructions
 --       that can be executed by the VM.
 astToBytecode' :: AST -> [Bytecode] -> (AST, [Bytecode])
@@ -96,15 +105,26 @@ astToBytecode' (AST []) bytecode = (AST [], bytecode)
 astToBytecode' (AST (x:xs)) bytecode = trace ("Processing AST node: " ++ show x) $
     case x of
         IntAST x -> trace ("IntAST: " ++ show x) $ astToBytecode' (AST xs) (bytecode ++ [LoadConst x])
-        (AST [SymbolAST "return", IntAST x']) -> trace ("return IntAST: " ++ show x') $ astToBytecode' (AST xs) (bytecode ++ [LoadConst x', Return])
+        (AST [SymbolAST "return", IntAST x']) -> trace ("return IntAST: " ++ show x') $ astToBytecode' (AST xs) (bytecode ++ [LoadConst x', Return]) -- ! will change t ReturnAST
         IfAST cond (AST expr1) (AST elseIfExpr1) -> trace ("IfAST: " ++ show cond ++ " |expr1| " ++ show expr1 ++ " |do| " ++ show elseIfExpr1) $ do
             let condBytecode = trace ("condBytecode1: " ++ show cond) astConditionToBytecode cond bytecode
             let (expr1AST, expr1Bytecode) = trace ("expr1AST: " ++ show expr1) astToBytecode' (AST expr1) bytecode
             let (elseIfExpr1AST, elseIfExpr1Bytecode) = trace ("elseIfExpr1: " ++ show elseIfExpr1 ++ "\n\n") astToBytecode' (AST elseIfExpr1) bytecode
-            ( AST xs, bytecode ++ condBytecode ++ [JumpIfFalse (sizeInstructionOfAst (AST expr1) 0)] ++ expr1Bytecode ++ elseIfExpr1Bytecode)
+            (AST xs, bytecode ++ condBytecode ++ [JumpIfFalse (sizeInstructionOfAst (AST expr1) 0)] ++ expr1Bytecode ++ elseIfExpr1Bytecode)
         ElseAST (AST expr1) -> trace ("ElseAST: " ++ show expr1) $ do
             let (expr1AST, expr1Bytecode) = trace ("expr1AST: " ++ show expr1) astToBytecode' (AST expr1) bytecode
             (AST xs, bytecode ++ expr1Bytecode)
+
+        AssignAST (AST [IntTypeAST, SymbolAST x]) (AST [IntAST y]) ->
+            trace ("AssignAST: " ++ show x ++ " = " ++ show y)
+            $ astToBytecode' (AST xs) (bytecode ++ [LoadConst y, StoreVar x]) -- do this in several steps if several values to assign ( int a = 1 + 1 )
+
+        (AST [SymbolAST x, AST [IntAST y]]) ->
+            trace ("call exploreAllSymbols: " ++ show x ++ " = " ++ show y)
+            $ astToBytecode' (AST xs) (bytecode ++ exploreAllSymbols x y)
+
+        -- SymbolAST x -> trace ("SymbolAST: " ++ show x) $ astToBytecode' (AST xs) (bytecode ++ [LoadVar x])
+
         _ -> trace ("AGAIN astToBytecode' (AST xs) bytecode" ++ show x) astToBytecode' (AST xs) bytecode
 
 astToBytecode' (PlusAST (AST [IntAST x]) (AST [IntAST y])) bytecode = trace ("add PlusAST to the bytecode: " ++ show x ++ " + " ++ show y) $

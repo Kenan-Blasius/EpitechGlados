@@ -149,6 +149,17 @@ CREATE_OBJECT   0x11
 // include
 
 //
+
+
+
+
+
+pour les fonctions, on met le PC dans la stack, et on fait un jump au debut de la fonction
+pour les return, on fait un jump au PC dans la stack
+
+lancer le programme :
+./glados simple.c
+./eval file.bin
 -->
 
 ## Auteurs
