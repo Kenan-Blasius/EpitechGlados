@@ -285,6 +285,7 @@ instance Eq AST where
     DefineAST name1 expr1 == DefineAST name2 expr2 = name1 == name2 && expr1 == expr2
     ForAST init1 cond1 incr1 expr1 == ForAST init2 cond2 incr2 expr2 = init1 == init2 && cond1 == cond2 && incr1 == incr2 && expr1 == expr2
     WhileAST cond1 expr1 == WhileAST cond2 expr2 = cond1 == cond2 && expr1 == expr2
+    FunTypeAST type1 == FunTypeAST type2 = type1 == type2
     FunAST name1 type1 arg1 expr1 == FunAST name2 type2 arg2 expr2 = name1 == name2 && type1 == type2 && arg1 == arg2 && expr1 == expr2
     ReturnAST expr1 == ReturnAST expr2 = expr1 == expr2
     IntTypeAST == IntTypeAST = True
