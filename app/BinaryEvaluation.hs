@@ -1,18 +1,10 @@
 import System.Environment
-import System.Exit (exitFailure)
 
-import Types
 import Debug.Trace
 
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.ByteString (unpack)
-
 import Data.Word (Word8)
-import Data.List
-import Data.Maybe
-import Data.Char
-import Debug.Trace
-
 
 -- ; Opcode Definitions
 -- LOAD_CONST      0x01
@@ -94,7 +86,7 @@ evalValue 0x07 values stack pc = trace ("JUMP_IF_TRUE "  ++ show (word8ToInt (va
 -- * OK
 evalValue 0x08 values stack pc = trace ("JUMP_IF_FALSE " ++ show (word8ToInt (values !! 0))) (if (stack !! 0) == 0 then (stack, word8ToInt (values !! 0)) else (stack, pc + 2))
 -- * OK
-evalValue 0x09 values stack pc = trace ("JUMP "          ++ show (word8ToInt (values !! 0))) (stack, word8ToInt (values !! 0))
+evalValue 0x09 values stack _ = trace ("JUMP "          ++ show (word8ToInt (values !! 0))) (stack, word8ToInt (values !! 0))
 -- TODO
 evalValue 0x0A values stack pc = trace  "POP "                                               ((word8ToInt (values !! 0) : stack), pc + 1)
 -- TODO
@@ -102,7 +94,7 @@ evalValue 0x0B values stack pc = trace  "DUP "                                  
 -- TODO
 evalValue 0x0C values stack pc = trace ("CALL "          ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
 -- TODO
-evalValue 0x0D values stack pc = trace  "RETURN "                                            (stack, -1)
+evalValue 0x0D _ stack _ = trace  "RETURN "                                            (stack, -1)
 -- TODO
 evalValue 0x0E values stack pc = trace ("BUILD_LIST "    ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
 -- TODO
@@ -136,7 +128,7 @@ main = do
         [filename] -> do
             contents <- readFile filename
             let bytecode = stringToWord8 contents
-            let (bytecodes, stack) = evalEachValue bytecode bytecode [] 0
+            let (_, stack) = evalEachValue bytecode bytecode [] 0
             putStrLn ("Value returned = " ++ show (stack !! 0))
 
         _ -> do
