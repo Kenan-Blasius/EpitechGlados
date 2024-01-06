@@ -69,8 +69,9 @@ getPositionToJump :: [Bytecode] -> [Bytecode] -> Int -> Int -> Int -> Int
 getPositionToJump next rev size_all_instr currentBytes move_size
     | move_size < 0 = trace ("Move size: " ++ show move_size ++ " currentBytes: " ++ show currentBytes ++ " instrs: " ++ show (drop (size_all_instr - (currentBytes + 1)) rev))
     $ currentBytes - (sumOfnNextBytes (drop (size_all_instr - (currentBytes + 1)) rev) (- move_size))
-    | otherwise = sumOfnNextBytes next move_size
-
+    | otherwise = trace ("Move size: " ++ show move_size ++ " currentBytes: " ++ show currentBytes ++ " instrs: " ++ show (take (currentBytes + 1) next))
+         currentBytes + 2 + sumOfnNextBytes next move_size
+--                      | 2 is for the size of the jump instruction
 
 --                  cur_instr    next_instrs   rev_instrs  size_all_instrs -> bytes
 toHexaInstruction :: Bytecode -> [Bytecode] -> [Bytecode] -> Int -> State Int [Word8]
@@ -80,12 +81,12 @@ toHexaInstruction (StoreVar x) _ _ _ =     trackBytes (getLengthOfOperation (Sto
 toHexaInstruction (BinaryOp x) _ _ _ =     trackBytes (getLengthOfOperation (BinaryOp x))     >> return (0x04 : toHexaString x)
 toHexaInstruction (UnaryOp x) _ _ _ =      trackBytes (getLengthOfOperation (UnaryOp x))      >> return (0x05 : toHexaString x)
 toHexaInstruction (CompareOp x) _ _ _ =    trackBytes (getLengthOfOperation (CompareOp x))    >> return (0x06 : [charToWord8 (x !! 0)])
-toHexaInstruction (JumpIfTrue x) next _ _ = do -- TODO
+toHexaInstruction (JumpIfTrue x) next rev size_all = do
     currentBytes <- get
-    trackBytes (getLengthOfOperation (JumpIfTrue x)) >> return (0x07 : toHexaInt (currentBytes + (sumOfnNextBytes next x) + 2)) -- TODO
-toHexaInstruction (JumpIfFalse x) next _ _ = do -- TODO
+    trackBytes (getLengthOfOperation (JumpIfTrue x)) >> return (0x07 : toHexaInt (getPositionToJump next rev size_all currentBytes x))
+toHexaInstruction (JumpIfFalse x) next rev size_all = do
     currentBytes <- get
-    trackBytes (getLengthOfOperation (JumpIfFalse x)) >> return (0x08 : toHexaInt (currentBytes + (sumOfnNextBytes next x) + 2)) -- TODO
+    trackBytes (getLengthOfOperation (JumpIfFalse x)) >> return (0x08 : toHexaInt (getPositionToJump next rev size_all currentBytes x))
 toHexaInstruction (Jump x) next rev size_all = do
     currentBytes <- get
     trackBytes (getLengthOfOperation (Jump x)) >> return (0x09 : toHexaInt (getPositionToJump next rev size_all currentBytes x))
