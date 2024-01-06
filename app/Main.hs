@@ -19,10 +19,10 @@ main = do
             putStrLn $ show ast
             let byt = []
             putStrLn "-----------------"
-            let (_, bytecode) = astToBytecode' ast byt
+            let (_, bytecode, _) = astToBytecode' ast byt 0
+            putStrLn "-----------------"
             print bytecode
-
-            -- putStrLn (printBytecode bytecode)
+            putStrLn "-----------------"
             bytecodeToBinary bytecode
 
         _ -> do

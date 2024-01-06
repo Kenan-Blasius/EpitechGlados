@@ -20,10 +20,6 @@ import Data.Word (Word8)
 -- DUP             0x0B
 -- CALL            0x0C
 -- RETURN          0x0D
--- BUILD_LIST      0x0E
--- INDEX           0x0F
--- ATTRIBUTE       0x10
--- CREATE_OBJECT   0x11
 
 -- (LoadConst x)
 -- (LoadVar x)
@@ -38,10 +34,6 @@ import Data.Word (Word8)
 -- Dup
 -- (Call x)
 -- Return
--- (BuildList x)
--- Index
--- (Attribute x)
--- (CreateObject x)
 
 data MyElement = MyInt Int | MyString String | MyChar Char deriving (Show)
 
@@ -95,14 +87,6 @@ evalValue 0x0B values stack pc = trace  "DUP "                                  
 evalValue 0x0C values stack pc = trace ("CALL "          ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
 -- TODO
 evalValue 0x0D _ stack _ = trace  "RETURN "                                            (stack, -1)
--- TODO
-evalValue 0x0E values stack pc = trace ("BUILD_LIST "    ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
--- TODO
-evalValue 0x0F values stack pc = trace  "INDEX "                                             ((word8ToInt (values !! 0) : stack), pc + 1)
--- TODO
-evalValue 0x10 values stack pc = trace ("ATTRIBUTE "     ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
--- TODO
-evalValue 0x11 values stack pc = trace ("CREATE_OBJECT " ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
 evalValue _ _ _ _ = trace "Unknown opcode" ([], 0)
 
 -- ? we have two bytecodes lists because if we move forward in the list, we can't go back
@@ -133,3 +117,6 @@ main = do
 
         _ -> do
             putStrLn "No file given as an argument"
+
+
+-- not forgot to remove value from stack when we use it
