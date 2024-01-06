@@ -710,6 +710,387 @@ getIfChainTest =
             assertEqual "getIfChain" (expected) (result))
     ]
 
+binaryOperatorsASTTest :: Test
+binaryOperatorsASTTest =
+    TestList
+    [
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = binaryOperatorsAST PlusToken PlusAST sexpr
+            let expected = (PlusAST (AST [IntAST 1]) (AST [IntAST 2]))
+            assertEqual "binaryOperatorsAST" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 - 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = binaryOperatorsAST PlusToken PlusAST sexpr
+            let expected = (PlusAST DeadLeafAST DeadLeafAST)
+            assertEqual "binaryOperatorsAST" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 + 3"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = binaryOperatorsAST PlusToken PlusAST sexpr
+            let expected = (PlusAST (AST [IntAST 1]) (PlusAST (AST [IntAST 2]) (AST [IntAST 3])))
+            assertEqual "binaryOperatorsAST" (expected) (result))
+    ]
+
+operatorsAfterASTTest :: Test
+operatorsAfterASTTest =
+    TestList
+    [
+        TestCase (do
+            tokenList <- parseFile (File ["!1"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = operatorsAfterAST NotToken NotAST sexpr
+            let expected = (NotAST (AST [IntAST 1]))
+            assertEqual "operatorsAfterAST" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = operatorsAfterAST NotToken NotAST sexpr
+            let expected = (NotAST DeadLeafAST)
+            assertEqual "operatorsAfterAST" (expected) (result))
+    ]
+
+operatorsBeforeASTTest :: Test
+operatorsBeforeASTTest =
+    TestList
+    [
+        TestCase (do
+            tokenList <- parseFile (File ["i++"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = operatorsBeforeAST IncrementToken IncrementAST sexpr
+            let expected = (IncrementAST (AST [SymbolAST "i"]))
+            assertEqual "operatorsBeforeAST" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = operatorsBeforeAST IncrementToken IncrementAST sexpr
+            let expected = (IncrementAST DeadLeafAST)
+            assertEqual "operatorsBeforeAST" (expected) (result))
+    ]
+
+listOperatorsASTCheckTest :: Test
+listOperatorsASTCheckTest =
+    TestList
+    [
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = listOperatorsASTCheck [PlusToken] sexpr
+            let expected = True
+            assertEqual "listOperatorsASTCheck" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 + 3"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = listOperatorsASTCheck [PlusToken] sexpr
+            let expected = True
+            assertEqual "listOperatorsASTCheck" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 + 3 - 4"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = listOperatorsASTCheck [MinusToken] sexpr
+            let expected = True
+            assertEqual "listOperatorsASTCheck" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 + 3 - 4 / 5"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = listOperatorsASTCheck [MinusToken, DivideToken] sexpr
+            let expected = True
+            assertEqual "listOperatorsASTCheck" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 + 3 - 4 * 5"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = listOperatorsASTCheck [MinusToken, DivideToken] sexpr
+            let expected = False
+            assertEqual "listOperatorsASTCheck" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 + 3 - 4 / 5"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = listOperatorsASTCheck [TimesToken] sexpr
+            let expected = False
+            assertEqual "listOperatorsASTCheck" (expected) (result))
+    ]
+
+pemdasTreeTest :: Test
+pemdasTreeTest =
+    TestList
+    [
+        TestCase (do
+            tokenList <- parseFile (File [""]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected = (DeadLeafAST)
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (PlusAST
+                        (AST [IntAST 1])
+                        (AST [IntAST 2]))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 - 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (AST [IntAST 1])
+                        (AST [IntAST 2]))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 * 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (TimesAST
+                        (AST [IntAST 1])
+                        (AST [IntAST 2]))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 / 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (DivideAST
+                        (AST [IntAST 1])
+                        (AST [IntAST 2]))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 % 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (ModuloAST
+                        (AST [IntAST 1])
+                        (AST [IntAST 2]))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (AST [IntAST 3]))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 * 4"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (TimesAST
+                            (AST [IntAST 3])
+                            (AST [IntAST 4])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 * 4 / 5"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (DivideAST
+                            (TimesAST
+                                (AST [IntAST 3])
+                                (AST [IntAST 4]))
+                            (AST [IntAST 5])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 % 4 * 5 / 6"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (DivideAST
+                            (TimesAST
+                                (ModuloAST
+                                    (AST [IntAST 3])
+                                    (AST [IntAST 4]))
+                                (AST [IntAST 5]))
+                            (AST [IntAST 6])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 % 4 / 5 * 6"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (TimesAST
+                            (DivideAST
+                                (ModuloAST
+                                    (AST [IntAST 3])
+                                    (AST [IntAST 4]))
+                                (AST [IntAST 5]))
+                            (AST [IntAST 6])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 * 4 % 5 / 6"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (DivideAST
+                            (ModuloAST
+                                (TimesAST
+                                    (AST [IntAST 3])
+                                    (AST [IntAST 4]))
+                                (AST [IntAST 5]))
+                            (AST [IntAST 6])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 / 4 * 5 % 6"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (ModuloAST
+                            (TimesAST
+                                (DivideAST
+                                    (AST [IntAST 3])
+                                    (AST [IntAST 4]))
+                                (AST [IntAST 5]))
+                            (AST [IntAST 6])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 / 4 % 5 * 6"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (TimesAST
+                            (ModuloAST
+                                (DivideAST
+                                    (AST [IntAST 3])
+                                    (AST [IntAST 4]))
+                                (AST [IntAST 5]))
+                            (AST [IntAST 6])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 * 4 / 5 % 6"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (ModuloAST
+                            (DivideAST
+                                (TimesAST
+                                    (AST [IntAST 3])
+                                    (AST [IntAST 4]))
+                                (AST [IntAST 5]))
+                            (AST [IntAST 6])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["(((20 + 5 * 3) - (7 % 3)) / 2 + (15 - 3 * 2) % 4) * ((12 / 6 + 3) - (2 * 4) % 5) + (((9 * 3) - (7 + 2)) / (4 % 3)) - ((18 / 2) + (5 * 2) % 3) + ((10 - 3) * (6 + 2 % 4)) / ((16 - 3 * 2) + (5 / 2)) % 7"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr -- 48.48
+            let expected =
+                    (PlusAST -- 48.48
+                        (MinusAST -- 44
+                            (PlusAST -- 54
+                                (TimesAST -- 36
+                                    (AST [PlusAST -- 18
+                                        (DivideAST -- 17
+                                            (AST [MinusAST -- 34
+                                                (AST [PlusAST -- 35
+                                                    (AST [IntAST 20])
+                                                    (TimesAST -- 15
+                                                        (AST [IntAST 5])
+                                                        (AST [IntAST 3]))])
+                                                (AST [ModuloAST -- 1
+                                                    (AST [IntAST 7])
+                                                    (AST [IntAST 3])])])
+                                            (AST [IntAST 2]))
+                                        (ModuloAST -- 1
+                                            (AST [MinusAST -- 9
+                                                (AST [IntAST 15])
+                                                (TimesAST -- 6
+                                                    (AST [IntAST 3])
+                                                    (AST [IntAST 2]))])
+                                            (AST [IntAST 4]))])
+                                    (AST [MinusAST -- 2
+                                        (AST [PlusAST -- 5
+                                            (DivideAST -- 2
+                                                (AST [IntAST 12])
+                                                (AST [IntAST 6]))
+                                            (AST [IntAST 3])])
+                                        (ModuloAST -- 3
+                                            (AST [TimesAST -- 8
+                                                (AST [IntAST 2])
+                                                (AST [IntAST 4])])
+                                            (AST [IntAST 5]))]))
+                                (AST [DivideAST -- 18
+                                    (AST [MinusAST -- 18
+                                        (AST [TimesAST -- 27
+                                            (AST [IntAST 9])
+                                            (AST [IntAST 3])])
+                                        (AST [PlusAST -- 9
+                                            (AST [IntAST 7])
+                                            (AST [IntAST 2])])])
+                                    (AST [ModuloAST -- 1
+                                        (AST [IntAST 4])
+                                        (AST [IntAST 3])])]))
+                            (AST [PlusAST -- 10
+                                (AST [DivideAST -- 9
+                                    (AST [IntAST 18])
+                                    (AST [IntAST 2])])
+                                (ModuloAST -- 1
+                                    (AST [TimesAST -- 10
+                                        (AST [IntAST 5])
+                                        (AST [IntAST 2])])
+                                    (AST [IntAST 3]))]))
+                        (ModuloAST -- 4.48
+                            (DivideAST -- 4.48
+                                (AST [TimesAST -- 56
+                                    (AST [MinusAST -- 7
+                                        (AST [IntAST 10])
+                                        (AST [IntAST 3])])
+                                    (AST [PlusAST -- 8
+                                        (AST [IntAST 6])
+                                        (ModuloAST -- 2
+                                            (AST [IntAST 2])
+                                            (AST [IntAST 4]))])])
+                                (AST [PlusAST -- 12.5
+                                    (AST [MinusAST -- 10
+                                        (AST [IntAST 16])
+                                        (TimesAST -- 6
+                                            (AST [IntAST 3])
+                                            (AST [IntAST 2]))])
+                                    (AST [DivideAST -- 2.5
+                                        (AST [IntAST 5])
+                                        (AST [IntAST 2])])]))
+                            (AST [IntAST 7])))
+            assertEqual "pemdasTree" (expected) (result))
+    ]
+
 testParsingFunction :: Test
 testParsingFunction =
     TestList
@@ -735,6 +1116,13 @@ testParsingFunction =
             TestLabel "splitAtLastValue" splitAtLastValueTest,
 
             TestLabel "getIfChain" getIfChainTest,
+
+            TestLabel "binaryOperatorsAST" binaryOperatorsASTTest,
+            TestLabel "operatorsAfterAST" operatorsAfterASTTest,
+            TestLabel "operatorsBeforeAST" operatorsBeforeASTTest,
+            TestLabel "listOperatorsASTCheck" listOperatorsASTCheckTest,
+
+            TestLabel "pemdasTree" pemdasTreeTest,
 
             TestLabel "functorParser" functorParserTest,
             TestLabel "applicativeParser" applicativeParserTest,

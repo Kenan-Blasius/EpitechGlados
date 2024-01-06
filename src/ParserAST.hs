@@ -4,6 +4,13 @@ module ParserAST (
 
     getIfChain,
 
+    binaryOperatorsAST,
+    operatorsAfterAST,
+    operatorsBeforeAST,
+    listOperatorsASTCheck,
+
+    pemdasTree,
+
     sexprToAst,
 ) where
 
@@ -69,7 +76,7 @@ listOperatorsASTCheck (token : tokens) xs = case splitAtValue token xs of
 
 pemdasTreeAction :: Token -> (AST -> AST -> AST) -> [Token] -> AST
 pemdasTreeAction token ast xs = do
-    let (before, _, after) = case splitAtValue token xs of
+    let (before, _, after) = case splitAtLastValue token xs of
             Nothing -> ([], token, [])
             Just (b, _, a) -> (b, token, a)
     ast (pemdasTree before) (pemdasTree after)
@@ -108,17 +115,18 @@ pemdasTree x | listOperatorsASTCheck [ModuloToken, DivideToken, TimesToken] x = 
             Nothing -> ([], TimesToken, [])
             Just (b, _, a) -> (b, TimesToken, a)
     -- % * /
-    -- % / *
     -- * % /
-    if length beforeDivide > length beforeModulo then do
-        pemdasTreeAction2 ModuloToken TimesToken ModuloAST TimesAST x
-    -- / * %
+    if (length beforeDivide > length beforeModulo) && (length beforeDivide > length beforeTimes) then do
+        pemdasTreeAction DivideToken DivideAST x
+    -- % / *
     -- / % *
-    else if length beforeTimes > length beforeDivide then do
-        pemdasTreeAction2 ModuloToken DivideToken ModuloAST DivideAST x
+    else if (length beforeTimes > length beforeDivide) && (length beforeTimes > length beforeModulo) then do
+        pemdasTreeAction TimesToken TimesAST x
+    -- / * %
     -- * / %
+    -- else if (length beforeModulo > length beforeDivide) && (length beforeModulo > length beforeTimes) then do
     else do
-        pemdasTreeAction2 DivideToken TimesToken DivideAST TimesAST x
+        pemdasTreeAction ModuloToken ModuloAST x
 
 -- ! Modulo and Divide token
 pemdasTree x | listOperatorsASTCheck [ModuloToken, DivideToken] x = pemdasTreeAction2 ModuloToken DivideToken ModuloAST DivideAST x
