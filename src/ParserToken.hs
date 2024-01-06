@@ -45,7 +45,7 @@ parseFloatToken = Parser f
         f x = do
             num <- runParser parseInt x
             dot <- runParser (parseChar '.') (snd num)
-            num2 <- runParser parseInt (snd dot)
+            num2 <- runParser parseUInt (snd dot)
             Just (FloatToken (fromIntegral (fst num) + (fromIntegral (fst num2) / (10 ^ (length (show (fst num2)))))), snd num2)
 
 parseIntToken :: Parser Token

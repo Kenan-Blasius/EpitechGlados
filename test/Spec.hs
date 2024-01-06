@@ -447,6 +447,7 @@ parseTokenTest =
     TestList
     [
         TestCase (assertEqual "parseToken" (Just (IntToken 42, " (1 2)")) (runParser parseToken "42 (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (FloatToken 42.84, " (1 2)")) (runParser parseToken "42.84 (1 2)")),
         TestCase (assertEqual "parseToken" (Just (SymbolToken "H", "ello World (1 2)")) (runParser parseToken "Hello World (1 2)")),
         TestCase (assertEqual "parseToken" (Just (StringToken "Hello World", " (1 2)")) (runParser parseToken "\"Hello World\" (1 2)")),
         TestCase (assertEqual "parseToken" (Just (CharToken 'c', " (1 2)")) (runParser parseToken "'c' (1 2)")),
@@ -464,14 +465,17 @@ parseTokenTest =
         TestCase (assertEqual "parseToken" (Just (ForToken, " (1 2)")) (runParser parseToken "for (1 2)")),
         TestCase (assertEqual "parseToken" (Just (WhileToken, " (1 2)")) (runParser parseToken "while (1 2)")),
         TestCase (assertEqual "parseToken" (Just (FunToken, " (1 2)")) (runParser parseToken "fun (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (ReturnToken, " (1 2)")) (runParser parseToken "return (1 2)")),
         TestCase (assertEqual "parseToken" (Just (FunTypeToken, " (1 2)")) (runParser parseToken ": (1 2)")),
         TestCase (assertEqual "parseToken" (Just (IntTypeToken, " (1 2)")) (runParser parseToken "int (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (FloatTypeToken, " (1 2)")) (runParser parseToken "float (1 2)")),
         TestCase (assertEqual "parseToken" (Just (CharTypeToken, " (1 2)")) (runParser parseToken "char (1 2)")),
         TestCase (assertEqual "parseToken" (Just (StringTypeToken, " (1 2)")) (runParser parseToken "string (1 2)")),
         TestCase (assertEqual "parseToken" (Just (CommentStart, " (1 2)")) (runParser parseToken "/* (1 2)")),
         TestCase (assertEqual "parseToken" (Just (CommentEnd, " (1 2)")) (runParser parseToken "*/ (1 2)")),
         TestCase (assertEqual "parseToken" (Just (InlineCommentStart, " (1 2)")) (runParser parseToken "// (1 2)")),
         TestCase (assertEqual "parseToken" (Just (DefineToken, " (1 2)")) (runParser parseToken "#define (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (IncludeToken, " (1 2)")) (runParser parseToken "#include (1 2)")),
         TestCase (assertEqual "parseToken" (Just (EqualToken, " (1 2)")) (runParser parseToken "== (1 2)")),
         TestCase (assertEqual "parseToken" (Just (NotEqualToken, " (1 2)")) (runParser parseToken "!= (1 2)")),
         TestCase (assertEqual "parseToken" (Just (LessThanToken, " (1 2)")) (runParser parseToken "< (1 2)")),
@@ -586,6 +590,22 @@ parseFileTest =
             assertEqual "parseFile" ([IntTypeToken, SymbolToken "while_my_while", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
+            result <- parseFile (File ["int return_my_return = 42"]) 0 [""]
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "return_my_return", AssignToken, IntToken 42]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["#include \"test.our\""]) 0 [""]
+            assertEqual "parseFile" ([DefineToken, SymbolToken "my_int", IntTypeToken, FunToken, SymbolToken "main", OpenParenthesis, CloseParenthesis, FunTypeToken, SymbolToken "my_int", OpenBraces, ReturnToken, IntToken 0, LineSeparator, CloseBraces]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["#include my_int int"]) 0 [""]
+            assertEqual "parseFile" ([IncludeToken, SymbolToken "my_int", IntTypeToken]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["float float_my_float = 84.42"]) 0 [""]
+            assertEqual "parseFile" ([FloatTypeToken, SymbolToken "float_my_float", AssignToken, FloatToken 84.42]) (result)
+        ),
+        TestCase (do
             result <- parseFile (File ["int 42_my_42 = 42"]) 0 [""]
             assertEqual "parseFile" ([IntTypeToken, SymbolToken "42_my_42", AssignToken, IntToken 42]) (result)
         )
@@ -609,6 +629,26 @@ tokenListToSexprTest =
             tokenList <- parseFile (File ["Hello World (42)"]) 0 [""]
             let result = tokenListToSexpr $ tokenList
             assertEqual "tokenListToSexpr" [SymbolToken "Hello", SymbolToken "World", ListToken [IntToken 42]] (result)
+        ),
+        TestCase (do
+            tokenList <- parseFile (File ["factorial(n-1)"]) 0 [""]
+            let result = tokenListToSexpr $ tokenList
+            assertEqual "tokenListToSexpr" [SymbolToken "factorial", ListToken [SymbolToken "n", MinusToken, IntToken 1]] (result)
+        ),
+        TestCase (do
+            tokenList <- parseFile (File ["factorial(n-1.42)"]) 0 [""]
+            let result = tokenListToSexpr $ tokenList
+            assertEqual "tokenListToSexpr" [SymbolToken "factorial", ListToken [SymbolToken "n", MinusToken, FloatToken 1.42]] (result)
+        ),
+        TestCase (do
+            tokenList <- parseFile (File ["factorial(n 1)"]) 0 [""]
+            let result = tokenListToSexpr $ tokenList
+            assertEqual "tokenListToSexpr" [SymbolToken "factorial", ListToken [SymbolToken "n", IntToken 1]] (result)
+        ),
+        TestCase (do
+            tokenList <- parseFile (File ["factorial(n 1.42)"]) 0 [""]
+            let result = tokenListToSexpr $ tokenList
+            assertEqual "tokenListToSexpr" [SymbolToken "factorial", ListToken [SymbolToken "n", FloatToken 1.42]] (result)
         ),
         TestCase (do
             tokenList <- parseFile (File ["fun factorial (int n, char c) /* lol this is a comment to try to break something */: (const my_int) // and this is an inline comment"]) 0 [""]
@@ -640,6 +680,584 @@ splitAtLastValueTest =
         TestCase (assertEqual "splitAtLastValue" (Nothing) (splitAtLastValue ' ' "Hello_World"))
     ]
 
+getIfChainTest :: Test
+getIfChainTest =
+    TestList
+    [
+        TestCase (do
+            tokenList <- parseFile (File ["else if (1 > 2) { a = 84; } else { a = 168; }"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = getIfChain sexpr
+            let expected = ([ElseIfToken, ListToken [IntToken 1, GreaterThanToken, IntToken 2], ListToken [SymbolToken "a", AssignToken, IntToken 84, LineSeparator], ElseToken, ListToken [SymbolToken "a", AssignToken, IntToken 168, LineSeparator]], [])
+            assertEqual "getIfChain" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["else if (1 > 2) { a = 84; } else if (1 == 2) { a = 168; }"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = getIfChain sexpr
+            let expected = ([ElseIfToken, ListToken [IntToken 1, GreaterThanToken, IntToken 2], ListToken [SymbolToken "a", AssignToken, IntToken 84, LineSeparator], ElseIfToken, ListToken [IntToken 1, EqualToken, IntToken 2], ListToken [SymbolToken "a", AssignToken, IntToken 168, LineSeparator]], [])
+            assertEqual "getIfChain" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["else if (1 > 2) { a = 84; } if (1 == 2) { a = 168; }"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = getIfChain sexpr
+            let expected = ([ElseIfToken, ListToken [IntToken 1, GreaterThanToken, IntToken 2], ListToken [SymbolToken "a", AssignToken, IntToken 84, LineSeparator]], [IfToken, ListToken [IntToken 1, EqualToken, IntToken 2], ListToken [SymbolToken "a", AssignToken, IntToken 168, LineSeparator]])
+            assertEqual "getIfChain" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["else if (1 > 2) { a = 84; } else { a = 168; } print(a);"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = getIfChain sexpr
+            let expected = ([ElseIfToken, ListToken [IntToken 1, GreaterThanToken, IntToken 2], ListToken [SymbolToken "a", AssignToken, IntToken 84, LineSeparator], ElseToken, ListToken [SymbolToken "a", AssignToken, IntToken 168, LineSeparator]], [SymbolToken "print", ListToken [SymbolToken "a"], LineSeparator])
+            assertEqual "getIfChain" (expected) (result))
+    ]
+
+binaryOperatorsASTTest :: Test
+binaryOperatorsASTTest =
+    TestList
+    [
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = binaryOperatorsAST PlusToken PlusAST sexpr
+            let expected = (PlusAST (AST [IntAST 1]) (AST [IntAST 2]))
+            assertEqual "binaryOperatorsAST" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 - 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = binaryOperatorsAST PlusToken PlusAST sexpr
+            let expected = (PlusAST DeadLeafAST DeadLeafAST)
+            assertEqual "binaryOperatorsAST" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 + 3"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = binaryOperatorsAST PlusToken PlusAST sexpr
+            let expected = (PlusAST (AST [IntAST 1]) (PlusAST (AST [IntAST 2]) (AST [IntAST 3])))
+            assertEqual "binaryOperatorsAST" (expected) (result))
+    ]
+
+operatorsAfterASTTest :: Test
+operatorsAfterASTTest =
+    TestList
+    [
+        TestCase (do
+            tokenList <- parseFile (File ["!1"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = operatorsAfterAST NotToken NotAST sexpr
+            let expected = (NotAST (AST [IntAST 1]))
+            assertEqual "operatorsAfterAST" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = operatorsAfterAST NotToken NotAST sexpr
+            let expected = (NotAST DeadLeafAST)
+            assertEqual "operatorsAfterAST" (expected) (result))
+    ]
+
+operatorsBeforeASTTest :: Test
+operatorsBeforeASTTest =
+    TestList
+    [
+        TestCase (do
+            tokenList <- parseFile (File ["i++"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = operatorsBeforeAST IncrementToken IncrementAST sexpr
+            let expected = (IncrementAST (AST [SymbolAST "i"]))
+            assertEqual "operatorsBeforeAST" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = operatorsBeforeAST IncrementToken IncrementAST sexpr
+            let expected = (IncrementAST DeadLeafAST)
+            assertEqual "operatorsBeforeAST" (expected) (result))
+    ]
+
+listOperatorsASTCheckTest :: Test
+listOperatorsASTCheckTest =
+    TestList
+    [
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = listOperatorsASTCheck [PlusToken] sexpr
+            let expected = True
+            assertEqual "listOperatorsASTCheck" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 + 3"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = listOperatorsASTCheck [PlusToken] sexpr
+            let expected = True
+            assertEqual "listOperatorsASTCheck" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 + 3 - 4"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = listOperatorsASTCheck [MinusToken] sexpr
+            let expected = True
+            assertEqual "listOperatorsASTCheck" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 + 3 - 4 / 5"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = listOperatorsASTCheck [MinusToken, DivideToken] sexpr
+            let expected = True
+            assertEqual "listOperatorsASTCheck" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 + 3 - 4 * 5"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = listOperatorsASTCheck [MinusToken, DivideToken] sexpr
+            let expected = False
+            assertEqual "listOperatorsASTCheck" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 + 3 - 4 / 5"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = listOperatorsASTCheck [TimesToken] sexpr
+            let expected = False
+            assertEqual "listOperatorsASTCheck" (expected) (result))
+    ]
+
+pemdasTreeTest :: Test
+pemdasTreeTest =
+    TestList
+    [
+        TestCase (do
+            tokenList <- parseFile (File [""]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected = (DeadLeafAST)
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (PlusAST
+                        (AST [IntAST 1])
+                        (AST [IntAST 2]))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 - 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (AST [IntAST 1])
+                        (AST [IntAST 2]))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 * 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (TimesAST
+                        (AST [IntAST 1])
+                        (AST [IntAST 2]))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 / 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (DivideAST
+                        (AST [IntAST 1])
+                        (AST [IntAST 2]))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 % 2"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (ModuloAST
+                        (AST [IntAST 1])
+                        (AST [IntAST 2]))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (AST [IntAST 3]))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 * 4"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (TimesAST
+                            (AST [IntAST 3])
+                            (AST [IntAST 4])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 * 4 / 5"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (DivideAST
+                            (TimesAST
+                                (AST [IntAST 3])
+                                (AST [IntAST 4]))
+                            (AST [IntAST 5])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 % 4 * 5 / 6"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (DivideAST
+                            (TimesAST
+                                (ModuloAST
+                                    (AST [IntAST 3])
+                                    (AST [IntAST 4]))
+                                (AST [IntAST 5]))
+                            (AST [IntAST 6])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 % 4 / 5 * 6"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (TimesAST
+                            (DivideAST
+                                (ModuloAST
+                                    (AST [IntAST 3])
+                                    (AST [IntAST 4]))
+                                (AST [IntAST 5]))
+                            (AST [IntAST 6])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 * 4 % 5 / 6"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (DivideAST
+                            (ModuloAST
+                                (TimesAST
+                                    (AST [IntAST 3])
+                                    (AST [IntAST 4]))
+                                (AST [IntAST 5]))
+                            (AST [IntAST 6])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 / 4 * 5 % 6"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (ModuloAST
+                            (TimesAST
+                                (DivideAST
+                                    (AST [IntAST 3])
+                                    (AST [IntAST 4]))
+                                (AST [IntAST 5]))
+                            (AST [IntAST 6])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 / 4 % 5 * 6"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (TimesAST
+                            (ModuloAST
+                                (DivideAST
+                                    (AST [IntAST 3])
+                                    (AST [IntAST 4]))
+                                (AST [IntAST 5]))
+                            (AST [IntAST 6])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["1 + 2 - 3 * 4 / 5 % 6"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (MinusAST
+                        (PlusAST
+                            (AST [IntAST 1])
+                            (AST [IntAST 2]))
+                        (ModuloAST
+                            (DivideAST
+                                (TimesAST
+                                    (AST [IntAST 3])
+                                    (AST [IntAST 4]))
+                                (AST [IntAST 5]))
+                            (AST [IntAST 6])))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["(((20 + 5 * 3) - (7 % 3)) / 2 + (15 - 3 * 2) % 4) * ((12 / 6 + 3) - (2 * 4) % 5) + (((9 * 3) - (7 + 2)) / (4 % 3)) - ((18 / 2) + (5 * 2) % 3) + ((10 - 3) * (6 + 2 % 4)) / ((16 - 3 * 2) + (5 / 2)) % 7"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr -- 48.48
+            let expected =
+                    (PlusAST -- 48.48
+                        (MinusAST -- 44
+                            (PlusAST -- 54
+                                (TimesAST -- 36
+                                    (AST [PlusAST -- 18
+                                        (DivideAST -- 17
+                                            (AST [MinusAST -- 34
+                                                (AST [PlusAST -- 35
+                                                    (AST [IntAST 20])
+                                                    (TimesAST -- 15
+                                                        (AST [IntAST 5])
+                                                        (AST [IntAST 3]))])
+                                                (AST [ModuloAST -- 1
+                                                    (AST [IntAST 7])
+                                                    (AST [IntAST 3])])])
+                                            (AST [IntAST 2]))
+                                        (ModuloAST -- 1
+                                            (AST [MinusAST -- 9
+                                                (AST [IntAST 15])
+                                                (TimesAST -- 6
+                                                    (AST [IntAST 3])
+                                                    (AST [IntAST 2]))])
+                                            (AST [IntAST 4]))])
+                                    (AST [MinusAST -- 2
+                                        (AST [PlusAST -- 5
+                                            (DivideAST -- 2
+                                                (AST [IntAST 12])
+                                                (AST [IntAST 6]))
+                                            (AST [IntAST 3])])
+                                        (ModuloAST -- 3
+                                            (AST [TimesAST -- 8
+                                                (AST [IntAST 2])
+                                                (AST [IntAST 4])])
+                                            (AST [IntAST 5]))]))
+                                (AST [DivideAST -- 18
+                                    (AST [MinusAST -- 18
+                                        (AST [TimesAST -- 27
+                                            (AST [IntAST 9])
+                                            (AST [IntAST 3])])
+                                        (AST [PlusAST -- 9
+                                            (AST [IntAST 7])
+                                            (AST [IntAST 2])])])
+                                    (AST [ModuloAST -- 1
+                                        (AST [IntAST 4])
+                                        (AST [IntAST 3])])]))
+                            (AST [PlusAST -- 10
+                                (AST [DivideAST -- 9
+                                    (AST [IntAST 18])
+                                    (AST [IntAST 2])])
+                                (ModuloAST -- 1
+                                    (AST [TimesAST -- 10
+                                        (AST [IntAST 5])
+                                        (AST [IntAST 2])])
+                                    (AST [IntAST 3]))]))
+                        (ModuloAST -- 4.48
+                            (DivideAST -- 4.48
+                                (AST [TimesAST -- 56
+                                    (AST [MinusAST -- 7
+                                        (AST [IntAST 10])
+                                        (AST [IntAST 3])])
+                                    (AST [PlusAST -- 8
+                                        (AST [IntAST 6])
+                                        (ModuloAST -- 2
+                                            (AST [IntAST 2])
+                                            (AST [IntAST 4]))])])
+                                (AST [PlusAST -- 12.5
+                                    (AST [MinusAST -- 10
+                                        (AST [IntAST 16])
+                                        (TimesAST -- 6
+                                            (AST [IntAST 3])
+                                            (AST [IntAST 2]))])
+                                    (AST [DivideAST -- 2.5
+                                        (AST [IntAST 5])
+                                        (AST [IntAST 2])])]))
+                            (AST [IntAST 7])))
+            assertEqual "pemdasTree" (expected) (result))
+    ]
+
+sexprToAstTest :: Test
+sexprToAstTest =
+    TestList
+    [
+        TestCase (do
+            tokenList <- parseFile (File ["if (i == 1) { a = 42; }"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected =
+                    (AST [IfAST
+                        (EqualAST (AST [SymbolAST "i"]) (AST [IntAST 1]))
+                        (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42])])
+                        (DeadLeafAST)
+                    ])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["if (i == 1) { a = 42; } else { a = 84; }"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected =
+                    (AST [IfAST
+                        (EqualAST (AST [SymbolAST "i"]) (AST [IntAST 1]))
+                        (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42])])
+                        (AST [ElseAST (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 84])])
+                        ])
+                    ])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["if (i == 1) { a = 42; } else if (i == 2) { a = 84; } else if (i == 3) { a = 168; } else { a = 336; }"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected =
+                    (AST [IfAST
+                        (EqualAST (AST [SymbolAST "i"]) (AST [IntAST 1]))
+                        (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42])])
+                        (AST [ElseIfAST
+                            (EqualAST (AST [SymbolAST "i"]) (AST [IntAST 2]))
+                            (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 84])])
+                            (AST [ElseIfAST
+                                (EqualAST (AST [SymbolAST "i"]) (AST [IntAST 3]))
+                                (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 168])])
+                                (AST [ElseAST
+                                    (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 336])])
+                                ])
+                            ])
+                        ])
+                    ])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["if (1 > 2) { a = 42; } else if (1 < 2) { a = 84; } else { a = 168; } return a;"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected =
+                    (AST [IfAST
+                        (GreaterThanAST (AST [IntAST 1]) (AST [IntAST 2]))
+                        (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42])])
+                        (AST [ElseIfAST
+                            (LessThanAST (AST [IntAST 1]) (AST [IntAST 2]))
+                            (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 84])])
+                            (AST [ElseAST
+                                (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 168])])
+                            ])
+                        ])
+                    , ReturnAST (AST [SymbolAST "a"])])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["if (!1 >= 2 && 1 == 2) { a = 42; } else if (1 <= 2 || 1 != 2) { a = 84; }"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected =
+                    (AST [IfAST
+                        (AndAST (NotAST (GreaterThanEqualAST (AST [IntAST 1]) (AST [IntAST 2]))) (EqualAST (AST [IntAST 1]) (AST [IntAST 2])))
+                        (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42])])
+                        (AST [ElseIfAST
+                            (OrAST (LessThanEqualAST (AST [IntAST 1]) (AST [IntAST 2])) (NotEqualAST (AST [IntAST 1]) (AST [IntAST 2])))
+                            (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 84])])
+                            (DeadLeafAST)
+                        ])
+                    ])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["int b += a;"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected = (AST [PlusEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"])])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["int b -= a;"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected = (AST [MinusEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"])])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["int b *= a;"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected = (AST [TimesEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"])])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["int b /= a;"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected = (AST [DivideEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"])])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["int b %= a;"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected = (AST [ModuloEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"])])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["int a = 1; float b = 1.42; char c = 'c'; string d = \"Hello World!\""]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected =
+                    (AST [
+                        AssignAST (AST [IntTypeAST, SymbolAST "a"]) (AST [IntAST 1]),
+                        AssignAST (AST [FloatTypeAST, SymbolAST "b"]) (AST [FloatAST 1.42]),
+                        AssignAST (AST [CharTypeAST, SymbolAST "c"]) (AST [CharAST 'c']),
+                        AssignAST (AST [StringTypeAST, SymbolAST "d"]) (AST [StringAST "Hello World!"])
+                    ])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["#define my_int int"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected = (AST [DefineAST "my_int" (AST [IntTypeAST])])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["fun sum(int a, int b) : int { return (a + b); } int a = sum(1, 2);"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected =
+                    (AST [
+                        FunAST "sum"
+                            (AST [AST [IntTypeAST, SymbolAST "a"], AST [IntTypeAST, SymbolAST "b"]])
+                            (FunTypeAST (AST [IntTypeAST]))
+                            (AST [ReturnAST (PlusAST (AST [SymbolAST "a"]) (AST [SymbolAST "b"]))]),
+                        AssignAST (AST [IntTypeAST, SymbolAST "a"]) (AST [SymbolAST "sum", (AST [AST [IntAST 1], AST [IntAST 2]])])
+                    ])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["while (i < 10) { i++; }"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected = (AST [WhileAST (LessThanAST (AST [SymbolAST "i"]) (AST [IntAST 10])) (AST [IncrementAST (AST [SymbolAST "i"])])])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["for (int i = 0; i < 10; i++) { print(i); }"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected =
+                    (AST [ForAST
+                        (AssignAST (AST [IntTypeAST, SymbolAST "i"]) (AST [IntAST 0]))
+                        (LessThanAST (AST [SymbolAST "i"]) (AST [IntAST 10]))
+                        (IncrementAST (AST [SymbolAST "i"]))
+                        (AST [AST [SymbolAST "print", (AST [SymbolAST "i"])]])
+                    ])
+            assertEqual "sexprToAst" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["int j = 1--; int i = j++;"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = sexprToAst sexpr
+            let expected = (AST [AssignAST (AST [IntTypeAST, SymbolAST "j"]) (DecrementAST (AST [IntAST 1])), AssignAST (AST [IntTypeAST, SymbolAST "i"]) (IncrementAST (AST [SymbolAST "j"]))])
+            assertEqual "sexprToAst" (expected) (result))
+    ]
+
 testParsingFunction :: Test
 testParsingFunction =
     TestList
@@ -663,6 +1281,17 @@ testParsingFunction =
 
             TestLabel "splitAtValue" splitAtValueTest,
             TestLabel "splitAtLastValue" splitAtLastValueTest,
+
+            TestLabel "getIfChain" getIfChainTest,
+
+            TestLabel "binaryOperatorsAST" binaryOperatorsASTTest,
+            TestLabel "operatorsAfterAST" operatorsAfterASTTest,
+            TestLabel "operatorsBeforeAST" operatorsBeforeASTTest,
+            TestLabel "listOperatorsASTCheck" listOperatorsASTCheckTest,
+
+            TestLabel "pemdasTree" pemdasTreeTest,
+
+            TestLabel "sexprToAst" sexprToAstTest,
 
             TestLabel "functorParser" functorParserTest,
             TestLabel "applicativeParser" applicativeParserTest,

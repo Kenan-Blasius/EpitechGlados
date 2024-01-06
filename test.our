@@ -1,0 +1,6 @@
+#include "test2.our"
+
+fun main() : my_int
+{
+    return 0;
+}

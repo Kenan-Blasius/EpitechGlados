@@ -2,6 +2,15 @@ module ParserAST (
     splitAtValue,
     splitAtLastValue,
 
+    getIfChain,
+
+    binaryOperatorsAST,
+    operatorsAfterAST,
+    operatorsBeforeAST,
+    listOperatorsASTCheck,
+
+    pemdasTree,
+
     sexprToAst,
 ) where
 
@@ -67,7 +76,7 @@ listOperatorsASTCheck (token : tokens) xs = case splitAtValue token xs of
 
 pemdasTreeAction :: Token -> (AST -> AST -> AST) -> [Token] -> AST
 pemdasTreeAction token ast xs = do
-    let (before, _, after) = case splitAtValue token xs of
+    let (before, _, after) = case splitAtLastValue token xs of
             Nothing -> ([], token, [])
             Just (b, _, a) -> (b, token, a)
     ast (pemdasTree before) (pemdasTree after)
@@ -106,17 +115,18 @@ pemdasTree x | listOperatorsASTCheck [ModuloToken, DivideToken, TimesToken] x = 
             Nothing -> ([], TimesToken, [])
             Just (b, _, a) -> (b, TimesToken, a)
     -- % * /
-    -- % / *
     -- * % /
-    if length beforeDivide > length beforeModulo then do
-        pemdasTreeAction2 ModuloToken TimesToken ModuloAST TimesAST x
-    -- / * %
+    if (length beforeDivide > length beforeModulo) && (length beforeDivide > length beforeTimes) then do
+        pemdasTreeAction DivideToken DivideAST x
+    -- % / *
     -- / % *
-    else if length beforeTimes > length beforeDivide then do
-        pemdasTreeAction2 ModuloToken DivideToken ModuloAST DivideAST x
+    else if (length beforeTimes > length beforeDivide) && (length beforeTimes > length beforeModulo) then do
+        pemdasTreeAction TimesToken TimesAST x
+    -- / * %
     -- * / %
+    -- else if (length beforeModulo > length beforeDivide) && (length beforeModulo > length beforeTimes) then do
     else do
-        pemdasTreeAction2 DivideToken TimesToken DivideAST TimesAST x
+        pemdasTreeAction ModuloToken ModuloAST x
 
 -- ! Modulo and Divide token
 pemdasTree x | listOperatorsASTCheck [ModuloToken, DivideToken] x = pemdasTreeAction2 ModuloToken DivideToken ModuloAST DivideAST x
@@ -289,18 +299,21 @@ sexprToAst x | listOperatorsASTCheck [PlusToken] x =              pemdasTree x
 sexprToAst x | listOperatorsASTCheck [ModuloToken] x =            pemdasTree x
 sexprToAst x | listOperatorsASTCheck [DivideToken] x =            pemdasTree x
 sexprToAst x | listOperatorsASTCheck [TimesToken] x =             pemdasTree x
+
+sexprToAst x | listOperatorsASTCheck [IncrementToken] x =         operatorsBeforeAST IncrementToken IncrementAST x
+sexprToAst x | listOperatorsASTCheck [DecrementToken] x =         operatorsBeforeAST DecrementToken DecrementAST x
+
 sexprToAst x | listOperatorsASTCheck [AndToken] x =               binaryOperatorsAST AndToken AndAST x
 sexprToAst x | listOperatorsASTCheck [OrToken] x =                binaryOperatorsAST OrToken OrAST x
+
+sexprToAst x | listOperatorsASTCheck [NotToken] x =               operatorsAfterAST NotToken NotAST x
+
 sexprToAst x | listOperatorsASTCheck [EqualToken] x =             binaryOperatorsAST EqualToken EqualAST x
 sexprToAst x | listOperatorsASTCheck [NotEqualToken] x =          binaryOperatorsAST NotEqualToken NotEqualAST x
 sexprToAst x | listOperatorsASTCheck [LessThanToken] x =          binaryOperatorsAST LessThanToken LessThanAST x
 sexprToAst x | listOperatorsASTCheck [LessThanEqualToken] x =     binaryOperatorsAST LessThanEqualToken LessThanEqualAST x
 sexprToAst x | listOperatorsASTCheck [GreaterThanToken] x =       binaryOperatorsAST GreaterThanToken GreaterThanAST x
 sexprToAst x | listOperatorsASTCheck [GreaterThanEqualToken] x =  binaryOperatorsAST GreaterThanEqualToken GreaterThanEqualAST x
-
-sexprToAst x | listOperatorsASTCheck [IncrementToken] x =         operatorsBeforeAST IncrementToken IncrementAST x
-sexprToAst x | listOperatorsASTCheck [DecrementToken] x =         operatorsBeforeAST DecrementToken DecrementAST x
-sexprToAst x | listOperatorsASTCheck [NotToken] x =               operatorsAfterAST NotToken NotAST x
 -- ! Types token
 sexprToAst (IntTypeToken : xs) = do
     AST [IntTypeAST] <> sexprToAst xs
