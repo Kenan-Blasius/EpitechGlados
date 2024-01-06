@@ -590,12 +590,20 @@ parseFileTest =
             assertEqual "parseFile" ([IntTypeToken, SymbolToken "while_my_while", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
+            result <- parseFile (File ["int return_my_return = 42"]) 0 [""]
+            assertEqual "parseFile" ([IntTypeToken, SymbolToken "return_my_return", AssignToken, IntToken 42]) (result)
+        ),
+        TestCase (do
             result <- parseFile (File ["#include \"test.our\""]) 0 [""]
             assertEqual "parseFile" ([DefineToken, SymbolToken "my_int", IntTypeToken, FunToken, SymbolToken "main", OpenParenthesis, CloseParenthesis, FunTypeToken, SymbolToken "my_int", OpenBraces, ReturnToken, IntToken 0, LineSeparator, CloseBraces]) (result)
         ),
         TestCase (do
             result <- parseFile (File ["#include my_int int"]) 0 [""]
             assertEqual "parseFile" ([IncludeToken, SymbolToken "my_int", IntTypeToken]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["float float_my_float = 84.42"]) 0 [""]
+            assertEqual "parseFile" ([FloatTypeToken, SymbolToken "float_my_float", AssignToken, FloatToken 84.42]) (result)
         ),
         TestCase (do
             result <- parseFile (File ["int 42_my_42 = 42"]) 0 [""]
