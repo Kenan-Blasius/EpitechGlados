@@ -1,5 +1,7 @@
 import Parser
 import ParserModule
+import ParserToken
+import ParserAST
 import Types
 import Test.HUnit
 
