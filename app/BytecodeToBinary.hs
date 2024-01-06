@@ -24,10 +24,6 @@ import Control.Monad.State
 -- DUP             0x0B
 -- CALL            0x0C
 -- RETURN          0x0D
--- BUILD_LIST      0x0E
--- INDEX           0x0F
--- ATTRIBUTE       0x10
--- CREATE_OBJECT   0x11
 
 toHexaInt :: Int -> [Word8]
 toHexaInt x = [fromIntegral x]
@@ -48,28 +44,25 @@ getLengthOfOperation (CompareOp _) = 2
 getLengthOfOperation (JumpIfTrue _) = 2
 getLengthOfOperation (JumpIfFalse _) = 2
 getLengthOfOperation (Jump _) = 2
+getLengthOfOperation (JumpRef _) = 2
 getLengthOfOperation Pop = 1
 getLengthOfOperation Dup = 1
 getLengthOfOperation (Call _) = 2
 getLengthOfOperation Return = 1
-getLengthOfOperation (BuildList _) = 2
-getLengthOfOperation Index = 1
-getLengthOfOperation (Attribute _) = 2
-getLengthOfOperation (CreateObject _) = 2
 
 --            next_instrs   move_left -> bytes
 sumOfnNextBytes :: [Bytecode] -> Int -> Int
 sumOfnNextBytes [] _ = 0
 sumOfnNextBytes _ 0 = 0
-sumOfnNextBytes (x:xs) i = trace ("Sum of n next bytes: " ++ show i ++ " " ++ show (getLengthOfOperation x)) $
+sumOfnNextBytes (x:xs) i = -- trace ("Sum of n next bytes: " ++ show i ++ " " ++ show (getLengthOfOperation x)) $
     getLengthOfOperation x + sumOfnNextBytes xs (i - 1)
 
 --                 next_instrs   rev_instrs  size_all_instrs currentBytes move_size -> bytes
 getPositionToJump :: [Bytecode] -> [Bytecode] -> Int -> Int -> Int -> Int
 getPositionToJump next rev size_all_instr currentBytes move_size
-    | move_size < 0 = trace ("Move size: " ++ show move_size ++ " currentBytes: " ++ show currentBytes ++ " instrs: " ++ show (drop (size_all_instr - (currentBytes + 1)) rev))
-    $ currentBytes - (sumOfnNextBytes (drop (size_all_instr - (currentBytes + 1)) rev) (- move_size))
-    | otherwise = trace ("Move size: " ++ show move_size ++ " currentBytes: " ++ show currentBytes ++ " instrs: " ++ show (take (currentBytes + 1) next))
+    | move_size < 0 = -- trace ("Move size: " ++ show move_size ++ " currentBytes: " ++ show currentBytes ++ " instrs: " ++ show (drop (size_all_instr - (currentBytes + 1)) rev)) $
+    currentBytes - (sumOfnNextBytes (drop (size_all_instr - (currentBytes + 1)) rev) (- move_size))
+    | otherwise = -- trace ("Move size: " ++ show move_size ++ " currentBytes: " ++ show currentBytes ++ " instrs: " ++ show (take (currentBytes + 1) next))
          currentBytes + 2 + sumOfnNextBytes next move_size
 --                      | 2 is for the size of the jump instruction
 
@@ -81,6 +74,10 @@ toHexaInstruction (StoreVar x) _ _ _ =     trackBytes (getLengthOfOperation (Sto
 toHexaInstruction (BinaryOp x) _ _ _ =     trackBytes (getLengthOfOperation (BinaryOp x))     >> return (0x04 : toHexaString x)
 toHexaInstruction (UnaryOp x) _ _ _ =      trackBytes (getLengthOfOperation (UnaryOp x))      >> return (0x05 : toHexaString x)
 toHexaInstruction (CompareOp x) _ _ _ =    trackBytes (getLengthOfOperation (CompareOp x))    >> return (0x06 : [charToWord8 (x !! 0)])
+-- TODO JumpRef
+toHexaInstruction (JumpRef x) next rev size_all = do
+    currentBytes <- get
+    trackBytes (getLengthOfOperation (JumpRef x)) >> return (0x09 : toHexaInt (getPositionToJump next rev size_all currentBytes x))
 toHexaInstruction (JumpIfTrue x) next rev size_all = do
     currentBytes <- get
     trackBytes (getLengthOfOperation (JumpIfTrue x)) >> return (0x07 : toHexaInt (getPositionToJump next rev size_all currentBytes x))
@@ -94,10 +91,6 @@ toHexaInstruction Pop _ _ _ =              trackBytes (getLengthOfOperation Pop)
 toHexaInstruction Dup _ _ _ =              trackBytes (getLengthOfOperation Dup)              >> return [0x0B]
 toHexaInstruction (Call x) _ _ _ =         trackBytes (getLengthOfOperation (Call x))         >> return (0x0C : toHexaInt x)
 toHexaInstruction Return _ _ _ =           trackBytes (getLengthOfOperation Return)           >> return [0x0D]
-toHexaInstruction (BuildList x) _ _ _ =    trackBytes (getLengthOfOperation (BuildList x))    >> return (0x0E : toHexaInt x)
-toHexaInstruction Index _ _ _ =            trackBytes (getLengthOfOperation Index)            >> return [0x0F]
-toHexaInstruction (Attribute x) _ _ _ =    trackBytes (getLengthOfOperation (Attribute x))    >> return (0x10 : toHexaString x)
-toHexaInstruction (CreateObject x) _ _ _ = trackBytes (getLengthOfOperation (CreateObject x)) >> return (0x11 : toHexaInt x)
 
 trackBytes :: Int -> State Int ()
 trackBytes n = modify (+ n)
@@ -107,11 +100,9 @@ trackBytes n = modify (+ n)
 bytecodeToBytes :: [Bytecode] -> [Bytecode] -> Int -> State Int [Word8]
 bytecodeToBytes [] _ _ = return []
 bytecodeToBytes (x:xs) rev size_all_instr = do
-    currentBytes <- get
-    trace ("Current bytes: " ++ show currentBytes) $ do
-        bytes <- toHexaInstruction x xs rev size_all_instr
-        rest <- bytecodeToBytes xs rev size_all_instr
-        return (bytes ++ rest)
+    bytes <- toHexaInstruction x xs rev size_all_instr
+    rest <- bytecodeToBytes xs rev size_all_instr
+    return (bytes ++ rest)
 
 
 writeBytesToFile :: [Word8] -> FilePath -> IO ()

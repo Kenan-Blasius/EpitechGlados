@@ -3,7 +3,6 @@ module AstToBytecode (
     astConditionToBytecode,
     valueSimpleToBytecode,
     astStoreValue,
-    sizeInstructionOfAst
 ) where
 
 import Types
@@ -58,89 +57,6 @@ import Debug.Trace
 -- | DeadLeafAST
 
 
--- [AssignAST (AST [SymbolAST "a"]) (PlusAST (AST [SymbolAST "a"]) (AST [IntAST 1]))]
--- LOAD_VAR a
--- LOAD_CONST 1
--- BINARY_OP +
--- STORE_VAR a
-
-sizeInstructionOfAst :: AST -> Int -> Int
-sizeInstructionOfAst (AST []) size = size
-sizeInstructionOfAst (IntAST _) size = size + 1
-sizeInstructionOfAst (AST (x:xs)) size = sizeInstructionOfAst (AST xs) (sizeInstructionOfAst x size)
-sizeInstructionOfAst (SymbolAST _) size = size + 1
-sizeInstructionOfAst (IfAST cond expr1 elseIfExpr1) size =
-    sizeInstructionOfAst cond $
-    sizeInstructionOfAst expr1 $
-    sizeInstructionOfAst elseIfExpr1 $
-    size + 1
-sizeInstructionOfAst (ElseAST expr1) size =
-    sizeInstructionOfAst expr1 $
-    size + 1
-sizeInstructionOfAst (AssignAST x y) size = -- TODO: check if good
-    sizeInstructionOfAst x $
-    sizeInstructionOfAst y $
-    size + 1
-sizeInstructionOfAst (PlusAST x y) size =
-    sizeInstructionOfAst x $
-    sizeInstructionOfAst y $
-    size + 1
-sizeInstructionOfAst (MinusAST x y) size =
-    sizeInstructionOfAst x $
-    sizeInstructionOfAst y $
-    size + 1
-sizeInstructionOfAst (TimesAST x y) size =
-    sizeInstructionOfAst x $
-    sizeInstructionOfAst y $
-    size + 1
-sizeInstructionOfAst (DivideAST x y) size =
-    sizeInstructionOfAst x $
-    sizeInstructionOfAst y $
-    size + 1
-sizeInstructionOfAst (ModuloAST x y) size =
-    sizeInstructionOfAst x $
-    sizeInstructionOfAst y $
-    size + 1
-sizeInstructionOfAst (EqualAST x y) size =
-    sizeInstructionOfAst x $
-    sizeInstructionOfAst y $
-    size + 1
-sizeInstructionOfAst (GreaterThanAST x y) size =
-    sizeInstructionOfAst x $
-    sizeInstructionOfAst y $
-    size + 1
-sizeInstructionOfAst (LessThanAST x y) size =
-    sizeInstructionOfAst x $
-    sizeInstructionOfAst y $
-    size + 1
-sizeInstructionOfAst (GreaterThanEqualAST x y) size =
-    sizeInstructionOfAst x $
-    sizeInstructionOfAst y $
-    size + 1
-sizeInstructionOfAst (LessThanEqualAST x y) size =
-    sizeInstructionOfAst x $
-    sizeInstructionOfAst y $
-    size + 1
-sizeInstructionOfAst (NotEqualAST x y) size =
-    sizeInstructionOfAst x $
-    sizeInstructionOfAst y $
-    size + 1
-sizeInstructionOfAst (WhileAST cond expr1) size =
-    sizeInstructionOfAst cond $
-    sizeInstructionOfAst expr1 $
-    size + 1
-sizeInstructionOfAst (ForAST initialisation cond expr1 expr2) size =
-    sizeInstructionOfAst initialisation $
-    sizeInstructionOfAst cond $
-    sizeInstructionOfAst expr1 $
-    sizeInstructionOfAst expr2 $
-    size + 1
-sizeInstructionOfAst (ReturnAST expr1) size =
-    sizeInstructionOfAst expr1 $
-    size + 1
-sizeInstructionOfAst DeadLeafAST size = size
-sizeInstructionOfAst expr size = trace ("sizeInstructionOfAst No AST node found. " ++ show expr ++ " Current size: " ++ show size) size
-
 
 -- TODO && ||
 -- TODO += -= *= /= %=
@@ -159,12 +75,12 @@ valueSimpleToBytecode x = trace ("valueSimpleToBytecode NO AST SIMPLE NODE FOUND
 
 astConditionToBytecode :: AST -> [Bytecode] -> [Bytecode]
 astConditionToBytecode (AST []) bytecode = bytecode
-astConditionToBytecode (EqualAST cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "=="]
-astConditionToBytecode (LessThanAST cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "<"]
-astConditionToBytecode (GreaterThanAST cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp ">"]
-astConditionToBytecode (LessThanEqualAST cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "<="]
+astConditionToBytecode (EqualAST            cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "=="]
+astConditionToBytecode (LessThanAST         cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "<"]
+astConditionToBytecode (GreaterThanAST      cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp ">"]
+astConditionToBytecode (LessThanEqualAST    cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "<="]
 astConditionToBytecode (GreaterThanEqualAST cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp ">="]
-astConditionToBytecode (NotEqualAST cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "!="]
+astConditionToBytecode (NotEqualAST         cond1 cond2) bytecode = bytecode ++ (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "!="]
 -- astConditionToBytecode (AndAST cond1 cond2) bytecode =
 -- astConditionToBytecode (OrAST cond1 cond2) bytecode =
 astConditionToBytecode x bytecode = trace ("astConditionToBytecode NO AST CONDITION NODE FOUND: " ++ show x) bytecode
@@ -179,92 +95,88 @@ astStoreValue _ _ = trace ("astStoreValue NO AST STORE NODE FOUND") $ ((AST []),
 
 -- INFO: This function takes an AST and returns a list of Bytecode instructions
 --       that can be executed by the VM.
-astToBytecode' :: AST -> [Bytecode] -> (AST, [Bytecode])
-astToBytecode' (AST []) bytecode = (AST [], bytecode)
 
+--             AST      bytecode  id_jmp -> AST bytecode
+astToBytecode' :: AST -> [Bytecode] -> Int -> (AST, [Bytecode], Int)
+astToBytecode' (AST []) bytecode jmp = (AST [], bytecode, jmp)
 -- * System calls
-astToBytecode' (AST [SymbolAST "print", x]) bytecode =
-    let (xAST, xBytecode) = astToBytecode' (AST [x]) bytecode
-    in (xAST, xBytecode ++ [Call 1]) -- system call 1 is write
-astToBytecode' (AST [SymbolAST "exit", x]) bytecode =
-    let (xAST, xBytecode) = astToBytecode' (AST [x]) bytecode
-    in (xAST, xBytecode ++ [Call 60]) -- system call 60 is exit
+astToBytecode' (AST [SymbolAST "print", x]) bytecode jmp =
+    let (xAST, xBytecode, jmp') = astToBytecode' (AST [x]) bytecode jmp
+    in (xAST, xBytecode ++ [Call 1], jmp')
+
+astToBytecode' (AST [SymbolAST "exit", x]) bytecode jmp =
+    let (xAST, xBytecode, jmp') = astToBytecode' (AST [x]) bytecode jmp
+    in (xAST, xBytecode ++ [Call 60], jmp')
 
 -- * (AST (x:xs))
-astToBytecode' (AST (x:xs)) bytecode = trace ("Processing AST node: " ++ show x) $
-    let (_, xBytecode) = astToBytecode' x bytecode
-        (xsAST, xsBytecode) = astToBytecode' (AST xs) bytecode
-    in (xsAST, xBytecode ++ xsBytecode)
+astToBytecode' (AST (x:xs)) bytecode jmp = trace ("Processing AST node: " ++ show x) $
+    let (_, xBytecode, jmp') = astToBytecode' x bytecode jmp
+        (xsAST, xsBytecode, jmp'') = astToBytecode' (AST xs) bytecode jmp'
+    in (xsAST, xBytecode ++ xsBytecode, jmp'')
 
-astToBytecode' (IfAST cond expr1 elseIfExpr1) bytecode = trace ("IfAST: " ++ show cond ++ " |expr1| " ++ show expr1 ++ " |do| " ++ show elseIfExpr1) $ do
+astToBytecode' (IfAST cond expr1 elseIfExpr1) bytecode jmp = trace ("IfAST: " ++ show cond ++ " |expr1| " ++ show expr1 ++ " |do| " ++ show elseIfExpr1) $ do
     let condBytecode = trace ("condBytecode1: " ++ show cond) astConditionToBytecode cond bytecode
-    let (_, expr1Bytecode) = trace ("expr1AST: " ++ show expr1) astToBytecode' expr1 bytecode
-    let (_, elseIfExpr1Bytecode) = trace ("elseIfExpr1: " ++ show elseIfExpr1 ++ "\n\n") astToBytecode' elseIfExpr1 bytecode
-    let jmp_size = trace ("jmp_size return " ++ show (sizeInstructionOfAst expr1 0)) (sizeInstructionOfAst expr1 0)
-    (AST [], bytecode ++ condBytecode ++ [JumpIfFalse jmp_size] ++ expr1Bytecode ++ elseIfExpr1Bytecode)
+    let (_, expr1Bytecode, jmp1) = trace ("expr1AST: " ++ show expr1) astToBytecode' expr1 bytecode jmp
+    let (_, elseIfExpr1Bytecode, jmp2) = trace ("elseIfExpr1: " ++ show elseIfExpr1 ++ "\n\n") astToBytecode' elseIfExpr1 bytecode jmp1
+    let new_jmp = trace ("new_jmp  " ++ show ((jmp1 - jmp) + (jmp2 - jmp) + 1)) ((jmp1 - jmp) + (jmp2 - jmp) + 1)
+    if elseIfExpr1 == DeadLeafAST then
+        (AST [], bytecode ++ condBytecode ++ [JumpIfFalse new_jmp] ++ expr1Bytecode ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode, new_jmp)
+    else
+        (AST [], bytecode ++ condBytecode ++ [JumpIfFalse new_jmp] ++ expr1Bytecode ++ [Jump (new_jmp + 1)] ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode ++ [JumpRef (new_jmp + 1)], new_jmp + 1)
 
--- ? is sure (AST expr1) is AST []
--- ! check if good behaviour
-astToBytecode' (ElseAST (AST expr1)) bytecode = trace ("ElseAST: " ++ show expr1) $ do
-    let (_, expr1Bytecode) = trace ("expr1AST: " ++ show expr1) astToBytecode' (AST expr1) bytecode
-    (AST [], bytecode ++ expr1Bytecode)
+-- TODO else if
 
-astToBytecode' (WhileAST cond (AST expr1)) bytecode = trace ("WhileAST: " ++ show cond ++ " |expr1| " ++ show expr1) $ do
+astToBytecode' (ElseAST expr1) bytecode jmp = trace ("ElseAST: " ++ show expr1) $ do
+    let (_, expr1Bytecode, jmp') = trace ("expr1AST: " ++ show expr1) astToBytecode' expr1 bytecode jmp
+    (AST [], bytecode ++ expr1Bytecode, jmp')
+
+astToBytecode' (WhileAST cond expr1) bytecode jmp = trace ("WhileAST: " ++ show cond ++ " |expr1| " ++ show expr1) $ do
     let condBytecode = trace ("condBytecode1: " ++ show cond) astConditionToBytecode cond bytecode
-    let (_, expr1Bytecode) = trace ("expr1AST: " ++ show expr1) astToBytecode' (AST expr1) bytecode
-    let jmp_size = trace ("jmp_size scope: " ++ show (sizeInstructionOfAst (AST expr1) 0)) (sizeInstructionOfAst (AST expr1) 0)
-    let jmp_size2 = trace ("jmp_size cond: " ++ show (sizeInstructionOfAst cond 0)) (sizeInstructionOfAst cond 0)
-    (AST [], bytecode ++ condBytecode ++ [JumpIfFalse (jmp_size + 1)] ++ expr1Bytecode ++ [Jump (-(jmp_size + jmp_size2 + 2))]) -- near perfect
-    -- (AST [], bytecode ++ condBytecode ++ [JumpIfFalse (jmp_size + 1)] ++ expr1Bytecode ++ [Jump (-(jmp_size + jmp_size2 + 1))])
-                                                             --   |                                                       | +1 because JumpIfFalse is counted as 1 instruction
-    -- 1 and 2 because JumpIfFalse & Jump instructions
+    let (_, expr1Bytecode, jmp1) = trace ("expr1AST: " ++ show expr1) astToBytecode' expr1 bytecode jmp
+    let new_jmp = trace ("new_jmp  " ++ show ((jmp1 - jmp) + 1)) ((jmp1 - jmp) + 1)
+    (AST [], bytecode ++ condBytecode ++ [JumpIfFalse new_jmp] ++ expr1Bytecode ++ [JumpRef new_jmp], new_jmp)
 
-astToBytecode' (ReturnAST (AST expr1)) bytecode =
-    let (_, expr1Bytecode) = trace ("ReturnAST: " ++ show expr1) astToBytecode' (AST expr1) bytecode
-    in (AST [], bytecode ++ expr1Bytecode ++ [Return])
-
--- * to test lmao
--- astToBytecode' (ForAST (AST init) cond (AST expr1) (AST expr2)) bytecode = do
---     let (initAST, initBytecode) = trace ("initAST: " ++ show init) astToBytecode' (AST init) bytecode
---     let condBytecode = trace ("condBytecode1: " ++ show cond) astConditionToBytecode cond bytecode
---     let (expr1AST, expr1Bytecode) = trace ("expr1AST: " ++ show expr1) astToBytecode' (AST expr1) bytecode
---     let (expr2AST, expr2Bytecode) = trace ("expr2AST: " ++ show expr2) astToBytecode' (AST expr2) bytecode
---     (AST [], initBytecode ++ condBytecode ++ [JumpIfFalse (sizeInstructionOfAst (AST expr1) 0)] ++ expr1Bytecode ++ expr2Bytecode ++ [Jump (-(sizeInstructionOfAst (AST expr1) 0 + sizeInstructionOfAst cond 0 + sizeInstructionOfAst (AST expr2) 0))])
+astToBytecode' (ReturnAST (AST expr1)) bytecode jmp =
+    let (_, expr1Bytecode, jmp') = trace ("ReturnAST: " ++ show expr1) astToBytecode' (AST expr1) bytecode jmp
+    in (AST [], bytecode ++ expr1Bytecode ++ [Return], jmp')
 
 -- * Assignation operation
-astToBytecode' (AssignAST x y) bytecode = trace ("AssignAST: " ++ show x ++ " = " ++ show y) $
-    let (yAST, yBytecode) = astToBytecode' y bytecode
+astToBytecode' (AssignAST x y) bytecode jmp = trace ("AssignAST: " ++ show x ++ " = " ++ show y) $
+    let (yAST, yBytecode, jmp') = astToBytecode' y bytecode jmp
         (_, xBytecode) = astStoreValue x bytecode
-    in (yAST, yBytecode ++ xBytecode)
+    in (yAST, yBytecode ++ xBytecode, jmp')
 
 -- * Simple operations
-astToBytecode' (PlusAST x y) bytecode = trace ("PlusAST: " ++ show x ++ " + " ++ show y) $
-    let (_, xBytecode) = astToBytecode' (AST [x]) bytecode
-        (_, yBytecode) = astToBytecode' (AST [y]) bytecode
-    in (AST [], concat [xBytecode, yBytecode, [BinaryOp "+"]])
-astToBytecode' (MinusAST x y) bytecode = trace ("MinusAST: " ++ show x ++ " - " ++ show y) $
-    let (_, xBytecode) = astToBytecode' (AST [x]) bytecode
-        (_, yBytecode) = astToBytecode' (AST [y]) bytecode
-    in (AST [], concat [xBytecode, yBytecode, [BinaryOp "-"]])
-astToBytecode' (TimesAST x y) bytecode = trace ("TimesAST: " ++ show x ++ " * " ++ show y) $
-    let (_, xBytecode) = astToBytecode' (AST [x]) bytecode
-        (_, yBytecode) = astToBytecode' (AST [y]) bytecode
-    in (AST [], concat [xBytecode, yBytecode, [BinaryOp "*"]])
-astToBytecode' (DivideAST x y) bytecode = trace ("DivideAST: " ++ show x ++ " / " ++ show y) $
-    let (_, xBytecode) = astToBytecode' (AST [x]) bytecode
-        (_, yBytecode) = astToBytecode' (AST [y]) bytecode
-    in (AST [], concat [xBytecode, yBytecode, [BinaryOp "/"]])
-astToBytecode' (ModuloAST x y) bytecode = trace ("ModuloAST: " ++ show x ++ " % " ++ show y) $
-    let (_, xBytecode) = astToBytecode' (AST [x]) bytecode
-        (_, yBytecode) = astToBytecode' (AST [y]) bytecode
-    in (AST [], concat [xBytecode, yBytecode, [BinaryOp "%"]])
+astToBytecode' (PlusAST x y) bytecode jmp = trace ("PlusAST: " ++ show x ++ " + " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' (AST [x]) bytecode jmp
+        (_, yBytecode, jmp2) = astToBytecode' (AST [y]) bytecode jmp1
+    in (AST [], concat [xBytecode, yBytecode, [BinaryOp "+"]], jmp2)
+
+astToBytecode' (MinusAST x y) bytecode jmp = trace ("MinusAST: " ++ show x ++ " - " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' (AST [x]) bytecode jmp
+        (_, yBytecode, jmp2) = astToBytecode' (AST [y]) bytecode jmp1
+    in (AST [], concat [xBytecode, yBytecode, [BinaryOp "-"]], jmp2)
+
+astToBytecode' (TimesAST x y) bytecode jmp = trace ("TimesAST: " ++ show x ++ " * " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' (AST [x]) bytecode jmp
+        (_, yBytecode, jmp2) = astToBytecode' (AST [y]) bytecode jmp1
+    in (AST [], concat [xBytecode, yBytecode, [BinaryOp "*"]], jmp2)
+
+astToBytecode' (DivideAST x y) bytecode jmp = trace ("DivideAST: " ++ show x ++ " / " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' (AST [x]) bytecode jmp
+        (_, yBytecode, jmp2) = astToBytecode' (AST [y]) bytecode jmp1
+    in (AST [], concat [xBytecode, yBytecode, [BinaryOp "/"]], jmp2)
+
+astToBytecode' (ModuloAST x y) bytecode jmp = trace ("ModuloAST: " ++ show x ++ " % " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' (AST [x]) bytecode jmp
+        (_, yBytecode, jmp2) = astToBytecode' (AST [y]) bytecode jmp1
+    in (AST [], concat [xBytecode, yBytecode, [BinaryOp "%"]], jmp2)
+
 
 -- * Load operations
 -- TODO LoadVar
-astToBytecode' (SymbolAST x) bytecode = trace ("SymbolAST: " ++ show x) $ astToBytecode' (AST []) (bytecode ++ [LoadVar x])
-astToBytecode' (IntAST x) bytecode = trace ("IntAST: " ++ show x) $ astToBytecode' (AST []) (bytecode ++ [LoadConst x])
-astToBytecode' DeadLeafAST bytecode = trace ("DeadLeafAST") $ astToBytecode' (AST []) bytecode
-astToBytecode' a b = trace ("Unknown AST node bytecode: " ++ show a ++ " " ++ show b) (a, b)
+astToBytecode' (SymbolAST x) bytecode jmp = trace ("SymbolAST: " ++ show x) $ astToBytecode' (AST []) (bytecode ++ [LoadVar x]) jmp
+astToBytecode' (IntAST x) bytecode jmp = trace ("IntAST: " ++ show x) $ astToBytecode' (AST []) (bytecode ++ [LoadConst x]) jmp
+astToBytecode' DeadLeafAST bytecode jmp = trace ("DeadLeafAST") $ astToBytecode' (AST []) bytecode jmp
+astToBytecode' a b jmp = trace ("Unknown AST node bytecode: " ++ show a ++ " " ++ show b) (a, b, jmp)
 
-
--- IfAST (EqualAST (AST [SymbolAST "b"]) (AST [IntAST 5])) (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 5])]) DeadLeafAST
