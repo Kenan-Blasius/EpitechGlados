@@ -39,9 +39,28 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , directory
     , filepath
     , mtl
+  default-language: Haskell2010
+
+executable eval-exe
+  main-is: BinaryEvaluation.hs
+  other-modules:
+      Paths_glados
+  autogen-modules:
+      Paths_glados
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , glados
+    , mtl
+    , split
+    , utf8-string
   default-language: Haskell2010
 
 executable glados-exe
@@ -55,11 +74,10 @@ executable glados-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , glados
     , mtl
     , split
-    , bytestring
-    , binary
   default-language: Haskell2010
 
 test-suite glados-test
@@ -75,6 +93,7 @@ test-suite glados-test
   build-depends:
       HUnit >=1.6.2.0
     , base >=4.7 && <5
+    , bytestring
     , glados
     , mtl
   default-language: Haskell2010

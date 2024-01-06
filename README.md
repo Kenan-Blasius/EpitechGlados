@@ -148,8 +148,109 @@ CREATE_OBJECT   0x11
 
 // include
 
-//
+
+
+pour les fonctions, on met le PC dans la stack, et on fait un jump au debut de la fonction
+pour les return, on fait un jump au PC dans la stack
+
+lancer le programme :
+./glados simple.c
+./eval file.bin
 -->
+
+### Exemple 2
+
+```c
+var a = 6 * 2;
+```
+
+```py
+LOAD_CONST 6
+LOAD_CONST 2
+BINARY_OP MULT  ; Multiply 6 and 2
+STORE_VAR a
+```
+
+### Exemple 3
+
+```c
+print(a);
+```
+
+```py
+LOAD_VAR a
+CALL 1         ; Assuming print is a function that prints the top of the stack
+POP            ; Pop the result of print
+```
+
+```c
+int a = 0;
+
+while (a < 10) {
+    a = a + 1;
+}
+
+return 0;
+```
+
+```py
+# Bytecode
+LOAD_CONST 0   ; Initialize a to 0
+STORE_VAR a
+
+LOOP_START:    ; Label for the beginning of the loop
+LOAD_VAR a
+LOAD_CONST 10
+COMPARE_OP LESS_THAN   ; Compare a < 10
+JUMP_IF_FALSE LOOP_END  ; Jump to LOOP_END if the comparison is false
+
+# Body of the loop
+LOAD_VAR a
+LOAD_CONST 1
+BINARY_OP ADD    ; Increment a by 1
+STORE_VAR a
+JUMP LOOP_START   ; Jump back to LOOP_START to repeat the loop
+
+LOOP_END:        ; Label for the end of the loop
+LOAD_CONST 0     ; Return 0
+RETURN
+```
+
+```c
+all the syscalls
+
+// done
+exit (Syscall Number: 60): Terminate the process and return the exit status to the parent.
+
+read (Syscall Number: 0): Read data from a file descriptor (e.g., reading from stdin).
+
+// done only for stdout
+write (Syscall Number: 1): Write data to a file descriptor (e.g., printing to stdout).
+
+open (Syscall Number: 2): Open a file or device for reading, writing, or both.
+
+close (Syscall Number: 3): Close a file descriptor.
+
+fork (Syscall Number: 57): Create a new process (child process).
+
+execve (Syscall Number: 59): Execute a program.
+
+waitpid (Syscall Number: 61): Wait for a specific child process to exit.
+
+kill (Syscall Number: 62): Send a signal to a process.
+
+stat (Syscall Number: 4): Get file status.
+
+chdir (Syscall Number: 12): Change the current working directory.
+
+getpid (Syscall Number: 39): Get the process ID.
+
+getuid (Syscall Number: 102): Get the user ID.
+
+getgid (Syscall Number: 104): Get the group ID.
+
+socket (Syscall Number: -1): Create an endpoint for communication (varies between operating systems).
+```
 
 ## Auteurs
 

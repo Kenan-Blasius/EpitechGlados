@@ -5,24 +5,20 @@ license: BSD-3-Clause
 author: "Author name here"
 maintainer: "example@example.com"
 copyright: "2023 Author name here"
-
 extra-source-files:
   - README.md
   - CHANGELOG.md
-
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
 # category:            Web
-
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
 description: Please see the README on GitHub at <https://github.com/githubuser/glados#readme>
-
 dependencies:
   - base >= 4.7 && < 5
   - mtl
-
+  - bytestring
 ghc-options:
   - -Wall
   - -Wcompat
@@ -33,12 +29,11 @@ ghc-options:
   - -Wmissing-home-modules
   - -Wpartial-fields
   - -Wredundant-constraints
-
 library:
   source-dirs: src
   dependencies:
-      - filepath
-      - directory
+    - filepath
+    - directory
 
 executables:
   glados-exe:
@@ -53,6 +48,19 @@ executables:
     dependencies:
       - glados
       - split
+  eval-exe:
+    main: BinaryEvaluation.hs
+    source-dirs: app
+    other-modules:
+      - Paths_glados
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - glados
+      - split
+      - utf8-string
 
 tests:
   glados-test:
@@ -67,6 +75,5 @@ tests:
     dependencies:
       - HUnit >= 1.6.2.0
       - glados
-
 extra-deps:
   - split-0.2.3.4
