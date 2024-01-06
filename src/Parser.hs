@@ -183,6 +183,11 @@ includeFile :: String -> [String] -> IO ([Token])
 includeFile str filenames = do
     contents <- readFile str
     file <- return $ File (lines contents)
+    putStrLn "File included: "
+    putStrLn str
+    putStrLn "------------------------------------"
+    putStrLn $ show file
+    putStrLn "------------------------------------"
     parseFile file 1 filenames
 
 mergeSymbols :: [Token] -> [String] -> IO [Token]
@@ -197,7 +202,7 @@ mergeSymbols (IncludeToken : xs) filenames | head (filter (/= SpaceToken) xs) ==
         -- throw (ParserError ("Error: Recursive include of file " ++ str))
         return (rest)
     else do
-        includedFile <- includeFile str (filename : filenames)
+        includedFile <- includeFile filename (filename : filenames)
         return (includedFile ++ rest)
     where
         str = case head (filter (/= SpaceToken) xs) of
@@ -636,10 +641,12 @@ parser :: File -> String -> IO (AST)
 parser file filename = do
     catch (
         do
+        absoluteFilename <- getAbsolutePath filename
+        putStrLn "Original file: "
+        putStrLn absoluteFilename
         putStrLn "------------------------------------"
         putStrLn $ show file
         putStrLn "------------------------------------"
-        absoluteFilename <- getAbsolutePath filename
         tokenList <- parseFile file 1 [absoluteFilename]
         checkSyntax tokenList
         putStrLn $ show $ tokenList
