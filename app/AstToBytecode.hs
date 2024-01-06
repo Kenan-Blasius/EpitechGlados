@@ -58,23 +58,78 @@ import Debug.Trace
 
 
 sizeInstructionOfAst :: AST -> Int -> Int
-sizeInstructionOfAst expr size = case expr of
-    AST [] -> trace ("sizeInstructionOfAst AST []: " ++ show expr ++ ". Current size: " ++ show size) size
-    IntAST x -> trace ("sizeInstructionOfAst IntAST: " ++ show x ++ ". Current size: " ++ show (size + 1)) (size + 1)
-    SymbolAST x -> trace ("sizeInstructionOfAst SymbolAST: " ++ x ++ ". Current size: " ++ show (size + 1)) (size + 1)
-    IfAST (AST cond) (AST expr1) (AST elseIfExpr1) ->
-        trace ("sizeInstructionOfAst IfAST. Current size: " ++ show (size + 1)) $
-        sizeInstructionOfAst (AST cond) $
-        sizeInstructionOfAst (AST expr1) $
-        sizeInstructionOfAst (AST elseIfExpr1) $
-        size + 1
-    AST (x:xs) -> trace ("sizeInstructionOfAst AST (x:xs): " ++ show x ++ ". Current size: " ++ show size) $
-        sizeInstructionOfAst (AST xs) $
-        sizeInstructionOfAst x $
-        size
-    _ -> trace ("sizeInstructionOfAst error bytecode: " ++ show expr ++ ". Current size: " ++ show size) size
+sizeInstructionOfAst (AST []) size = size
+sizeInstructionOfAst (IntAST x) size = size + 1
+sizeInstructionOfAst (AST (x:xs)) size = sizeInstructionOfAst (AST xs) (sizeInstructionOfAst x size)
+sizeInstructionOfAst (SymbolAST x) size = size + 1
+sizeInstructionOfAst (IfAST (AST cond) (AST expr1) (AST elseIfExpr1)) size =
+    sizeInstructionOfAst (AST cond) $
+    sizeInstructionOfAst (AST expr1) $
+    sizeInstructionOfAst (AST elseIfExpr1) $
+    size + 1
+sizeInstructionOfAst (ElseAST (AST expr1)) size =
+    sizeInstructionOfAst (AST expr1) $
+    size + 1
+sizeInstructionOfAst (AssignAST x y) size =
+    sizeInstructionOfAst x $
+    sizeInstructionOfAst y $
+    size + 1
+sizeInstructionOfAst (PlusAST x y) size =
+    sizeInstructionOfAst x $
+    sizeInstructionOfAst y $
+    size + 1
+sizeInstructionOfAst (MinusAST x y) size =
+    sizeInstructionOfAst x $
+    sizeInstructionOfAst y $
+    size + 1
+sizeInstructionOfAst (TimesAST x y) size =
+    sizeInstructionOfAst x $
+    sizeInstructionOfAst y $
+    size + 1
+sizeInstructionOfAst (DivideAST x y) size =
+    sizeInstructionOfAst x $
+    sizeInstructionOfAst y $
+    size + 1
+sizeInstructionOfAst (ModuloAST x y) size =
+    sizeInstructionOfAst x $
+    sizeInstructionOfAst y $
+    size + 1
+sizeInstructionOfAst (EqualAST x y) size =
+    sizeInstructionOfAst x $
+    sizeInstructionOfAst y $
+    size + 1
+sizeInstructionOfAst (GreaterThanAST x y) size =
+    sizeInstructionOfAst x $
+    sizeInstructionOfAst y $
+    size + 1
+sizeInstructionOfAst (LessThanAST x y) size =
+    sizeInstructionOfAst x $
+    sizeInstructionOfAst y $
+    size + 1
+sizeInstructionOfAst (GreaterThanEqualAST x y) size =
+    sizeInstructionOfAst x $
+    sizeInstructionOfAst y $
+    size + 1
+sizeInstructionOfAst (LessThanEqualAST x y) size =
+    sizeInstructionOfAst x $
+    sizeInstructionOfAst y $
+    size + 1
+sizeInstructionOfAst (NotEqualAST x y) size =
+    sizeInstructionOfAst x $
+    sizeInstructionOfAst y $
+    size + 1
+sizeInstructionOfAst (WhileAST cond expr1) size =
+    sizeInstructionOfAst cond $
+    sizeInstructionOfAst expr1 $
+    size + 1
+-- sizeInstructionOfAst (ForAST (AST init) cond (AST expr1) (AST expr2)) size =
+--     sizeInstructionOfAst (AST init) $
+--     sizeInstructionOfAst (AST cond) $
+--     sizeInstructionOfAst (AST expr1) $
+--     sizeInstructionOfAst (AST expr2) $
+--     size + 1
 sizeInstructionOfAst _ size = trace ("sizeInstructionOfAst No AST node found. Current size: " ++ show size) size
--- simpleOperation _ _ = error "Unknown AST node"
+
 
 
 
@@ -142,7 +197,18 @@ astToBytecode' (ElseAST (AST expr1)) bytecode = trace ("ElseAST: " ++ show expr1
 astToBytecode' (WhileAST cond (AST expr1)) bytecode = trace ("WhileAST: " ++ show cond ++ " |expr1| " ++ show expr1) $ do
     let condBytecode = trace ("condBytecode1: " ++ show cond) astConditionToBytecode cond bytecode
     let (expr1AST, expr1Bytecode) = trace ("expr1AST: " ++ show expr1) astToBytecode' (AST expr1) bytecode
-    (AST [], bytecode ++ condBytecode ++ [JumpIfFalse (sizeInstructionOfAst (AST expr1) 0)] ++ expr1Bytecode ++ [Jump (-(sizeInstructionOfAst (AST expr1) 0 + sizeInstructionOfAst cond 0))])
+    let jmp_size = trace ("jmp_size: " ++ show (sizeInstructionOfAst (AST expr1) 0)) (sizeInstructionOfAst (AST expr1) 0)
+    let jmp_size2 = trace ("jmp_size2: " ++ show (sizeInstructionOfAst cond 0)) (sizeInstructionOfAst cond 0)
+    (AST [], bytecode ++ condBytecode ++ [JumpIfFalse (jmp_size)] ++ expr1Bytecode ++ [Jump (-(jmp_size + jmp_size2 - 1))])
+
+
+-- * to test lmao
+-- astToBytecode' (ForAST (AST init) cond (AST expr1) (AST expr2)) bytecode = do
+--     let (initAST, initBytecode) = trace ("initAST: " ++ show init) astToBytecode' (AST init) bytecode
+--     let condBytecode = trace ("condBytecode1: " ++ show cond) astConditionToBytecode cond bytecode
+--     let (expr1AST, expr1Bytecode) = trace ("expr1AST: " ++ show expr1) astToBytecode' (AST expr1) bytecode
+--     let (expr2AST, expr2Bytecode) = trace ("expr2AST: " ++ show expr2) astToBytecode' (AST expr2) bytecode
+--     (AST [], initBytecode ++ condBytecode ++ [JumpIfFalse (sizeInstructionOfAst (AST expr1) 0)] ++ expr1Bytecode ++ expr2Bytecode ++ [Jump (-(sizeInstructionOfAst (AST expr1) 0 + sizeInstructionOfAst cond 0 + sizeInstructionOfAst (AST expr2) 0))])
 
 -- * Assignation operation
 astToBytecode' (AssignAST x y) bytecode = trace ("AssignAST: " ++ show x ++ " = " ++ show y) $
@@ -181,30 +247,3 @@ astToBytecode' (IntAST x) bytecode = trace ("IntAST: " ++ show x) $ astToBytecod
 
 astToBytecode' a b = trace ("Unknown AST node bytecode: " ++ show a ++ " " ++ show b) (a, b)
 
-
--- // begin of loop
--- LOAD_VAR a
--- LOAD_CONST 10
--- COMPARE_OP <
--- JUMP_IF_FALSE 0 // after
--- LOAD_VAR a
--- LOAD_CONST 1
--- BINARY_OP +
--- LOAD_VAR a // here it's store_var a
--- JUMP 0 // before
-
--- |   WhileAST
--- |   |   LessThanAST
--- |   |   |   AST
--- |   |   |   |   SymbolAST a
--- |   |   |   AST
--- |   |   |   |   IntAST 10
--- |   |   AST
--- |   |   |   AssignAST
--- |   |   |   |   AST
--- |   |   |   |   |   SymbolAST a
--- |   |   |   |   PlusAST
--- |   |   |   |   |   AST
--- |   |   |   |   |   |   SymbolAST a
--- |   |   |   |   |   AST
--- |   |   |   |   |   |   IntAST 1

@@ -179,8 +179,41 @@ print(a);
 
 ```py
 LOAD_VAR a
-CALL print     ; Assuming print is a function that prints the top of the stack
+CALL 1         ; Assuming print is a function that prints the top of the stack
 POP            ; Pop the result of print
+```
+
+```c
+int a = 0;
+
+while (a < 10) {
+    a = a + 1;
+}
+
+return 0;
+```
+
+```py
+# Bytecode
+LOAD_CONST 0   ; Initialize a to 0
+STORE_VAR a
+
+LOOP_START:    ; Label for the beginning of the loop
+LOAD_VAR a
+LOAD_CONST 10
+COMPARE_OP LESS_THAN   ; Compare a < 10
+JUMP_IF_FALSE LOOP_END  ; Jump to LOOP_END if the comparison is false
+
+# Body of the loop
+LOAD_VAR a
+LOAD_CONST 1
+BINARY_OP ADD    ; Increment a by 1
+STORE_VAR a
+JUMP LOOP_START   ; Jump back to LOOP_START to repeat the loop
+
+LOOP_END:        ; Label for the end of the loop
+LOAD_CONST 0     ; Return 0
+RETURN
 ```
 
 ```c
