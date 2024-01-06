@@ -7,7 +7,6 @@ import Data.Char
 import Debug.Trace
 import qualified Data.ByteString as BS
 import Data.Word (Word8)
-import Control.Monad.State
 
 -- * --
 -- ; Opcode Definitions
@@ -24,10 +23,6 @@ import Control.Monad.State
 -- DUP             0x0B
 -- CALL            0x0C
 -- RETURN          0x0D
--- BUILD_LIST      0x0E
--- INDEX           0x0F
--- ATTRIBUTE       0x10
--- CREATE_OBJECT   0x11
 
 toHexaInt :: Int -> [Word8]
 toHexaInt x = [fromIntegral x]
@@ -37,6 +32,12 @@ toHexaString x = map (fromIntegral . ord) x
 
 charToWord8 :: Char -> Word8
 charToWord8 = fromIntegral . fromEnum
+
+getNmbrOfJumps :: [Bytecode] -> Int
+getNmbrOfJumps [] = 0
+getNmbrOfJumps (x:xs) = case x of
+    JumpRef _ -> 1 + getNmbrOfJumps xs
+    _ -> getNmbrOfJumps xs
 
 getLengthOfOperation :: Bytecode -> Int
 getLengthOfOperation (LoadConst _) = 2
@@ -48,77 +49,66 @@ getLengthOfOperation (CompareOp _) = 2
 getLengthOfOperation (JumpIfTrue _) = 2
 getLengthOfOperation (JumpIfFalse _) = 2
 getLengthOfOperation (Jump _) = 2
+getLengthOfOperation (JumpRef _) = 0 -- because it's a reference, it's removed from the bytecode
 getLengthOfOperation Pop = 1
 getLengthOfOperation Dup = 1
 getLengthOfOperation (Call _) = 2
 getLengthOfOperation Return = 1
-getLengthOfOperation (BuildList _) = 2
-getLengthOfOperation Index = 1
-getLengthOfOperation (Attribute _) = 2
-getLengthOfOperation (CreateObject _) = 2
 
---            next_instrs   move_left -> bytes
-sumOfnNextBytes :: [Bytecode] -> Int -> Int
-sumOfnNextBytes [] _ = 0
-sumOfnNextBytes _ 0 = 0
-sumOfnNextBytes (x:xs) i = trace ("Sum of n next bytes: " ++ show i ++ " " ++ show (getLengthOfOperation x)) $
-    getLengthOfOperation x + sumOfnNextBytes xs (i - 1)
-
---                 next_instrs   rev_instrs  size_all_instrs currentBytes move_size -> bytes
-getPositionToJump :: [Bytecode] -> [Bytecode] -> Int -> Int -> Int -> Int
-getPositionToJump next rev size_all_instr currentBytes move_size
-    | move_size < 0 = trace ("Move size: " ++ show move_size ++ " currentBytes: " ++ show currentBytes ++ " instrs: " ++ show (drop (size_all_instr - (currentBytes + 1)) rev))
-    $ currentBytes - (sumOfnNextBytes (drop (size_all_instr - (currentBytes + 1)) rev) (- move_size))
-    | otherwise = sumOfnNextBytes next move_size
+--                 bytecode  -> id -> position
+remplaceJumpRef :: [Bytecode] -> Int -> Int -> [Bytecode]
+remplaceJumpRef [] _ _ = []
+remplaceJumpRef ((JumpIfTrue x) : xs) jumpId pos | jumpId == x = JumpIfTrue pos : remplaceJumpRef xs jumpId pos
+remplaceJumpRef ((JumpIfFalse x) : xs) jumpId pos | jumpId == x = JumpIfFalse pos : remplaceJumpRef xs jumpId pos
+remplaceJumpRef ((Jump x) : xs) jumpId pos | jumpId == x = Jump pos : remplaceJumpRef xs jumpId pos
+remplaceJumpRef (x:xs) jumpId pos = x : remplaceJumpRef xs jumpId pos
 
 
---                  cur_instr    next_instrs   rev_instrs  size_all_instrs -> bytes
-toHexaInstruction :: Bytecode -> [Bytecode] -> [Bytecode] -> Int -> State Int [Word8]
-toHexaInstruction (LoadConst x) _ _ _ =    trackBytes (getLengthOfOperation (LoadConst x))    >> return (0x01 : toHexaInt x)
-toHexaInstruction (LoadVar x) _ _ _ =      trackBytes (getLengthOfOperation (LoadVar x))      >> return (0x02 : toHexaString x)
-toHexaInstruction (StoreVar x) _ _ _ =     trackBytes (getLengthOfOperation (StoreVar x))     >> return (0x03 : toHexaString x)
-toHexaInstruction (BinaryOp x) _ _ _ =     trackBytes (getLengthOfOperation (BinaryOp x))     >> return (0x04 : toHexaString x)
-toHexaInstruction (UnaryOp x) _ _ _ =      trackBytes (getLengthOfOperation (UnaryOp x))      >> return (0x05 : toHexaString x)
-toHexaInstruction (CompareOp x) _ _ _ =    trackBytes (getLengthOfOperation (CompareOp x))    >> return (0x06 : [charToWord8 (x !! 0)])
-toHexaInstruction (JumpIfTrue x) next _ _ = do -- TODO
-    currentBytes <- get
-    trackBytes (getLengthOfOperation (JumpIfTrue x)) >> return (0x07 : toHexaInt (currentBytes + (sumOfnNextBytes next x) + 2)) -- TODO
-toHexaInstruction (JumpIfFalse x) next _ _ = do -- TODO
-    currentBytes <- get
-    trackBytes (getLengthOfOperation (JumpIfFalse x)) >> return (0x08 : toHexaInt (currentBytes + (sumOfnNextBytes next x) + 2)) -- TODO
-toHexaInstruction (Jump x) next rev size_all = do
-    currentBytes <- get
-    trackBytes (getLengthOfOperation (Jump x)) >> return (0x09 : toHexaInt (getPositionToJump next rev size_all currentBytes x))
-toHexaInstruction Pop _ _ _ =              trackBytes (getLengthOfOperation Pop)              >> return [0x0A]
-toHexaInstruction Dup _ _ _ =              trackBytes (getLengthOfOperation Dup)              >> return [0x0B]
-toHexaInstruction (Call x) _ _ _ =         trackBytes (getLengthOfOperation (Call x))         >> return (0x0C : toHexaInt x)
-toHexaInstruction Return _ _ _ =           trackBytes (getLengthOfOperation Return)           >> return [0x0D]
-toHexaInstruction (BuildList x) _ _ _ =    trackBytes (getLengthOfOperation (BuildList x))    >> return (0x0E : toHexaInt x)
-toHexaInstruction Index _ _ _ =            trackBytes (getLengthOfOperation Index)            >> return [0x0F]
-toHexaInstruction (Attribute x) _ _ _ =    trackBytes (getLengthOfOperation (Attribute x))    >> return (0x10 : toHexaString x)
-toHexaInstruction (CreateObject x) _ _ _ = trackBytes (getLengthOfOperation (CreateObject x)) >> return (0x11 : toHexaInt x)
-
-trackBytes :: Int -> State Int ()
-trackBytes n = modify (+ n)
+--                bytecode -> jumpId -> position
+findJumpRef :: [Bytecode] -> Int -> Int -> Int
+findJumpRef [] _ _ = trace "Error: No JumpRef found" 0
+findJumpRef ((JumpRef x) : xs) jumpId pos = if jumpId == x then pos else findJumpRef xs jumpId (pos + getLengthOfOperation (JumpRef x))
+findJumpRef (x:xs) jumpId pos = findJumpRef xs jumpId (pos + getLengthOfOperation x)
 
 
---                 instrs      rev_instrs  size_all_instrs -> bytes
-bytecodeToBytes :: [Bytecode] -> [Bytecode] -> Int -> State Int [Word8]
-bytecodeToBytes [] _ _ = return []
-bytecodeToBytes (x:xs) rev size_all_instr = do
-    currentBytes <- get
-    trace ("Current bytes: " ++ show currentBytes) $ do
-        bytes <- toHexaInstruction x xs rev size_all_instr
-        rest <- bytecodeToBytes xs rev size_all_instr
-        return (bytes ++ rest)
+--                 bytecode  -> jumpId -> nmb_jmp
+remplaceAllJump :: [Bytecode] -> Int -> Int -> [Bytecode]
+remplaceAllJump bytecode jumpId nmb_jmp | jumpId > nmb_jmp = bytecode
+remplaceAllJump bytecode jumpId nmb_jmp = remplaceAllJump (remplaceJumpRef bytecode jumpId (findJumpRef bytecode jumpId 0)) (jumpId + 1) nmb_jmp
 
+--                  cur_instr  -> bytes
+toHexaInstruction :: Bytecode -> [Word8]
+toHexaInstruction (LoadConst x) =   (0x01 : toHexaInt x)
+toHexaInstruction (LoadVar x) =     (0x02 : toHexaString x)
+toHexaInstruction (StoreVar x) =    (0x03 : toHexaString x)
+toHexaInstruction (BinaryOp x) =    (0x04 : toHexaString x)
+toHexaInstruction (UnaryOp x) =     (0x05 : toHexaString x)
+toHexaInstruction (CompareOp x) =   (0x06 : [charToWord8 (x !! 0)])
+toHexaInstruction (JumpIfTrue x) =  (0x07 : toHexaInt x)
+toHexaInstruction (JumpIfFalse x) = (0x08 : toHexaInt x)
+toHexaInstruction (Jump x) =        (0x09 : toHexaInt x)
+--  JumpRef should not append
+toHexaInstruction Pop =             [0x0A]
+toHexaInstruction Dup =             [0x0B]
+toHexaInstruction (Call x) =        (0x0C : toHexaInt x)
+toHexaInstruction Return =          [0x0D]
+toHexaInstruction _ = trace "Error: toHexaInstruction: Unknown instruction" []
 
-writeBytesToFile :: [Word8] -> FilePath -> IO ()
-writeBytesToFile bytes filePath = BS.writeFile filePath (BS.pack bytes)
+--                 instrs     -> bytes
+bytecodeToBytes :: [Bytecode] -> [Word8]
+bytecodeToBytes [] = []
+bytecodeToBytes (x:xs) = (toHexaInstruction x) ++ bytecodeToBytes xs
+
+writeBytesToFile :: FilePath -> [Word8] -> IO ()
+writeBytesToFile filePath bytes = BS.writeFile filePath (BS.pack bytes)
 
 bytecodeToBinary :: [Bytecode] -> IO ()
 bytecodeToBinary bytecode = do
-    let size_all_instr = trace ("Size of all instructions: " ++ show (sum (map getLengthOfOperation bytecode))) sum (map getLengthOfOperation bytecode)
-    let (bytes, totalBytes) = runState (bytecodeToBytes bytecode (reverse bytecode) size_all_instr) 0
-    putStrLn $ "Total bytes written: " ++ show totalBytes ++ " bytes :" ++ show bytes
-    writeBytesToFile bytes "file.bin"
+    print (bytecodeToBytes bytecode)
+    let nmp_jmp = getNmbrOfJumps bytecode
+    let bytecode2 = remplaceAllJump bytecode 1 nmp_jmp -- 1 because the first jump is at 1
+    let bytecode3 = filter (\x -> case x of JumpRef _ -> False; _ -> True) bytecode2
+    print (bytecode3)
+    print (bytecodeToBytes bytecode3)
+    writeBytesToFile "file.bin" (bytecodeToBytes bytecode3)
+
