@@ -680,6 +680,36 @@ splitAtLastValueTest =
         TestCase (assertEqual "splitAtLastValue" (Nothing) (splitAtLastValue ' ' "Hello_World"))
     ]
 
+getIfChainTest :: Test
+getIfChainTest =
+    TestList
+    [
+        TestCase (do
+            tokenList <- parseFile (File ["else if (1 > 2) { a = 84; } else { a = 168; }"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = getIfChain sexpr
+            let expected = ([ElseIfToken, ListToken [IntToken 1, GreaterThanToken, IntToken 2], ListToken [SymbolToken "a", AssignToken, IntToken 84, LineSeparator], ElseToken, ListToken [SymbolToken "a", AssignToken, IntToken 168, LineSeparator]], [])
+            assertEqual "getIfChain" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["else if (1 > 2) { a = 84; } else if (1 == 2) { a = 168; }"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = getIfChain sexpr
+            let expected = ([ElseIfToken, ListToken [IntToken 1, GreaterThanToken, IntToken 2], ListToken [SymbolToken "a", AssignToken, IntToken 84, LineSeparator], ElseIfToken, ListToken [IntToken 1, EqualToken, IntToken 2], ListToken [SymbolToken "a", AssignToken, IntToken 168, LineSeparator]], [])
+            assertEqual "getIfChain" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["else if (1 > 2) { a = 84; } if (1 == 2) { a = 168; }"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = getIfChain sexpr
+            let expected = ([ElseIfToken, ListToken [IntToken 1, GreaterThanToken, IntToken 2], ListToken [SymbolToken "a", AssignToken, IntToken 84, LineSeparator]], [IfToken, ListToken [IntToken 1, EqualToken, IntToken 2], ListToken [SymbolToken "a", AssignToken, IntToken 168, LineSeparator]])
+            assertEqual "getIfChain" (expected) (result)),
+        TestCase (do
+            tokenList <- parseFile (File ["else if (1 > 2) { a = 84; } else { a = 168; } print(a);"]) 0 [""]
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = getIfChain sexpr
+            let expected = ([ElseIfToken, ListToken [IntToken 1, GreaterThanToken, IntToken 2], ListToken [SymbolToken "a", AssignToken, IntToken 84, LineSeparator], ElseToken, ListToken [SymbolToken "a", AssignToken, IntToken 168, LineSeparator]], [SymbolToken "print", ListToken [SymbolToken "a"], LineSeparator])
+            assertEqual "getIfChain" (expected) (result))
+    ]
+
 testParsingFunction :: Test
 testParsingFunction =
     TestList
@@ -703,6 +733,8 @@ testParsingFunction =
 
             TestLabel "splitAtValue" splitAtValueTest,
             TestLabel "splitAtLastValue" splitAtLastValueTest,
+
+            TestLabel "getIfChain" getIfChainTest,
 
             TestLabel "functorParser" functorParserTest,
             TestLabel "applicativeParser" applicativeParserTest,

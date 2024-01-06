@@ -2,6 +2,8 @@ module ParserAST (
     splitAtValue,
     splitAtLastValue,
 
+    getIfChain,
+
     sexprToAst,
 ) where
 
