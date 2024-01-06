@@ -611,6 +611,26 @@ tokenListToSexprTest =
             assertEqual "tokenListToSexpr" [SymbolToken "Hello", SymbolToken "World", ListToken [IntToken 42]] (result)
         ),
         TestCase (do
+            tokenList <- parseFile (File ["factorial(n-1)"]) 0 [""]
+            let result = tokenListToSexpr $ tokenList
+            assertEqual "tokenListToSexpr" [SymbolToken "factorial", ListToken [SymbolToken "n", MinusToken, IntToken 1]] (result)
+        ),
+        TestCase (do
+            tokenList <- parseFile (File ["factorial(n-1.42)"]) 0 [""]
+            let result = tokenListToSexpr $ tokenList
+            assertEqual "tokenListToSexpr" [SymbolToken "factorial", ListToken [SymbolToken "n", MinusToken, FloatToken 1.42]] (result)
+        ),
+        TestCase (do
+            tokenList <- parseFile (File ["factorial(n 1)"]) 0 [""]
+            let result = tokenListToSexpr $ tokenList
+            assertEqual "tokenListToSexpr" [SymbolToken "factorial", ListToken [SymbolToken "n", IntToken 1]] (result)
+        ),
+        TestCase (do
+            tokenList <- parseFile (File ["factorial(n 1.42)"]) 0 [""]
+            let result = tokenListToSexpr $ tokenList
+            assertEqual "tokenListToSexpr" [SymbolToken "factorial", ListToken [SymbolToken "n", FloatToken 1.42]] (result)
+        ),
+        TestCase (do
             tokenList <- parseFile (File ["fun factorial (int n, char c) /* lol this is a comment to try to break something */: (const my_int) // and this is an inline comment"]) 0 [""]
             let result = tokenListToSexpr $ tokenList
             assertEqual "tokenListToSexpr" [FunToken, SymbolToken "factorial", ListToken [IntTypeToken, SymbolToken "n", CommaToken, CharTypeToken, SymbolToken "c"], ListToken [FunTypeToken, ListToken [SymbolToken "const", SymbolToken "my_int"]]] (result)
