@@ -134,7 +134,7 @@ astToBytecode' (WhileAST cond expr1) bytecode jmp = trace ("WhileAST: " ++ show 
     let condBytecode = trace ("condBytecode1: " ++ show cond) astConditionToBytecode cond bytecode
     let (_, expr1Bytecode, jmp1) = trace ("expr1AST: " ++ show expr1) astToBytecode' expr1 bytecode jmp
     let new_jmp = trace ("new_jmp  " ++ show ((jmp1 - jmp) + 1)) ((jmp1 - jmp) + 1)
-    (AST [], bytecode ++ condBytecode ++ [JumpIfFalse new_jmp] ++ expr1Bytecode ++ [JumpRef new_jmp], new_jmp)
+    (AST [], bytecode ++ [JumpRef (new_jmp + 1)] ++ condBytecode ++ [JumpIfFalse new_jmp] ++ expr1Bytecode ++ [Jump (new_jmp + 1)] ++ [JumpRef new_jmp], new_jmp + 1)
 
 astToBytecode' (ReturnAST (AST expr1)) bytecode jmp =
     let (_, expr1Bytecode, jmp') = trace ("ReturnAST: " ++ show expr1) astToBytecode' (AST expr1) bytecode jmp

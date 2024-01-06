@@ -17,6 +17,25 @@ Lancez `./glados <fichier>` pour exécuter un fichier (Chez Scheme lisp) tout co
 
 ## Syntaxe of Assembly
 
+```py
+
+; Opcode Definitions
+LOAD_CONST      0x01
+LOAD_VAR        0x02
+STORE_VAR       0x03
+BINARY_OP       0x04
+UNARY_OP        0x05
+COMPARE_OP      0x06
+JUMP_IF_TRUE    0x07
+JUMP_IF_FALSE   0x08
+JUMP            0x09
+JUMP_REF        (only used internally)
+POP             0x0A
+DUP             0x0B
+CALL            0x0C
+RETURN          0x0D
+```
+
 1. **LOAD_CONST(index):** Load a constant value onto the stack. The `index` points to the position of the constant in a constant pool.
 
 2. **LOAD_VAR(name):** Load the value of a variable onto the stack. The `name` is the identifier of the variable.
@@ -35,21 +54,15 @@ Lancez `./glados <fichier>` pour exécuter un fichier (Chez Scheme lisp) tout co
 
 9. **JUMP(target):** Unconditional jump to the specified `target` instruction.
 
-10. **POP:** Pop the top value from the stack.
+10. **JUMP_REF(target):** Internal instruction used to reference a jump target.
 
-11. **DUP:** Duplicate the top value on the stack.
+11. **POP:** Pop the top value from the stack.
 
-12. **CALL(func_name, num_args):** Call a function with the specified `func_name` and `num_args` arguments.
+12. **DUP:** Duplicate the top value on the stack.
 
-13. **RETURN:** Return from the current function.
+13. **CALL(func_name, num_args):** Call a function with the specified `func_name` and `num_args` arguments.
 
-14. **BUILD_LIST(size):** Build a list on the stack with the specified `size`.
-
-15. **INDEX:** Pop an index and a list from the stack, then push the corresponding element onto the stack.
-
-16. **ATTRIBUTE(name):** Pop an object from the stack and push the value of the attribute with the given `name`.
-
-17. **CREATE_OBJECT(num_attributes):** Create an object on the stack with the specified number of attributes.
+14. **RETURN:** Return from the current function.
 
 ### Exemple
 
@@ -61,9 +74,11 @@ if (2 == 0) {
 }
 ```
 
+Is converted to this AST:
+
 ```haskell
 -- AST
-AST [IfAST (AST [IntAST 2,SymbolAST "==",IntAST 0]) (AST [AST [SymbolAST "return",IntAST 1]]) (AST [ElseAST (AST [AST [SymbolAST "return",IntAST 2]])])]
+AST [IfAST (EqualAST (AST [IntAST 2]) (AST [IntAST 0])) (AST [ReturnAST (AST [IntAST 1])]) (AST [ElseAST (AST [ReturnAST (AST [IntAST 2])])])]
 
 
 -- AST (human readable)
@@ -75,63 +90,65 @@ AST
 |   |   |   AST
 |   |   |   |   IntAST 0
 |   |   AST
-|   |   |   AST
-|   |   |   |   SymbolAST return
-|   |   |   |   IntAST 1
+|   |   |   ReturnAST
+|   |   |   |   AST
+|   |   |   |   |   IntAST 1
 |   |   AST
 |   |   |   ElseAST
 |   |   |   |   AST
-|   |   |   |   |   AST
-|   |   |   |   |   |   SymbolAST return
-|   |   |   |   |   |   IntAST 2
+|   |   |   |   |   ReturnAST
+|   |   |   |   |   |   AST
+|   |   |   |   |   |   |   IntAST 2
 ```
+
+Which is converted to this bytecode:
 
 ```python
-1. LOAD_CONST(2)
-2. LOAD_CONST(0)      # Push the constant 0 onto the stack
-3. COMPARE_OP("==")   # Compare the top two values for equality
-4. JUMP_IF_FALSE(10)  # Jump to instruction 10 if the comparison is false
+LOAD_CONST(2)
+LOAD_CONST(0)      # Push the constant 0 onto the stack
+COMPARE_OP("==")   # Compare the top two values for equality
+JUMP_IF_FALSE(1)   # Jump to JUMP_REF 1 if the comparison is false
 
-5. LOAD_CONST(1)      # Push the constant 1 onto the stack
-6. RETURN             # Return with the value 1
+LOAD_CONST(1)      # Push the constant 1 onto the stack
+RETURN             # Return with the value 1
+JUMP(2)            # Jump to JUMP_REF 2 (useless here, but needed if not returning)
 
-10:                   # Instruction 10: Else clause
-7. LOAD_CONST(2)      # Push the constant 2 onto the stack
-8. RETURN             # Return with the value 2
+JUMP_REF(1)        # reference for JUMP_IF_FALSE
+LOAD_CONST(2)      # Push the constant 2 onto the stack
+RETURN             # Return with the value 2
+JUMP_REF(2)        # reference for JUMP
 ```
 
+The jump references are calculated
+
+```python
+LOAD_CONST(2)
+LOAD_CONST(0)      # Push the constant 0 onto the stack
+COMPARE_OP("==")   # Compare the top two values for equality
+JUMP_IF_FALSE(13)  # Jump to JUMP_REF 1, which is at index 13, if the comparison is false
+
+LOAD_CONST(1)      # Push the constant 1 onto the stack
+RETURN             # Return with the value 1
+JUMP(16)           # Jump to JUMP_REF 2, which is at index 16 (useless here, but needed if not returning)
+
+LOAD_CONST(2)      # Push the constant 2 onto the stack
+RETURN             # Return with the value 2
+```
+
+The final bytecode is:
+
 ```py
-; Opcode Definitions
-LOAD_CONST      0x01
-LOAD_VAR        0x02
-STORE_VAR       0x03
-BINARY_OP       0x04
-UNARY_OP        0x05
-COMPARE_OP      0x06
-JUMP_IF_TRUE    0x07
-JUMP_IF_FALSE   0x08
-JUMP            0x09
-POP             0x0A
-DUP             0x0B
-CALL            0x0C
-RETURN          0x0D
-BUILD_LIST      0x0E
-INDEX           0x0F
-ATTRIBUTE       0x10
-CREATE_OBJECT   0x11
 
 ; Bytecode
-01 0002         ; LOAD_CONST 2
-01 0000         ; LOAD_CONST 0
-06 0000         ; COMPARE_OP "=="
-07 000A         ; JUMP_IF_FALSE 10
-
-01 0001         ; LOAD_CONST 1
-0D              ; RETURN
-
-0A              ; Instruction 10: POP
-01 0002         ; LOAD_CONST 2
-0D              ; RETURN
+1,2    ; LOAD_CONST 2
+1,0    ; LOAD_CONST 0
+6,61   ; COMPARE_OP =
+8,13   ; JUMP_IF_FALSE 13
+1,1    ; LOAD_CONST 1
+13     ; RETURN
+9,16   ; JUMP 16
+1,2    ; LOAD_CONST 2
+13     ; RETURN
 ```
 
 <!-- ## TODO
@@ -158,62 +175,78 @@ lancer le programme :
 ./eval file.bin
 -->
 
-### Exemple 2
-
-```c
-var a = 6 * 2;
-```
-
-```py
-LOAD_CONST 6
-LOAD_CONST 2
-BINARY_OP MULT  ; Multiply 6 and 2
-STORE_VAR a
-```
-
 ### Exemple 3
-
-```c
-print(a);
-```
-
-```py
-LOAD_VAR a
-CALL 1         ; Assuming print is a function that prints the top of the stack
-POP            ; Pop the result of print
-```
 
 ```c
 int a = 0;
 
 while (a < 10) {
+    b = b + 1;
+    if (b == 5) {
+        a = 5;
+    }
     a = a + 1;
 }
 
-return 0;
 ```
 
 ```py
-# Bytecode
-LOAD_CONST 0   ; Initialize a to 0
-STORE_VAR a
 
-LOOP_START:    ; Label for the beginning of the loop
+# here 8
+| JUMP_REF 3
 LOAD_VAR a
 LOAD_CONST 10
-COMPARE_OP LESS_THAN   ; Compare a < 10
-JUMP_IF_FALSE LOOP_END  ; Jump to LOOP_END if the comparison is false
+COMPARE_OP <
+| JUMP_IF_FALSE 2
+    LOAD_VAR b
+    LOAD_CONST 1
+    BINARY_OP +
+    STORE_VAR b
+    LOAD_VAR b
+    LOAD_CONST 5
+    COMPARE_OP ==
+    | JUMP_IF_FALSE 1
+        LOAD_CONST 5
+        STORE_VAR a
+    | JUMP_REF 1
+    LOAD_VAR a
+    LOAD_CONST 1
+    BINARY_OP +
+    STORE_VAR a
+    | JUMP 3
+| JUMP_REF 2
 
-# Body of the loop
+## become
+
+# here 8
 LOAD_VAR a
-LOAD_CONST 1
-BINARY_OP ADD    ; Increment a by 1
-STORE_VAR a
-JUMP LOOP_START   ; Jump back to LOOP_START to repeat the loop
+LOAD_CONST 10
+COMPARE_OP <
+| JUMP_IF_FALSE 46
+    LOAD_VAR b
+    LOAD_CONST 1
+    BINARY_OP +
+    STORE_VAR b
+    LOAD_VAR b
+    LOAD_CONST 5
+    COMPARE_OP == # 30
+    | JUMP_IF_FALSE 36
+        LOAD_CONST 5
+        STORE_VAR a # 36
+    LOAD_VAR a
+    LOAD_CONST 1
+    BINARY_OP +
+    STORE_VAR a
+| JUMP 8 # 46
 
-LOOP_END:        ; Label for the end of the loop
-LOAD_CONST 0     ; Return 0
-RETURN
+1,0,3,97, # int a = 0;
+1,0,3,98, # int b = 0;
+2,97,1,10,6,60,8,46, # while (a < 10), jmp_if_false 46
+    2,98,1,1,4,43,3,98, # b = b + 1;
+    2,98,1,5,6,61,8,36, # if (b == 5), jmp_if_false 36
+        1,5,3,97,2,97, # a = 5;
+    1,1,4,43,3,97,9, # a = a + 1;
+
 ```
 
 ```c

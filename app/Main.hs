@@ -23,7 +23,7 @@ main = do
             putStrLn "-----------------"
             print bytecode
             putStrLn "-----------------"
-            -- bytecodeToBinary bytecode
+            bytecodeToBinary bytecode
 
         _ -> do
             putStrLn "No file given as an argument"
