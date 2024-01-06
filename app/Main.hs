@@ -15,7 +15,7 @@ main = do
             -- putStrLn $ "Running file: " ++ filename
             contents <- readFile filename
             file <- return $ File (lines contents)
-            ast <- parser file
+            ast <- parser file filename
             putStrLn $ show ast
             let byt = []
             putStrLn "-----------------"
