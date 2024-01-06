@@ -447,6 +447,7 @@ parseTokenTest =
     TestList
     [
         TestCase (assertEqual "parseToken" (Just (IntToken 42, " (1 2)")) (runParser parseToken "42 (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (FloatToken 42.84, " (1 2)")) (runParser parseToken "42.84 (1 2)")),
         TestCase (assertEqual "parseToken" (Just (SymbolToken "H", "ello World (1 2)")) (runParser parseToken "Hello World (1 2)")),
         TestCase (assertEqual "parseToken" (Just (StringToken "Hello World", " (1 2)")) (runParser parseToken "\"Hello World\" (1 2)")),
         TestCase (assertEqual "parseToken" (Just (CharToken 'c', " (1 2)")) (runParser parseToken "'c' (1 2)")),
@@ -464,14 +465,17 @@ parseTokenTest =
         TestCase (assertEqual "parseToken" (Just (ForToken, " (1 2)")) (runParser parseToken "for (1 2)")),
         TestCase (assertEqual "parseToken" (Just (WhileToken, " (1 2)")) (runParser parseToken "while (1 2)")),
         TestCase (assertEqual "parseToken" (Just (FunToken, " (1 2)")) (runParser parseToken "fun (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (ReturnToken, " (1 2)")) (runParser parseToken "return (1 2)")),
         TestCase (assertEqual "parseToken" (Just (FunTypeToken, " (1 2)")) (runParser parseToken ": (1 2)")),
         TestCase (assertEqual "parseToken" (Just (IntTypeToken, " (1 2)")) (runParser parseToken "int (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (FloatTypeToken, " (1 2)")) (runParser parseToken "float (1 2)")),
         TestCase (assertEqual "parseToken" (Just (CharTypeToken, " (1 2)")) (runParser parseToken "char (1 2)")),
         TestCase (assertEqual "parseToken" (Just (StringTypeToken, " (1 2)")) (runParser parseToken "string (1 2)")),
         TestCase (assertEqual "parseToken" (Just (CommentStart, " (1 2)")) (runParser parseToken "/* (1 2)")),
         TestCase (assertEqual "parseToken" (Just (CommentEnd, " (1 2)")) (runParser parseToken "*/ (1 2)")),
         TestCase (assertEqual "parseToken" (Just (InlineCommentStart, " (1 2)")) (runParser parseToken "// (1 2)")),
         TestCase (assertEqual "parseToken" (Just (DefineToken, " (1 2)")) (runParser parseToken "#define (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (IncludeToken, " (1 2)")) (runParser parseToken "#include (1 2)")),
         TestCase (assertEqual "parseToken" (Just (EqualToken, " (1 2)")) (runParser parseToken "== (1 2)")),
         TestCase (assertEqual "parseToken" (Just (NotEqualToken, " (1 2)")) (runParser parseToken "!= (1 2)")),
         TestCase (assertEqual "parseToken" (Just (LessThanToken, " (1 2)")) (runParser parseToken "< (1 2)")),
@@ -584,6 +588,14 @@ parseFileTest =
         TestCase (do
             result <- parseFile (File ["int while_my_while = 42"]) 0 [""]
             assertEqual "parseFile" ([IntTypeToken, SymbolToken "while_my_while", AssignToken, IntToken 42]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["#include \"test.our\""]) 0 [""]
+            assertEqual "parseFile" ([DefineToken, SymbolToken "my_int", IntTypeToken, FunToken, SymbolToken "main", OpenParenthesis, CloseParenthesis, FunTypeToken, SymbolToken "my_int", OpenBraces, ReturnToken, IntToken 0, LineSeparator, CloseBraces]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["#include my_int int"]) 0 [""]
+            assertEqual "parseFile" ([IncludeToken, SymbolToken "my_int", IntTypeToken]) (result)
         ),
         TestCase (do
             result <- parseFile (File ["int 42_my_42 = 42"]) 0 [""]
