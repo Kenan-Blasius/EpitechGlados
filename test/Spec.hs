@@ -1,7 +1,77 @@
 import Parser
 import ParserModule
+import Control.Applicative
+import ParserToken
+import ParserAST
 import Types
 import Test.HUnit
+
+-- ? Orphan instances for Semigroup and Monoid (needed for semigroupParserTest and monoidParserTest)
+instance Semigroup Int where
+    (<>) = (+)
+
+instance Monoid Int where
+    mempty = 0
+    mappend = (<>)
+
+functorParserTest :: Test
+functorParserTest =
+    TestList
+    [
+        TestCase (assertEqual "functorParser" (Just (1235, "")) (runParser (fmap (+1) parseInt) "1234")),
+        TestCase (assertEqual "functorParser" Nothing (runParser (fmap (+1) parseInt) "abcd"))
+    ]
+
+applicativeParserTest :: Test
+applicativeParserTest =
+    TestList
+    [
+        TestCase (assertEqual "applicativeParser" (Just (1235, "")) (runParser (pure (+1) <*> parseInt) "1234")),
+        TestCase (assertEqual "applicativeParser" Nothing (runParser (pure (+1) <*> parseInt) "abcd"))
+    ]
+
+alternativeParserTest :: Test
+alternativeParserTest =
+    TestList
+    [
+        TestCase (assertEqual "alternativeParser" (Just (-1234, "")) (runParser (parseUInt <|> parseInt) "-1234")),
+        TestCase (assertEqual "alternativeParser" (Just (-1234, "")) (runParser (parseInt <|> parseUInt) "-1234")),
+        TestCase (assertEqual "alternativeParser" Nothing (runParser (parseUInt <|> parseInt) "abcd")),
+        TestCase (assertEqual "alternativeParser" Nothing (runParser (parseInt <|> parseUInt) "abcd"))
+    ]
+
+semigroupParserTest :: Test
+semigroupParserTest =
+    TestList
+    [
+        TestCase (assertEqual "semigroupParser" (Just (1234, "")) (runParser (parseUInt <> parseInt) "1234")),
+        TestCase (assertEqual "semigroupParser" (Just (1234, "")) (runParser (parseInt <> parseUInt) "1234")),
+        TestCase (assertEqual "semigroupParser" Nothing (runParser (parseUInt <> parseInt) "abcd")),
+        TestCase (assertEqual "semigroupParser" Nothing (runParser (parseInt <> parseUInt) "abcd"))
+    ]
+
+monoidParserTest :: Test
+monoidParserTest =
+    TestList
+    [
+        TestCase (assertEqual "monoidParser" (Just (1234, "")) (runParser (mempty `mappend` parseUInt) "1234")),
+        TestCase (assertEqual "monoidParser" (Just (1234, "")) (runParser (parseUInt `mappend` mempty) "1234")),
+        TestCase (assertEqual "monoidParser" (Just (1234, "")) (runParser (mempty `mappend` parseInt) "1234")),
+        TestCase (assertEqual "monoidParser" (Just (1234, "")) (runParser (parseInt `mappend` mempty) "1234")),
+        TestCase (assertEqual "monoidParser" (Just (11, "")) (runParser (parseUInt `mappend` parseInt) "53-42")),
+        TestCase (assertEqual "monoidParser" Nothing (runParser (mempty `mappend` parseUInt) "abcd")),
+        TestCase (assertEqual "monoidParser" Nothing (runParser (parseUInt `mappend` mempty) "abcd")),
+        TestCase (assertEqual "monoidParser" Nothing (runParser (mempty `mappend` parseInt) "abcd")),
+        TestCase (assertEqual "monoidParser" Nothing (runParser (parseInt `mappend` mempty) "abcd"))
+    ]
+
+monadParserTest :: Test
+monadParserTest =
+    TestList
+    [
+        TestCase (assertEqual "monadParser" (Just (1235, "")) (runParser (parseInt >>= \ x -> return (x + 1)) "1234")),
+        TestCase (assertEqual "monadParser" Nothing (runParser (parseInt >>= \ x -> return (x + 1)) "abcd"))
+    ]
 
 parseCharTest :: Test
 parseCharTest =
@@ -191,6 +261,7 @@ showTokenTest =
         TestCase (assertEqual "showToken" "FUN" (show (FunToken))),
         TestCase (assertEqual "showToken" "FUNTYPE" (show (FunTypeToken))),
         TestCase (assertEqual "showToken" "INT" (show (IntTypeToken))),
+        TestCase (assertEqual "showToken" "FLOAT" (show (FloatTypeToken))),
         TestCase (assertEqual "showToken" "CHAR" (show (CharTypeToken))),
         TestCase (assertEqual "showToken" "STRING" (show (StringTypeToken))),
         TestCase (assertEqual "showToken" "OpenBRACKET" (show (OpenBracket))),
@@ -201,13 +272,39 @@ showTokenTest =
         TestCase (assertEqual "showToken" "*/" (show (CommentEnd))),
         TestCase (assertEqual "showToken" "//" (show (InlineCommentStart))),
         TestCase (assertEqual "showToken" "DEFINE" (show (DefineToken))),
+        TestCase (assertEqual "showToken" "INCLUDE" (show (IncludeToken))),
         TestCase (assertEqual "showToken" "42" (show (IntToken 42))),
+        TestCase (assertEqual "showToken" "42.42" (show (FloatToken 42.42))),
         TestCase (assertEqual "showToken" "\"Hello World\"" (show (SymbolToken "\"Hello World\""))),
         TestCase (assertEqual "showToken" "\"Hello World\"" (show (StringToken "Hello World"))),
         TestCase (assertEqual "showToken" "'c'" (show (CharToken 'c'))),
         TestCase (assertEqual "showToken" "COMMA" (show (CommaToken))),
+        TestCase (assertEqual "showToken" "RETURN" (show (ReturnToken))),
         TestCase (assertEqual "showToken" "LineSEPARATOR" (show (LineSeparator))),
-        TestCase (assertEqual "showToken" "[1,2,3]" (show (ListToken [IntToken 1, IntToken 2, IntToken 3])))
+        TestCase (assertEqual "showToken" "[1,2,3]" (show (ListToken [IntToken 1, IntToken 2, IntToken 3]))),
+
+        TestCase (assertEqual "showToken" "Assign" (show (AssignToken))),
+        TestCase (assertEqual "showToken" "Increment" (show (IncrementToken))),
+        TestCase (assertEqual "showToken" "Decrement" (show (DecrementToken))),
+        TestCase (assertEqual "showToken" "PlusEqual" (show (PlusEqualToken))),
+        TestCase (assertEqual "showToken" "MinusEqual" (show (MinusEqualToken))),
+        TestCase (assertEqual "showToken" "TimesEqual" (show (TimesEqualToken))),
+        TestCase (assertEqual "showToken" "DivideEqual" (show (DivideEqualToken))),
+        TestCase (assertEqual "showToken" "ModuloEqual" (show (ModuloEqualToken))),
+        TestCase (assertEqual "showToken" "Plus" (show (PlusToken))),
+        TestCase (assertEqual "showToken" "Minus" (show (MinusToken))),
+        TestCase (assertEqual "showToken" "Times" (show (TimesToken))),
+        TestCase (assertEqual "showToken" "Divide" (show (DivideToken))),
+        TestCase (assertEqual "showToken" "Modulo" (show (ModuloToken))),
+        TestCase (assertEqual "showToken" "And" (show (AndToken))),
+        TestCase (assertEqual "showToken" "Or" (show (OrToken))),
+        TestCase (assertEqual "showToken" "Not" (show (NotToken))),
+        TestCase (assertEqual "showToken" "Equal" (show (EqualToken))),
+        TestCase (assertEqual "showToken" "NotEqual" (show (NotEqualToken))),
+        TestCase (assertEqual "showToken" "LessThan" (show (LessThanToken))),
+        TestCase (assertEqual "showToken" "LessThanEqual" (show (LessThanEqualToken))),
+        TestCase (assertEqual "showToken" "GreaterThan" (show (GreaterThanToken))),
+        TestCase (assertEqual "showToken" "GreaterThanEqual" (show (GreaterThanEqualToken)))
     ]
 
 equalsTokenTest :: Test
@@ -225,6 +322,7 @@ equalsTokenTest =
         TestCase (assertEqual "equalsToken" True (FunToken == FunToken)),
         TestCase (assertEqual "equalsToken" True (FunTypeToken == FunTypeToken)),
         TestCase (assertEqual "equalsToken" True (IntTypeToken == IntTypeToken)),
+        TestCase (assertEqual "equalsToken" True (FloatTypeToken == FloatTypeToken)),
         TestCase (assertEqual "equalsToken" True (CharTypeToken == CharTypeToken)),
         TestCase (assertEqual "equalsToken" True (StringTypeToken == StringTypeToken)),
         TestCase (assertEqual "equalsToken" True (OpenBracket == OpenBracket)),
@@ -235,11 +333,14 @@ equalsTokenTest =
         TestCase (assertEqual "equalsToken" True (CommentEnd == CommentEnd)),
         TestCase (assertEqual "equalsToken" True (InlineCommentStart == InlineCommentStart)),
         TestCase (assertEqual "equalsToken" True (DefineToken == DefineToken)),
+        TestCase (assertEqual "equalsToken" True (IncludeToken == IncludeToken)),
         TestCase (assertEqual "equalsToken" True ((IntToken 42) == (IntToken 42))),
+        TestCase (assertEqual "equalsToken" True ((FloatToken 42.42) == (FloatToken 42.42))),
         TestCase (assertEqual "equalsToken" True ((SymbolToken "\"Hello World\"") == (SymbolToken "\"Hello World\""))),
         TestCase (assertEqual "equalsToken" True ((StringToken "Hello World") == (StringToken "Hello World"))),
         TestCase (assertEqual "equalsToken" True ((CharToken 'c') == (CharToken 'c'))),
         TestCase (assertEqual "equalsToken" True (CommaToken == CommaToken)),
+        TestCase (assertEqual "equalsToken" True (ReturnToken == ReturnToken)),
         TestCase (assertEqual "equalsToken" True (LineSeparator == LineSeparator)),
         TestCase (assertEqual "equalsToken" True ((ListToken [IntToken 1, IntToken 2, IntToken 3]) == (ListToken [IntToken 1, IntToken 2, IntToken 3]))),
 
@@ -371,6 +472,29 @@ parseTokenTest =
         TestCase (assertEqual "parseToken" (Just (CommentEnd, " (1 2)")) (runParser parseToken "*/ (1 2)")),
         TestCase (assertEqual "parseToken" (Just (InlineCommentStart, " (1 2)")) (runParser parseToken "// (1 2)")),
         TestCase (assertEqual "parseToken" (Just (DefineToken, " (1 2)")) (runParser parseToken "#define (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (EqualToken, " (1 2)")) (runParser parseToken "== (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (NotEqualToken, " (1 2)")) (runParser parseToken "!= (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (LessThanToken, " (1 2)")) (runParser parseToken "< (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (LessThanEqualToken, " (1 2)")) (runParser parseToken "<= (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (GreaterThanToken, " (1 2)")) (runParser parseToken "> (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (GreaterThanEqualToken, " (1 2)")) (runParser parseToken ">= (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (PlusToken, " (1 2)")) (runParser parseToken "+ (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (MinusToken, " (1 2)")) (runParser parseToken "- (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (TimesToken, " (1 2)")) (runParser parseToken "* (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (DivideToken, " (1 2)")) (runParser parseToken "/ (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (ModuloToken, " (1 2)")) (runParser parseToken "% (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (AndToken, " (1 2)")) (runParser parseToken "&& (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (OrToken, " (1 2)")) (runParser parseToken "|| (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (NotToken, " (1 2)")) (runParser parseToken "! (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (PlusEqualToken, " (1 2)")) (runParser parseToken "+= (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (MinusEqualToken, " (1 2)")) (runParser parseToken "-= (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (TimesEqualToken, " (1 2)")) (runParser parseToken "*= (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (DivideEqualToken, " (1 2)")) (runParser parseToken "/= (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (ModuloEqualToken, " (1 2)")) (runParser parseToken "%= (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (IncrementToken, " (1 2)")) (runParser parseToken "++ (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (DecrementToken, " (1 2)")) (runParser parseToken "-- (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (IntToken 5, " (1 2)")) (runParser parseToken "5 (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (FloatToken 5.42, " (1 2)")) (runParser parseToken "5.42 (1 2)")),
         TestCase (assertEqual "parseToken" (Just (SpaceToken, "(1 2)")) (runParser parseToken " (1 2)")),
         TestCase (assertEqual "parseToken" (Just (SpaceToken, "(1 2)")) (runParser parseToken "\t(1 2)"))
     ]
@@ -380,11 +504,11 @@ parseLineTest =
     TestList
     [
         TestCase (do
-            result <- parseLine "42" 0
+            result <- parseLine "42" 0 ""
             assertEqual "parseLine" ([IntToken 42]) (result)
         ),
         TestCase (do
-            result <- parseLine "Hello World" 0
+            result <- parseLine "Hello World" 0 ""
             assertEqual "parseLine" ([SymbolToken "H", SymbolToken "e", SymbolToken "l", SymbolToken "l", SymbolToken "o", SpaceToken, SymbolToken "W", SymbolToken "o", SymbolToken "r", SymbolToken "l", SymbolToken "d"]) (result)
         )
     ]
@@ -394,71 +518,75 @@ parseFileTest =
     TestList
     [
         TestCase (do
-            result <- parseFile (File ["42"]) 0
+            result <- parseFile (File ["42"]) 0 [""]
             assertEqual "parseFile" ([IntToken 42]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["Hello World"]) 0
+            result <- parseFile (File ["Hello World"]) 0 [""]
             assertEqual "parseFile" ([SymbolToken "Hello", SymbolToken "World"]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["42", "Hello World"]) 0
-            assertEqual "parseFile" ([IntToken 42, SymbolToken "Hello", SymbolToken "World"]) (result)
+            result <- parseFile (File ["-42", "Hello World"]) 0 [""]
+            assertEqual "parseFile" ([IntToken (-42), SymbolToken "Hello", SymbolToken "World"]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["if (1 < 2)"]) 0
+            result <- parseFile (File ["-42.84"]) 0 [""]
+            assertEqual "parseFile" ([FloatToken (-42.84)]) (result)
+        ),
+        TestCase (do
+            result <- parseFile (File ["if (1 < 2)"]) 0 [""]
             assertEqual "parseFile" ([IfToken, OpenParenthesis, IntToken 1, LessThanToken, IntToken 2, CloseParenthesis]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["else if (1 > 2)"]) 0
+            result <- parseFile (File ["else if (1 > 2)"]) 0 [""]
             assertEqual "parseFile" ([ElseIfToken, OpenParenthesis, IntToken 1, GreaterThanToken, IntToken 2, CloseParenthesis]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["else (1 > 2)"]) 0
+            result <- parseFile (File ["else (1 > 2)"]) 0 [""]
             assertEqual "parseFile" ([ElseToken, OpenParenthesis, IntToken 1, GreaterThanToken, IntToken 2, CloseParenthesis]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["fun my_fun (int n) : int // similar to C"]) 0
+            result <- parseFile (File ["fun my_fun (int n) : int // similar to C"]) 0 [""]
             assertEqual "parseFile" ([FunToken, SymbolToken "my_fun", OpenParenthesis, IntTypeToken, SymbolToken "n", CloseParenthesis, FunTypeToken, IntTypeToken]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["int a = factorial(a, 'a');;; int b = factorial(b, 'b');"]) 0
+            result <- parseFile (File ["int a = factorial(a, 'a');;; int b = factorial(b, 'b');"]) 0 [""]
             assertEqual "parseFile" ([IntTypeToken, SymbolToken "a", AssignToken, SymbolToken "factorial", OpenParenthesis, SymbolToken "a", CommaToken, CharToken 'a', CloseParenthesis, LineSeparator, IntTypeToken, SymbolToken "b", AssignToken, SymbolToken "factorial", OpenParenthesis, SymbolToken "b", CommaToken, CharToken 'b', CloseParenthesis, LineSeparator]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["int int_my_int = 42"]) 0
+            result <- parseFile (File ["int int_my_int = 42"]) 0 [""]
             assertEqual "parseFile" ([IntTypeToken, SymbolToken "int_my_int", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["char char_my_char = 'c'"]) 0
+            result <- parseFile (File ["char char_my_char = 'c'"]) 0 [""]
             assertEqual "parseFile" ([CharTypeToken, SymbolToken "char_my_char", AssignToken, CharToken 'c']) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["string string_my_string = \"Hello World\""]) 0
+            result <- parseFile (File ["string string_my_string = \"Hello World\""]) 0 [""]
             assertEqual "parseFile" ([StringTypeToken, SymbolToken "string_my_string", AssignToken, StringToken "Hello World"]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["int if_my_if = 42"]) 0
+            result <- parseFile (File ["int if_my_if = 42"]) 0 [""]
             assertEqual "parseFile" ([IntTypeToken, SymbolToken "if_my_if", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["int else_my_else = 42"]) 0
+            result <- parseFile (File ["int else_my_else = 42"]) 0 [""]
             assertEqual "parseFile" ([IntTypeToken, SymbolToken "else_my_else", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["int fun_my_fun = 42"]) 0
+            result <- parseFile (File ["int fun_my_fun = 42"]) 0 [""]
             assertEqual "parseFile" ([IntTypeToken, SymbolToken "fun_my_fun", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["int for_my_for = 42"]) 0
+            result <- parseFile (File ["int for_my_for = 42"]) 0 [""]
             assertEqual "parseFile" ([IntTypeToken, SymbolToken "for_my_for", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["int while_my_while = 42"]) 0
+            result <- parseFile (File ["int while_my_while = 42"]) 0 [""]
             assertEqual "parseFile" ([IntTypeToken, SymbolToken "while_my_while", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
-            result <- parseFile (File ["int 42_my_42 = 42"]) 0
+            result <- parseFile (File ["int 42_my_42 = 42"]) 0 [""]
             assertEqual "parseFile" ([IntTypeToken, SymbolToken "42_my_42", AssignToken, IntToken 42]) (result)
         )
     ]
@@ -468,30 +596,48 @@ tokenListToSexprTest =
     TestList
     [
         TestCase (do
-            tokenList <- parseFile (File ["42"]) 0
+            tokenList <- parseFile (File ["42"]) 0 [""]
             let result = tokenListToSexpr $ tokenList
             assertEqual "tokenListToSexpr" [IntToken 42] (result)
         ),
         TestCase (do
-            tokenList <- parseFile (File ["Hello World"]) 0
+            tokenList <- parseFile (File ["Hello World"]) 0 [""]
             let result = tokenListToSexpr $ tokenList
             assertEqual "tokenListToSexpr" [SymbolToken "Hello", SymbolToken "World"] (result)
         ),
         TestCase (do
-            tokenList <- parseFile (File ["Hello World (42)"]) 0
+            tokenList <- parseFile (File ["Hello World (42)"]) 0 [""]
             let result = tokenListToSexpr $ tokenList
             assertEqual "tokenListToSexpr" [SymbolToken "Hello", SymbolToken "World", ListToken [IntToken 42]] (result)
         ),
         TestCase (do
-            tokenList <- parseFile (File ["fun factorial (int n, char c) /* lol this is a comment to try to break something */: (const my_int) // and this is an inline comment"]) 0
+            tokenList <- parseFile (File ["fun factorial (int n, char c) /* lol this is a comment to try to break something */: (const my_int) // and this is an inline comment"]) 0 [""]
             let result = tokenListToSexpr $ tokenList
             assertEqual "tokenListToSexpr" [FunToken, SymbolToken "factorial", ListToken [IntTypeToken, SymbolToken "n", CommaToken, CharTypeToken, SymbolToken "c"], ListToken [FunTypeToken, ListToken [SymbolToken "const", SymbolToken "my_int"]]] (result)
         ),
         TestCase (do
-            tokenList <- parseFile (File ["fun factorial ((int n), (char c)) /* lol this is a comment to try to break something */: (const my_int) // and this is an inline comment"]) 0
+            tokenList <- parseFile (File ["fun factorial ((int n), (char c)) /* lol this is a comment to try to break something */: (const my_int) // and this is an inline comment", "{", "int x[2] = {1, 2}" ,"}"]) 0 [""]
             let result = tokenListToSexpr $ tokenList
-            assertEqual "tokenListToSexpr" [FunToken, SymbolToken "factorial", ListToken [ListToken [IntTypeToken, SymbolToken "n"], CommaToken, ListToken [CharTypeToken, SymbolToken "c"]], ListToken [FunTypeToken, ListToken [SymbolToken "const", SymbolToken "my_int"]]] (result)
+            assertEqual "tokenListToSexpr" [FunToken, SymbolToken "factorial", ListToken [ListToken [IntTypeToken, SymbolToken "n"], CommaToken, ListToken [CharTypeToken, SymbolToken "c"]], ListToken [FunTypeToken, ListToken [SymbolToken "const", SymbolToken "my_int"]], ListToken [IntTypeToken, SymbolToken "x", ListToken [IntToken 2], AssignToken, ListToken [IntToken 1, CommaToken, IntToken 2]]] (result)
         )
+    ]
+
+splitAtValueTest :: Test
+splitAtValueTest =
+    TestList
+    [
+        TestCase (assertEqual "splitAtValue" (Just ("Hello", ' ', "World")) (splitAtValue ' ' "Hello World")),
+        TestCase (assertEqual "splitAtValue" (Just ("Hello", ' ', "World Me!")) (splitAtValue ' ' "Hello World Me!")),
+        TestCase (assertEqual "splitAtValue" (Nothing) (splitAtValue ' ' "Hello_World"))
+    ]
+
+splitAtLastValueTest :: Test
+splitAtLastValueTest =
+    TestList
+    [
+        TestCase (assertEqual "splitAtLastValue" (Just ("Hello", ' ', "World")) (splitAtLastValue ' ' "Hello World")),
+        TestCase (assertEqual "splitAtLastValue" (Just ("Hello World", ' ', "Me!")) (splitAtLastValue ' ' "Hello World Me!")),
+        TestCase (assertEqual "splitAtLastValue" (Nothing) (splitAtLastValue ' ' "Hello_World"))
     ]
 
 testParsingFunction :: Test
@@ -514,6 +660,16 @@ testParsingFunction =
             TestLabel "parseFile" parseFileTest,
 
             TestLabel "tokenListToSexpr" tokenListToSexprTest,
+
+            TestLabel "splitAtValue" splitAtValueTest,
+            TestLabel "splitAtLastValue" splitAtLastValueTest,
+
+            TestLabel "functorParser" functorParserTest,
+            TestLabel "applicativeParser" applicativeParserTest,
+            TestLabel "alternativeParser" alternativeParserTest,
+            TestLabel "semigroupParser" semigroupParserTest,
+            TestLabel "monoidParser" monoidParserTest,
+            TestLabel "monadParser" monadParserTest,
 
             TestLabel "parseChar" parseCharTest,
             TestLabel "parseString" parseStringTest,

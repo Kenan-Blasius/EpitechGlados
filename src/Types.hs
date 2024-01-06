@@ -42,6 +42,7 @@ data Token = OpenParenthesis
             | FunToken
             | FunTypeToken
             | IntTypeToken
+            | FloatTypeToken
             | CharTypeToken
             | StringTypeToken
             | OpenBracket
@@ -52,12 +53,14 @@ data Token = OpenParenthesis
             | CommentEnd
             | InlineCommentStart
             | DefineToken
+            | IncludeToken
             | IntToken Int
             | FloatToken Float
             | SymbolToken String
             | StringToken String
             | CharToken Char
             | CommaToken
+            | ReturnToken
             | LineSeparator
 
             | AssignToken
@@ -98,6 +101,7 @@ instance Show Token where
     show FunToken = "FUN"
     show FunTypeToken = "FUNTYPE"
     show IntTypeToken = "INT"
+    show FloatTypeToken = "FLOAT"
     show CharTypeToken = "CHAR"
     show StringTypeToken = "STRING"
     show OpenBracket = "OpenBRACKET"
@@ -108,12 +112,14 @@ instance Show Token where
     show CommentEnd = "*/"
     show InlineCommentStart = "//"
     show DefineToken = "DEFINE"
+    show IncludeToken = "INCLUDE"
     show (IntToken x) = show x
     show (FloatToken x) = show x
     show (SymbolToken x) = x
     show (StringToken x) = "\"" ++ x ++ "\""
     show (CharToken x) = show x
     show CommaToken = "COMMA"
+    show ReturnToken = "RETURN"
     show LineSeparator = "LineSEPARATOR"
 
     show AssignToken = "Assign"
@@ -153,6 +159,7 @@ instance Eq Token where
     FunToken == FunToken = True
     FunTypeToken == FunTypeToken = True
     IntTypeToken == IntTypeToken = True
+    FloatTypeToken == FloatTypeToken = True
     CharTypeToken == CharTypeToken = True
     StringTypeToken == StringTypeToken = True
     OpenBracket == OpenBracket = True
@@ -163,12 +170,14 @@ instance Eq Token where
     CommentEnd == CommentEnd = True
     InlineCommentStart == InlineCommentStart = True
     DefineToken == DefineToken = True
+    IncludeToken == IncludeToken = True
     (IntToken x) == (IntToken y) = x == y
     (FloatToken x) == (FloatToken y) = x == y
     (SymbolToken x) == (SymbolToken y) = x == y
     (StringToken x) == (StringToken y) = x == y
     (CharToken x) == (CharToken y) = x == y
     CommaToken == CommaToken = True
+    ReturnToken == ReturnToken = True
     LineSeparator == LineSeparator = True
 
     AssignToken == AssignToken = True
@@ -208,7 +217,9 @@ data AST = AST [AST] -- list of AST
          | WhileAST AST AST -- cond expr
          | FunTypeAST AST -- type
          | FunAST String AST AST AST -- name returnType arg expr
+         | ReturnAST AST -- expr
          | IntTypeAST -- type
+         | FloatTypeAST -- type
          | CharTypeAST -- type
          | StringTypeAST -- type
          | LambdaClosure [String] AST Environment
@@ -275,7 +286,9 @@ instance Eq AST where
     ForAST init1 cond1 incr1 expr1 == ForAST init2 cond2 incr2 expr2 = init1 == init2 && cond1 == cond2 && incr1 == incr2 && expr1 == expr2
     WhileAST cond1 expr1 == WhileAST cond2 expr2 = cond1 == cond2 && expr1 == expr2
     FunAST name1 type1 arg1 expr1 == FunAST name2 type2 arg2 expr2 = name1 == name2 && type1 == type2 && arg1 == arg2 && expr1 == expr2
+    ReturnAST expr1 == ReturnAST expr2 = expr1 == expr2
     IntTypeAST == IntTypeAST = True
+    FloatTypeAST == FloatTypeAST = True
     CharTypeAST == CharTypeAST = True
     StringTypeAST == StringTypeAST = True
     LambdaClosure args1 body1 env1 == LambdaClosure args2 body2 env2 = args1 == args2 && body1 == body2 && env1 == env2
@@ -347,6 +360,7 @@ printAST = printASTIndented 0
         printASTIndented depth (ElseAST expr) =
             indent depth ++ "ElseAST\n" ++ printASTIndented (depth + 1) expr
         printASTIndented depth IntTypeAST = indent depth ++ "IntTypeAST\n"
+        printASTIndented depth FloatTypeAST = indent depth ++ "FloatTypeAST\n"
         printASTIndented depth CharTypeAST = indent depth ++ "CharTypeAST\n"
         printASTIndented depth StringTypeAST = indent depth ++ "StringTypeAST\n"
         printASTIndented depth (StringAST value) = indent depth ++ "StringAST " ++ value ++ "\n"
@@ -366,6 +380,8 @@ printAST = printASTIndented 0
                 printASTIndented (depth + 1) cond ++
                 printASTIndented (depth + 1) expr ++
                 printASTIndented (depth + 1) elseIfExpr
+        printASTIndented depth (ReturnAST expr) =
+            indent depth ++ "ReturnAST\n" ++ printASTIndented (depth + 1) expr
 
         printASTIndented depth (AssignAST left right) =
             indent depth ++ "AssignAST\n" ++
