@@ -1,9 +1,77 @@
 import Parser
 import ParserModule
+import Control.Applicative
 import ParserToken
 import ParserAST
 import Types
 import Test.HUnit
+
+-- ? Orphan instances for Semigroup and Monoid (needed for semigroupParserTest and monoidParserTest)
+instance Semigroup Int where
+    (<>) = (+)
+
+instance Monoid Int where
+    mempty = 0
+    mappend = (<>)
+
+functorParserTest :: Test
+functorParserTest =
+    TestList
+    [
+        TestCase (assertEqual "functorParser" (Just (1235, "")) (runParser (fmap (+1) parseInt) "1234")),
+        TestCase (assertEqual "functorParser" Nothing (runParser (fmap (+1) parseInt) "abcd"))
+    ]
+
+applicativeParserTest :: Test
+applicativeParserTest =
+    TestList
+    [
+        TestCase (assertEqual "applicativeParser" (Just (1235, "")) (runParser (pure (+1) <*> parseInt) "1234")),
+        TestCase (assertEqual "applicativeParser" Nothing (runParser (pure (+1) <*> parseInt) "abcd"))
+    ]
+
+alternativeParserTest :: Test
+alternativeParserTest =
+    TestList
+    [
+        TestCase (assertEqual "alternativeParser" (Just (-1234, "")) (runParser (parseUInt <|> parseInt) "-1234")),
+        TestCase (assertEqual "alternativeParser" (Just (-1234, "")) (runParser (parseInt <|> parseUInt) "-1234")),
+        TestCase (assertEqual "alternativeParser" Nothing (runParser (parseUInt <|> parseInt) "abcd")),
+        TestCase (assertEqual "alternativeParser" Nothing (runParser (parseInt <|> parseUInt) "abcd"))
+    ]
+
+semigroupParserTest :: Test
+semigroupParserTest =
+    TestList
+    [
+        TestCase (assertEqual "semigroupParser" (Just (1234, "")) (runParser (parseUInt <> parseInt) "1234")),
+        TestCase (assertEqual "semigroupParser" (Just (1234, "")) (runParser (parseInt <> parseUInt) "1234")),
+        TestCase (assertEqual "semigroupParser" Nothing (runParser (parseUInt <> parseInt) "abcd")),
+        TestCase (assertEqual "semigroupParser" Nothing (runParser (parseInt <> parseUInt) "abcd"))
+    ]
+
+monoidParserTest :: Test
+monoidParserTest =
+    TestList
+    [
+        TestCase (assertEqual "monoidParser" (Just (1234, "")) (runParser (mempty `mappend` parseUInt) "1234")),
+        TestCase (assertEqual "monoidParser" (Just (1234, "")) (runParser (parseUInt `mappend` mempty) "1234")),
+        TestCase (assertEqual "monoidParser" (Just (1234, "")) (runParser (mempty `mappend` parseInt) "1234")),
+        TestCase (assertEqual "monoidParser" (Just (1234, "")) (runParser (parseInt `mappend` mempty) "1234")),
+        TestCase (assertEqual "monoidParser" (Just (11, "")) (runParser (parseUInt `mappend` parseInt) "53-42")),
+        TestCase (assertEqual "monoidParser" Nothing (runParser (mempty `mappend` parseUInt) "abcd")),
+        TestCase (assertEqual "monoidParser" Nothing (runParser (parseUInt `mappend` mempty) "abcd")),
+        TestCase (assertEqual "monoidParser" Nothing (runParser (mempty `mappend` parseInt) "abcd")),
+        TestCase (assertEqual "monoidParser" Nothing (runParser (parseInt `mappend` mempty) "abcd"))
+    ]
+
+monadParserTest :: Test
+monadParserTest =
+    TestList
+    [
+        TestCase (assertEqual "monadParser" (Just (1235, "")) (runParser (parseInt >>= \ x -> return (x + 1)) "1234")),
+        TestCase (assertEqual "monadParser" Nothing (runParser (parseInt >>= \ x -> return (x + 1)) "abcd"))
+    ]
 
 parseCharTest :: Test
 parseCharTest =
@@ -564,6 +632,13 @@ testParsingFunction =
 
             TestLabel "splitAtValue" splitAtValueTest,
             TestLabel "splitAtLastValue" splitAtLastValueTest,
+
+            TestLabel "functorParser" functorParserTest,
+            TestLabel "applicativeParser" applicativeParserTest,
+            TestLabel "alternativeParser" alternativeParserTest,
+            TestLabel "semigroupParser" semigroupParserTest,
+            TestLabel "monoidParser" monoidParserTest,
+            TestLabel "monadParser" monadParserTest,
 
             TestLabel "parseChar" parseCharTest,
             TestLabel "parseString" parseStringTest,
