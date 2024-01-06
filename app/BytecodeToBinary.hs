@@ -1,8 +1,8 @@
-module BytecodeToBinary where
+module BytecodeToBinary (
+    bytecodeToBinary
+) where
 
 import Types
-import Data.List
-import Data.Maybe
 import Data.Char
 import Debug.Trace
 import qualified Data.ByteString as BS
@@ -80,10 +80,10 @@ toHexaInstruction (StoreVar x) _ _ _ =     trackBytes (getLengthOfOperation (Sto
 toHexaInstruction (BinaryOp x) _ _ _ =     trackBytes (getLengthOfOperation (BinaryOp x))     >> return (0x04 : toHexaString x)
 toHexaInstruction (UnaryOp x) _ _ _ =      trackBytes (getLengthOfOperation (UnaryOp x))      >> return (0x05 : toHexaString x)
 toHexaInstruction (CompareOp x) _ _ _ =    trackBytes (getLengthOfOperation (CompareOp x))    >> return (0x06 : [charToWord8 (x !! 0)])
-toHexaInstruction (JumpIfTrue x) next rev size_all = do
+toHexaInstruction (JumpIfTrue x) next _ _ = do -- TODO
     currentBytes <- get
     trackBytes (getLengthOfOperation (JumpIfTrue x)) >> return (0x07 : toHexaInt (currentBytes + (sumOfnNextBytes next x) + 2)) -- TODO
-toHexaInstruction (JumpIfFalse x) next rev size_all = do
+toHexaInstruction (JumpIfFalse x) next _ _ = do -- TODO
     currentBytes <- get
     trackBytes (getLengthOfOperation (JumpIfFalse x)) >> return (0x08 : toHexaInt (currentBytes + (sumOfnNextBytes next x) + 2)) -- TODO
 toHexaInstruction (Jump x) next rev size_all = do
