@@ -7,7 +7,6 @@ import Data.Char
 import Debug.Trace
 import qualified Data.ByteString as BS
 import Data.Word (Word8)
-import Control.Monad.State
 
 -- * --
 -- ; Opcode Definitions
@@ -59,23 +58,23 @@ getLengthOfOperation Return = 1
 --                 bytecode  -> id -> position
 remplaceJumpRef :: [Bytecode] -> Int -> Int -> [Bytecode]
 remplaceJumpRef [] _ _ = []
-remplaceJumpRef ((JumpIfTrue x) : xs) id pos | id == x = JumpIfTrue pos : remplaceJumpRef xs id pos
-remplaceJumpRef ((JumpIfFalse x) : xs) id pos | id == x = JumpIfFalse pos : remplaceJumpRef xs id pos
-remplaceJumpRef ((Jump x) : xs) id pos | id == x = Jump pos : remplaceJumpRef xs id pos
-remplaceJumpRef (x:xs) id pos = x : remplaceJumpRef xs id pos
+remplaceJumpRef ((JumpIfTrue x) : xs) jumpId pos | jumpId == x = JumpIfTrue pos : remplaceJumpRef xs jumpId pos
+remplaceJumpRef ((JumpIfFalse x) : xs) jumpId pos | jumpId == x = JumpIfFalse pos : remplaceJumpRef xs jumpId pos
+remplaceJumpRef ((Jump x) : xs) jumpId pos | jumpId == x = Jump pos : remplaceJumpRef xs jumpId pos
+remplaceJumpRef (x:xs) jumpId pos = x : remplaceJumpRef xs jumpId pos
 
 
---                bytecode -> id -> position
+--                bytecode -> jumpId -> position
 findJumpRef :: [Bytecode] -> Int -> Int -> Int
 findJumpRef [] _ _ = trace "Error: No JumpRef found" 0
-findJumpRef ((JumpRef x) : xs) id pos = if id == x then pos else findJumpRef xs id (pos + getLengthOfOperation (JumpRef x))
-findJumpRef (x:xs) id pos = findJumpRef xs id (pos + getLengthOfOperation x)
+findJumpRef ((JumpRef x) : xs) jumpId pos = if jumpId == x then pos else findJumpRef xs jumpId (pos + getLengthOfOperation (JumpRef x))
+findJumpRef (x:xs) jumpId pos = findJumpRef xs jumpId (pos + getLengthOfOperation x)
 
 
---                 bytecode  -> id -> nmb_jmp
+--                 bytecode  -> jumpId -> nmb_jmp
 remplaceAllJump :: [Bytecode] -> Int -> Int -> [Bytecode]
-remplaceAllJump bytecode id nmb_jmp | id > nmb_jmp = bytecode
-remplaceAllJump bytecode id nmb_jmp = remplaceAllJump (remplaceJumpRef bytecode id (findJumpRef bytecode id 0)) (id + 1) nmb_jmp
+remplaceAllJump bytecode jumpId nmb_jmp | jumpId > nmb_jmp = bytecode
+remplaceAllJump bytecode jumpId nmb_jmp = remplaceAllJump (remplaceJumpRef bytecode jumpId (findJumpRef bytecode jumpId 0)) (jumpId + 1) nmb_jmp
 
 --                  cur_instr  -> bytes
 toHexaInstruction :: Bytecode -> [Word8]
@@ -88,13 +87,12 @@ toHexaInstruction (CompareOp x) =   (0x06 : [charToWord8 (x !! 0)])
 toHexaInstruction (JumpIfTrue x) =  (0x07 : toHexaInt x)
 toHexaInstruction (JumpIfFalse x) = (0x08 : toHexaInt x)
 toHexaInstruction (Jump x) =        (0x09 : toHexaInt x)
--- toHexaInstruction (JumpRef x) = -- should not append
-toHexaInstruction (JumpRef x) =     [0xFF]
+--  JumpRef should not append
 toHexaInstruction Pop =             [0x0A]
 toHexaInstruction Dup =             [0x0B]
 toHexaInstruction (Call x) =        (0x0C : toHexaInt x)
 toHexaInstruction Return =          [0x0D]
-toHexaInstruction _ = []
+toHexaInstruction _ = trace "Error: toHexaInstruction: Unknown instruction" []
 
 --                 instrs     -> bytes
 bytecodeToBytes :: [Bytecode] -> [Word8]
