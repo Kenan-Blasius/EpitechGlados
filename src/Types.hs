@@ -48,9 +48,9 @@ data Token = OpenParenthesis
             | CloseBracket
             | OpenBraces
             | CloseBraces
-            | CommentStart
-            | CommentEnd
-            | InlineCommentStart
+            -- | CommentStart
+            -- | CommentEnd
+            -- | InlineCommentStart
             | DefineToken
             | IncludeToken
             | IntToken Int
@@ -107,9 +107,9 @@ instance Show Token where
     show CloseBracket = "CloseBRACKET"
     show OpenBraces = "OpenBRACES"
     show CloseBraces = "CloseBRACES"
-    show CommentStart = "/*"
-    show CommentEnd = "*/"
-    show InlineCommentStart = "//"
+    -- show CommentStart = "/*"
+    -- show CommentEnd = "*/"
+    -- show InlineCommentStart = "//"
     show DefineToken = "DEFINE"
     show IncludeToken = "INCLUDE"
     show (IntToken x) = show x
@@ -165,9 +165,9 @@ instance Eq Token where
     CloseBracket == CloseBracket = True
     OpenBraces == OpenBraces = True
     CloseBraces == CloseBraces = True
-    CommentStart == CommentStart = True
-    CommentEnd == CommentEnd = True
-    InlineCommentStart == InlineCommentStart = True
+    -- CommentStart == CommentStart = True
+    -- CommentEnd == CommentEnd = True
+    -- InlineCommentStart == InlineCommentStart = True
     DefineToken == DefineToken = True
     IncludeToken == IncludeToken = True
     (IntToken x) == (IntToken y) = x == y

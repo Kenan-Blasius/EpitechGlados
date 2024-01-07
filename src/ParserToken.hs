@@ -1,4 +1,7 @@
 module ParserToken (
+    getAbsolutePath,
+    cleanFile,
+
     parseKeyword,
     parseIntToken,
     parseSymbolToken,
@@ -30,6 +33,23 @@ getAbsolutePath :: FilePath -> IO FilePath
 getAbsolutePath relativePath = do
     currentDir <- getCurrentDirectory
     return $ normalise (currentDir </> relativePath)
+
+-- Define the function to clean the file from all comments
+cleanFile :: File -> Bool -> File
+cleanFile (File []) _ = File []
+cleanFile (File (x:xs)) inComment = do
+    let (stillInComment, line) = cleanLine x inComment
+    File ([line] ++ (getFileArray (cleanFile (File xs) stillInComment)))
+    where
+        cleanLine :: String -> Bool -> (Bool, String)
+        cleanLine [] isInComment = (isInComment, [])
+        cleanLine (y:ys) isInComment | isInComment == False && y == '/' && head ys == '/' = (isInComment, [])
+                                    | isInComment == False && y == '/' && head ys == '*' = (True, (snd (cleanLine (tail ys) True)))
+                                    | isInComment == True && y == '*' && head ys == '/' = (False, " " ++ (snd (cleanLine (tail ys) False)))
+                                    | isInComment == True = (isInComment, (snd (cleanLine ys isInComment)))
+                                    | otherwise = (isInComment, [y] ++ (snd (cleanLine ys isInComment)))
+        getFileArray :: File -> [String]
+        getFileArray (File y) = y
 
 -- INFO: Token Parser
 parseKeyword :: String -> Token -> Parser Token
@@ -104,10 +124,10 @@ parseToken =
     <|> (parseKeyword "float" FloatTypeToken)
     <|> (parseKeyword "char" CharTypeToken)
     <|> (parseKeyword "string" StringTypeToken)
-    -- Comments
-    <|> (parseKeyword "/*" CommentStart)
-    <|> (parseKeyword "*/" CommentEnd)
-    <|> (parseKeyword "//" InlineCommentStart)
+    -- -- Comments
+    -- <|> (parseKeyword "/*" CommentStart)
+    -- <|> (parseKeyword "*/" CommentEnd)
+    -- <|> (parseKeyword "//" InlineCommentStart)
     -- Separator
     <|> (parseKeyword "," CommaToken)
     -- Line separator
@@ -181,12 +201,15 @@ includeFile str filenames = do
     putStrLn "------------------------------------"
     putStrLn $ show file
     putStrLn "------------------------------------"
-    parseFile file 1 filenames
+    putStrLn $ show $ cleanFile file False
+    putStrLn "------------------------------------"
+    let cleanedFile = cleanFile file False
+    parseFile cleanedFile 1 filenames
 
 mergeSymbols :: [Token] -> [String] -> IO [Token]
 mergeSymbols [] _ = return []
--- Once we found a InlineCommentStart we ignore all the rest of the line
-mergeSymbols (InlineCommentStart : _) _ = return []
+-- -- Once we found a InlineCommentStart we ignore all the rest of the line
+-- mergeSymbols (InlineCommentStart : _) _ = return []
 -- include a file
 mergeSymbols (IncludeToken : xs) filenames | head (filter (/= SpaceToken) xs) == StringToken str = do
     filename <- getAbsolutePath str
@@ -252,9 +275,9 @@ parseFile (File (x:xs)) lineNumber filenames = do
 -- INFO: Convert token list to SExpr
 getSubList :: Token -> Token -> [Token] -> ([Token], [Token])
 getSubList _ _ [] = ([], [])
--- Comment case
-getSubList CommentStart CommentEnd (x:xs) | x == CommentEnd = ([], xs)
-getSubList CommentStart CommentEnd (_:xs) = getSubList CommentStart CommentEnd xs
+-- -- Comment case
+-- getSubList CommentStart CommentEnd (x:xs) | x == CommentEnd = ([], xs)
+-- getSubList CommentStart CommentEnd (_:xs) = getSubList CommentStart CommentEnd xs
 -- All case
 getSubList _ close (x:xs) | x == close = ([], xs)
 getSubList open close (x:xs) | x == open = do
@@ -267,10 +290,10 @@ getSubList open close (x:xs) = do
 
 tokenListToSexpr :: [Token] -> [Token]
 tokenListToSexpr [] = []
--- all between comment is ignored
-tokenListToSexpr (CommentStart : xs) = do
-    let (_, rest) = getSubList CommentStart CommentEnd xs
-    tokenListToSexpr rest
+-- -- all between comment is ignored
+-- tokenListToSexpr (CommentStart : xs) = do
+--     let (_, rest) = getSubList CommentStart CommentEnd xs
+--     tokenListToSexpr rest
 -- Fix minus token being assigned to the number even if it should be a binary operator
 tokenListToSexpr (SymbolToken x : IntToken y : xs) | y < 0 = do
     (SymbolToken x : MinusToken : IntToken (-y) : tokenListToSexpr xs)
