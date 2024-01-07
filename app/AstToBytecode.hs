@@ -118,13 +118,22 @@ astToBytecode' (IfAST cond expr1 elseIfExpr1) bytecode jmp = trace ("IfAST: " ++
     let condBytecode = trace ("condBytecode1: " ++ show cond) astConditionToBytecode cond bytecode
     let (_, expr1Bytecode, jmp1) = trace ("expr1AST: " ++ show expr1) astToBytecode' expr1 bytecode jmp
     let (_, elseIfExpr1Bytecode, jmp2) = trace ("elseIfExpr1: " ++ show elseIfExpr1 ++ "\n\n") astToBytecode' elseIfExpr1 bytecode jmp1
-    let new_jmp = trace ("new_jmp  " ++ show ((jmp1 - jmp) + (jmp2 - jmp) + 1)) ((jmp1 - jmp) + (jmp2 - jmp) + 1)
+    let new_jmp = trace ("new_jmp  " ++ show (jmp + (jmp1 - jmp) + (jmp2 - jmp) + 1)) (jmp + (jmp1 - jmp) + (jmp2 - jmp) + 1)
     if elseIfExpr1 == DeadLeafAST then
-        (AST [], bytecode ++ condBytecode ++ [JumpIfFalse new_jmp] ++ expr1Bytecode ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode, new_jmp)
+        (AST [], bytecode ++ condBytecode ++ [JumpIfFalseBefore new_jmp] ++ expr1Bytecode ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode, new_jmp)
     else
-        (AST [], bytecode ++ condBytecode ++ [JumpIfFalse new_jmp] ++ expr1Bytecode ++ [Jump (new_jmp + 1)] ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode ++ [JumpRef (new_jmp + 1)], new_jmp + 1)
+        (AST [], bytecode ++ condBytecode ++ [JumpIfFalseBefore new_jmp] ++ expr1Bytecode ++ [JumpBefore (new_jmp + 1)] ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode ++ [JumpRef (new_jmp + 1)], new_jmp + 1)
 
--- TODO else if
+astToBytecode' (ElseIfAST cond expr1 elseIfExpr1) bytecode jmp = trace ("ElseIfAST: " ++ show cond ++ " |expr1| " ++ show expr1 ++ " |do| " ++ show elseIfExpr1) $ do
+    let condBytecode = trace ("condBytecode1: " ++ show cond) astConditionToBytecode cond bytecode
+    let (_, expr1Bytecode, jmp1) = trace ("expr1AST: " ++ show expr1) astToBytecode' expr1 bytecode jmp
+    let (_, elseIfExpr1Bytecode, jmp2) = trace ("elseIfExpr1: " ++ show elseIfExpr1 ++ "\n\n") astToBytecode' elseIfExpr1 bytecode jmp1
+    let new_jmp = trace ("new_jmp  " ++ show (jmp + (jmp1 - jmp) + (jmp2 - jmp) + 1)) (jmp + (jmp1 - jmp) + (jmp2 - jmp) + 1)
+    if elseIfExpr1 == DeadLeafAST then
+        (AST [], bytecode ++ condBytecode ++ [JumpIfFalseBefore new_jmp] ++ expr1Bytecode ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode, new_jmp)
+    else
+        (AST [], bytecode ++ condBytecode ++ [JumpIfFalseBefore new_jmp] ++ expr1Bytecode ++ [JumpBefore (new_jmp + 1)] ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode ++ [JumpRef (new_jmp + 1)], new_jmp + 1)
+
 
 astToBytecode' (ElseAST expr1) bytecode jmp = trace ("ElseAST: " ++ show expr1) $ do
     let (_, expr1Bytecode, jmp') = trace ("expr1AST: " ++ show expr1) astToBytecode' expr1 bytecode jmp
@@ -133,8 +142,16 @@ astToBytecode' (ElseAST expr1) bytecode jmp = trace ("ElseAST: " ++ show expr1) 
 astToBytecode' (WhileAST cond expr1) bytecode jmp = trace ("WhileAST: " ++ show cond ++ " |expr1| " ++ show expr1) $ do
     let condBytecode = trace ("condBytecode1: " ++ show cond) astConditionToBytecode cond bytecode
     let (_, expr1Bytecode, jmp1) = trace ("expr1AST: " ++ show expr1) astToBytecode' expr1 bytecode jmp
-    let new_jmp = trace ("new_jmp  " ++ show ((jmp1 - jmp) + 1)) ((jmp1 - jmp) + 1)
-    (AST [], bytecode ++ [JumpRef (new_jmp + 1)] ++ condBytecode ++ [JumpIfFalse new_jmp] ++ expr1Bytecode ++ [Jump (new_jmp + 1)] ++ [JumpRef new_jmp], new_jmp + 1)
+    let new_jmp = trace ("new_jmp  " ++ show (jmp + (jmp1 - jmp) + 1)) (jmp + (jmp1 - jmp) + 1)
+    (AST [], bytecode ++ [JumpRef (new_jmp + 1)] ++ condBytecode ++ [JumpIfFalseBefore new_jmp] ++ expr1Bytecode ++ [JumpBefore (new_jmp + 1)] ++ [JumpRef new_jmp], new_jmp + 1)
+
+astToBytecode' (ForAST initi cond increment scope) bytecode jmp = do
+    let (_, initiBytecode, jmp1) = astToBytecode' initi bytecode jmp
+    let condBytecode = astConditionToBytecode cond bytecode
+    let (_, incrementBytecode, jmp2) = astToBytecode' increment bytecode jmp1
+    let (_, scopeBytecode, jmp3) = astToBytecode' scope bytecode jmp2
+    let new_jmp = jmp + (jmp1 - jmp) + (jmp2 - jmp1) + (jmp3 - jmp2) + 1
+    (AST [], bytecode ++ initiBytecode ++ [JumpRef (new_jmp + 1)] ++ condBytecode ++ [JumpIfFalseBefore new_jmp] ++ scopeBytecode ++ incrementBytecode ++ [JumpBefore (new_jmp + 1)] ++ [JumpRef new_jmp], new_jmp + 1)
 
 astToBytecode' (ReturnAST (AST expr1)) bytecode jmp =
     let (_, expr1Bytecode, jmp') = trace ("ReturnAST: " ++ show expr1) astToBytecode' (AST expr1) bytecode jmp

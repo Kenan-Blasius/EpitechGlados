@@ -5,6 +5,9 @@ import Debug.Trace
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.ByteString (unpack)
 import Data.Word (Word8)
+import Data.Bits
+import Data.List (genericTake)
+import Data.Char
 
 -- ; Opcode Definitions
 -- LOAD_CONST      0x01
@@ -21,84 +24,129 @@ import Data.Word (Word8)
 -- CALL            0x0C
 -- RETURN          0x0D
 
--- (LoadConst x)
--- (LoadVar x)
--- (StoreVar x)
--- (BinaryOp x)
--- (UnaryOp x)
--- (CompareOp x)
--- (JumpIfTrue x)
--- (JumpIfFalse x)
--- (Jump x)
--- Pop
--- Dup
--- (Call x)
--- Return
+-- (LoadConst x) -- 5
+-- (LoadVar x) -- 2
+-- (StoreVar x) -- 2
+-- (BinaryOp x) -- 2
+-- (UnaryOp x) -- 2
+-- (CompareOp x) -- 2
+-- (JumpIfTrue x) -- 5
+-- (JumpIfFalse x) -- 5
+-- (Jump x) -- 5
+-- Pop -- 1
+-- Dup -- 1
+-- (Call x) -- 2
+-- Return -- 1
 
-data MyElement = MyInt Int | MyString String | MyChar Char deriving (Show)
+type VariableName = String
+data VariableType = IntType | StringType | BoolType deriving (Show)
+
+data VariableElement = MyInt Int | MyString String | MyChar Char deriving (Show)
+
+type VariableEntry = (VariableName, VariableType, VariableElement)
+type VariableTable = [VariableEntry]
+
 
 word8ToInt :: Word8 -> Int
 word8ToInt = fromIntegral
+
+intToChar :: Int -> Char
+intToChar = chr
 
 --             ope      stack   new_stack
 binaryOpCall :: Word8 -> [Int] -> [Int]
 binaryOpCall 43 (x:y:xs) = (x + y) : xs
 binaryOpCall 45 (x:y:xs) = (x - y) : xs
--- binaryOpCall "*" (x:y:xs) = (x * y) : xs
--- binaryOpCall "/" (x:y:xs) = (x `div` y) : xs
+binaryOpCall 42 (x:y:xs) = (x * y) : xs
+binaryOpCall 47 (x:y:xs) = (x `div` y) : xs
+binaryOpCall 37 (x:y:xs) = (x `mod` y) : xs
+-- maybe & or | ?
 binaryOpCall _ _ = []
 
 compareOpCall :: Word8 -> [Int] -> [Int]
 compareOpCall 60 (x:y:xs) = trace ("x = " ++ show y ++ " < y = " ++ show x) ((if y < x then 1 else 0) : xs)
 compareOpCall 62 (x:y:xs) = trace ("x = " ++ show y ++ " > y = " ++ show x) ((if y > x then 1 else 0) : xs)
 compareOpCall 61 (x:y:xs) = trace ("x = " ++ show x ++ " == y = " ++ show y) ((if x == y then 1 else 0) : xs)
+-- binary side
+-- >= <= != !
 compareOpCall _ stack = trace ("stack = " ++ show stack) stack
 
--- checkLastInStack :: [Int] -> [Int]
--- checkLastInStack [] = []
--- checkLastInStack (x:xs) = if x == 0 then xs else x : xs
 
 
---           opcode   values    stack     PC    (new_stack, PC)
-evalValue :: Word8 -> [Word8] -> [Int] -> Int -> ([Int], Int)
+
+-- Function to look up a variable in the table
+lookupVariable :: VariableName -> VariableTable -> Maybe VariableEntry
+lookupVariable _ [] = Nothing
+lookupVariable name ((n, t, e):xs)
+    | name == n = Just (n, t, e)
+    | otherwise = lookupVariable name xs
+
+
+getIntFromVariable :: VariableName -> VariableTable -> Int
+getIntFromVariable name table = case lookupVariable name table of
+    Just (_, _, MyInt x) -> x
+    _ -> 0
+
+-- Function to update the value of an existing variable in the table
+updateVariable :: VariableName -> VariableType -> VariableElement -> VariableTable -> VariableTable
+updateVariable name varType element [] = [(name, varType, element)]
+updateVariable name varType element ((n, t, e):xs)
+    | name == n = (name, varType, element) : xs
+    | otherwise = (n, t, e) : updateVariable name varType element xs
+
+
+
+
+
+bytesToInt :: [Word8] -> Int
+bytesToInt bytes =
+    fromIntegral (byte 0) +
+    (fromIntegral (byte 1) `shiftL` 8) +
+    (fromIntegral (byte 2) `shiftL` 16) +
+    (fromIntegral (byte 3) `shiftL` 24)
+  where
+    byte n = genericTake (4 :: Int) bytes !! n
+
+--           opcode   values    stack     PC    VariableTable    (new_stack, new_pc, new_VariableTable)
+evalValue :: Word8 -> [Word8] -> [Int] -> Int -> VariableTable -> ([Int], Int, VariableTable)
 -- * OK
-evalValue 0x01 values stack pc = trace ("LOAD_CONST "    ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
+evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToInt values)) (((bytesToInt values) : stack), pc + 5, table)
+-- TODO
+evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (word8ToInt (values !! 0))) ((getIntFromVariable [intToChar (word8ToInt (values !! 0))] table : stack), pc + 2, table)
+-- TODO
+evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (word8ToInt (values !! 0))) (stack, pc + 2, updateVariable [intToChar (word8ToInt (values !! 0))] IntType (MyInt (stack !! 0)) table)
+-- TODO
+evalValue 0x04 values stack pc table = trace ("BINARY_OP "     ++ show (word8ToInt (values !! 0))) (binaryOpCall (values !! 0) stack, pc + 2, table)
+-- TODO
+evalValue 0x05 values stack pc table = trace ("UNARY_OP "      ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2, table)
 -- * OK
-evalValue 0x02 values stack pc = trace ("LOAD_VAR "      ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
--- TODO
-evalValue 0x03 values stack pc = trace ("STORE_VAR "     ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
--- ? IN PROGRESS
-evalValue 0x04 values stack pc = trace ("BINARY_OP "     ++ show (word8ToInt (values !! 0))) (binaryOpCall (values !! 0) stack, pc + 2)
--- TODO
-evalValue 0x05 values stack pc = trace ("UNARY_OP "      ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
+evalValue 0x06 values stack pc table = trace ("COMPARE_OP "    ++ show (word8ToInt (values !! 0))) (compareOpCall (values !! 0) stack, pc + 2, table)
 -- * OK
-evalValue 0x06 values stack pc = trace ("COMPARE_OP "    ++ show (word8ToInt (values !! 0))) (compareOpCall (values !! 0) stack, pc + 2)
+evalValue 0x07 values stack pc table = trace ("JUMP_IF_TRUE "  ++ show (bytesToInt values)) (if (stack !! 0) /= 0 then (stack, (bytesToInt values), table) else (stack, pc + 5, table))
 -- * OK
-evalValue 0x07 values stack pc = trace ("JUMP_IF_TRUE "  ++ show (word8ToInt (values !! 0))) (if (stack !! 0) /= 0 then (stack, word8ToInt (values !! 0)) else (stack, pc + 2))
+evalValue 0x08 values stack pc table = trace ("JUMP_IF_FALSE " ++ show (bytesToInt values)) (if (stack !! 0) == 0 then (stack, (bytesToInt values), table) else (stack, pc + 5, table))
 -- * OK
-evalValue 0x08 values stack pc = trace ("JUMP_IF_FALSE " ++ show (word8ToInt (values !! 0))) (if (stack !! 0) == 0 then (stack, word8ToInt (values !! 0)) else (stack, pc + 2))
--- * OK
-evalValue 0x09 values stack _ = trace ("JUMP "          ++ show (word8ToInt (values !! 0))) (stack, word8ToInt (values !! 0))
--- TODO
-evalValue 0x0A values stack pc = trace  "POP "                                               ((word8ToInt (values !! 0) : stack), pc + 1)
--- TODO
-evalValue 0x0B values stack pc = trace  "DUP "                                               ((word8ToInt (values !! 0) : stack), pc + 1)
--- TODO
-evalValue 0x0C values stack pc = trace ("CALL "          ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
--- TODO
-evalValue 0x0D _ stack _ = trace  "RETURN "                                            (stack, -1)
-evalValue _ _ _ _ = trace "Unknown opcode" ([], 0)
+evalValue 0x09 values stack _ table = trace ("JUMP "          ++ show (bytesToInt values)) (stack, bytesToInt values, table)
+-- TODO, Pop the top value from the stack.
+evalValue 0x0A values stack pc table = trace  "POP "                                               ((word8ToInt (values !! 0) : stack), pc + 1, table)
+-- TODO, Duplicate the top value on the stack.
+evalValue 0x0B values stack pc table = trace  "DUP "                                               ((word8ToInt (values !! 0) : stack), pc + 1, table)
+-- TODO, if x == 1, print, if x == 60, exit
+evalValue 0x0C values stack pc table = trace ("CALL "          ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2, table)
+-- TODO, return the value at the top of the stack to the caller.
+evalValue 0x0D _ stack _ table = trace  "RETURN "                                            (stack, -1, table)
+evalValue a b c d e = trace ("Unknown opcode: " ++ show a ++ " | values: " ++ show b ++ " | stack: " ++ show c ++ " | pc: " ++ show d ++ " | table: " ++ show e) ([], -1, [])
 
 -- ? we have two bytecodes lists because if we move forward in the list, we can't go back
---              bytecodes  bytecodes  stack      PC   (new_bytecodes, new_stack)
-evalEachValue :: [Word8] -> [Word8] -> [Int] -> Int -> ([Word8], [Int])
-evalEachValue _ [] stack _ = trace ("-- End of bytecodes Stack: " ++ show stack) ([], stack)
-evalEachValue bytecodes (x:xs) stack pc = do
-    let (new_stack, new_pc) = evalValue x xs stack pc
-    if new_pc == -1 then (bytecodes, new_stack)
-    else if new_pc < pc then error "Invalid PC value"
+--              bytecodes  bytecodes  stack      PC   VariableTable     (new_bytecodes, new_stack, new_VariableTable)
+evalEachValue :: [Word8] -> [Word8] -> [Int] -> Int -> VariableTable -> ([Word8], [Int], VariableTable)
+evalEachValue _ [] stack _ _ = trace ("-- End of bytecodes Stack: " ++ show stack) ([], stack, [])
+evalEachValue bytecodes (x:xs) stack pc table = do
+    let (new_stack, new_pc, new_table) = trace ("evalValue executed with pc = " ++ show pc ++ " | opcode = " ++ show x) $ evalValue x xs stack pc table
+    if new_pc == -1 then ([], new_stack, [])
     else
-        trace ("pc = " ++ show pc ++ " | " ++ show x ++ " | " ++ show new_stack ++ " | " ++ show (drop pc bytecodes)) $ evalEachValue bytecodes (drop pc bytecodes) new_stack new_pc
+        trace ("pc = " ++ show pc ++ " | opcode = " ++ show x ++ " | stack = " ++ show stack ++ " | new_stack = " ++ show new_stack ++ " | new_pc = " ++ show new_pc ++ " | new_table = " ++ show new_table)
+        $ evalEachValue bytecodes (drop new_pc bytecodes) new_stack new_pc new_table
 
 
 stringToWord8 :: String -> [Word8]
@@ -112,7 +160,7 @@ main = do
         [filename] -> do
             contents <- readFile filename
             let bytecode = stringToWord8 contents
-            let (_, stack) = evalEachValue bytecode bytecode [] 0
+            let (_, stack, _) = evalEachValue bytecode bytecode [] 0 []
             putStrLn ("Value returned = " ++ show (stack !! 0))
 
         _ -> do
@@ -120,3 +168,9 @@ main = do
 
 
 -- not forgot to remove value from stack when we use it
+-- handle several bytes as a value
+
+-- TODO PRECISEION OF TYPE (int, string, bool) OF VARIABLES IN BYTECODE !!!
+-- DECLARE_INT a
+-- DECLARE_STRING b
+-- DECLARE_BOOL c
