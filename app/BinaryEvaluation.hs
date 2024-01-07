@@ -44,30 +44,30 @@ word8ToInt = fromIntegral
 binaryOpCall :: Word8 -> [Int] -> [Int]
 binaryOpCall 43 (x:y:xs) = (x + y) : xs
 binaryOpCall 45 (x:y:xs) = (x - y) : xs
--- binaryOpCall "*" (x:y:xs) = (x * y) : xs
--- binaryOpCall "/" (x:y:xs) = (x `div` y) : xs
+binaryOpCall 42 (x:y:xs) = (x * y) : xs
+binaryOpCall 47 (x:y:xs) = (x `div` y) : xs
+binaryOpCall 37 (x:y:xs) = (x `mod` y) : xs
+-- maybe & or | ?
 binaryOpCall _ _ = []
 
 compareOpCall :: Word8 -> [Int] -> [Int]
 compareOpCall 60 (x:y:xs) = trace ("x = " ++ show y ++ " < y = " ++ show x) ((if y < x then 1 else 0) : xs)
 compareOpCall 62 (x:y:xs) = trace ("x = " ++ show y ++ " > y = " ++ show x) ((if y > x then 1 else 0) : xs)
 compareOpCall 61 (x:y:xs) = trace ("x = " ++ show x ++ " == y = " ++ show y) ((if x == y then 1 else 0) : xs)
+-- binary side
+-- >= <= != !
 compareOpCall _ stack = trace ("stack = " ++ show stack) stack
-
--- checkLastInStack :: [Int] -> [Int]
--- checkLastInStack [] = []
--- checkLastInStack (x:xs) = if x == 0 then xs else x : xs
 
 
 --           opcode   values    stack     PC    (new_stack, PC)
 evalValue :: Word8 -> [Word8] -> [Int] -> Int -> ([Int], Int)
 -- * OK
 evalValue 0x01 values stack pc = trace ("LOAD_CONST "    ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
--- * OK
+-- TODO
 evalValue 0x02 values stack pc = trace ("LOAD_VAR "      ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
 -- TODO
 evalValue 0x03 values stack pc = trace ("STORE_VAR "     ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
--- ? IN PROGRESS
+-- TODO
 evalValue 0x04 values stack pc = trace ("BINARY_OP "     ++ show (word8ToInt (values !! 0))) (binaryOpCall (values !! 0) stack, pc + 2)
 -- TODO
 evalValue 0x05 values stack pc = trace ("UNARY_OP "      ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
@@ -79,13 +79,13 @@ evalValue 0x07 values stack pc = trace ("JUMP_IF_TRUE "  ++ show (word8ToInt (va
 evalValue 0x08 values stack pc = trace ("JUMP_IF_FALSE " ++ show (word8ToInt (values !! 0))) (if (stack !! 0) == 0 then (stack, word8ToInt (values !! 0)) else (stack, pc + 2))
 -- * OK
 evalValue 0x09 values stack _ = trace ("JUMP "          ++ show (word8ToInt (values !! 0))) (stack, word8ToInt (values !! 0))
--- TODO
+-- TODO, Pop the top value from the stack.
 evalValue 0x0A values stack pc = trace  "POP "                                               ((word8ToInt (values !! 0) : stack), pc + 1)
--- TODO
+-- TODO, Duplicate the top value on the stack.
 evalValue 0x0B values stack pc = trace  "DUP "                                               ((word8ToInt (values !! 0) : stack), pc + 1)
--- TODO
+-- TODO, if x == 1, print, if x == 60, exit
 evalValue 0x0C values stack pc = trace ("CALL "          ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2)
--- TODO
+-- TODO, return the value at the top of the stack to the caller.
 evalValue 0x0D _ stack _ = trace  "RETURN "                                            (stack, -1)
 evalValue _ _ _ _ = trace "Unknown opcode" ([], 0)
 
@@ -120,3 +120,4 @@ main = do
 
 
 -- not forgot to remove value from stack when we use it
+-- handle several bytes as a value
