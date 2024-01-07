@@ -64,6 +64,12 @@ getLengthOfOperation Pop = 1
 getLengthOfOperation Dup = 1
 getLengthOfOperation (Call _) = 2
 getLengthOfOperation Return = 1
+getLengthOfOperation EntryPoint = 1
+getLengthOfOperation (FunEntryPoint _) = 5
+getLengthOfOperation (FunEntryPointBefore _) = 5
+getLengthOfOperation (CallUserFun _) = 5 -- should not append
+getLengthOfOperation (CallUserFunBefore _) = 5
+getLengthOfOperation LoadPC = 1
 
 --                 bytecode  -> id -> position
 remplaceJumpRef :: [Bytecode] -> Int -> Int -> [Bytecode]
@@ -89,6 +95,9 @@ remplaceAllJump bytecode jumpId nmb_jmp | jumpId > nmb_jmp = bytecode
 remplaceAllJump bytecode jumpId nmb_jmp = remplaceAllJump (remplaceJumpRef bytecode jumpId (findJumpRef bytecode jumpId 32)) (jumpId + 1) nmb_jmp
 -- * --                                                                                                                 |
 -- * --                                                                                                           pos of begining
+
+remplaceAllFunJump :: [Bytecode] -> Int -> Int -> [Bytecode]
+remplaceAllFunJump bytecode jumpId nmb_jmp | jumpId > nmb_jmp = bytecode
 
 --                  cur_instr  -> bytes
 toHexaInstruction :: Bytecode -> [Word8]
@@ -127,3 +136,5 @@ bytecodeToBinary bytecode = do
     print (bytecode3)
     print (bytecodeToBytes bytecode3)
     writeBytesToFile "file.bin" (getHeader ++ (bytecodeToBytes bytecode3))
+
+-- todo 5 first bytes after header are a jmp to the main function (entry point)

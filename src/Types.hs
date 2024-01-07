@@ -496,6 +496,14 @@ data Bytecode = LoadConst Int
               | Dup
               | Call Int
               | Return
+              | EntryPoint
+              | FunEntryPoint Int
+              | FunEntryPointBefore String
+              | CallUserFunBefore String
+              | CallUserFun Int
+              | LoadPC
+            --  ? | PushFrame
+            --  ? | PopFrame
             -- * Unused, but could be useful in the future
             --   | BuildList Int
             --   | Index
@@ -521,6 +529,15 @@ instance Show Bytecode where
     show Dup =              "DUP"
     show (Call x) =         "CALL " ++ show x
     show Return =           "RETURN"
+    show EntryPoint =       "ENTRY_POINT"
+    show (FunEntryPoint x) = "FUN_ENTRY_POINT " ++ show x
+    show (FunEntryPointBefore x) = "FUN_ENTRY_POINT_BEFORE " ++ x
+    show (CallUserFunBefore x) = "CALL_USER_FUN_BEFORE " ++ x
+    show (CallUserFun x) =  "CALL_USER_FUN " ++ show x
+    show LoadPC =           "LOAD_PC"
+    -- ? show PushFrame =        "PUSH_FRAME"
+    -- ? show PopFrame =         "POP_FRAME"
+
     -- show (BuildList x) =    "BUILD_LIST " ++ show x
     -- show Index =            "INDEX"
     -- show (Attribute x) =    "ATTRIBUTE " ++ x

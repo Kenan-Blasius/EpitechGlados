@@ -48,6 +48,10 @@ type VariableEntry = (VariableName, VariableType, VariableElement)
 type VariableTable = [VariableEntry]
 
 
+type StackEntry = (StackType, StackElement)
+type StackTable = [StackEntry]
+
+
 word8ToInt :: Word8 -> Int
 word8ToInt = fromIntegral
 
@@ -193,6 +197,30 @@ main = do
 
 -- LOAD_CONST 1
 -- |
--- 1,1,0,0,0,  2
---   -------   |
---     int    type
+-- 1,2, 1,0,0,0,
+--   |  -------
+--   type (value)
+
+-- STORE_VAR 1
+-- |
+-- 3,1, 1,0,0,0,
+--   |  -------
+--  type (value)
+
+
+-- 1 -> int
+-- 2 -> string
+-- 3 -> bool
+-- 4 -> char
+-- 5 -> float
+-- 6 -> function
+
+-- 7 -> list ?
+
+-- * (stack table) -> (local table) -> (global table)
+
+
+-- todo all local variables are stored in (local table)
+-- todo read the bytecode a first time to get all the FunEntryPoint and store them in the (global table)
+
+-- todo type of values in the stack
