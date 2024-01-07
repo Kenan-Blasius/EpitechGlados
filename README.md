@@ -107,11 +107,11 @@ Which is converted to this bytecode:
 LOAD_CONST(2)
 LOAD_CONST(0)      # Push the constant 0 onto the stack
 COMPARE_OP("==")   # Compare the top two values for equality
-JUMP_IF_FALSE(1)   # Jump to JUMP_REF 1 if the comparison is false
+JUMP_IF_FALSE_BEFORE(1)   # Jump to JUMP_REF 1 if the comparison is false
 
 LOAD_CONST(1)      # Push the constant 1 onto the stack
 RETURN             # Return with the value 1
-JUMP(2)            # Jump to JUMP_REF 2 (useless here, but needed if not returning)
+JUMP_BEFORE(2)            # Jump to JUMP_REF 2 (useless here, but needed if not returning)
 
 JUMP_REF(1)        # reference for JUMP_IF_FALSE
 LOAD_CONST(2)      # Push the constant 2 onto the stack
@@ -123,16 +123,16 @@ The jump references are calculated
 
 ```python
 LOAD_CONST(2)
-LOAD_CONST(0)      # Push the constant 0 onto the stack
-COMPARE_OP("==")   # Compare the top two values for equality
+LOAD_CONST(0)
+COMPARE_OP("==")
 JUMP_IF_FALSE(13)  # Jump to JUMP_REF 1, which is at index 13, if the comparison is false
 
-LOAD_CONST(1)      # Push the constant 1 onto the stack
-RETURN             # Return with the value 1
+LOAD_CONST(1)
+RETURN
 JUMP(16)           # Jump to JUMP_REF 2, which is at index 16 (useless here, but needed if not returning)
 
-LOAD_CONST(2)      # Push the constant 2 onto the stack
-RETURN             # Return with the value 2
+LOAD_CONST(2)
+RETURN
 ```
 
 The final bytecode is:

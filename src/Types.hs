@@ -488,6 +488,9 @@ data Bytecode = LoadConst Int
               | JumpIfTrue Int
               | JumpIfFalse Int
               | Jump Int
+              | JumpIfTrueBefore Int
+              | JumpIfFalseBefore Int
+              | JumpBefore Int
               | JumpRef Int
               | Pop
               | Dup
@@ -510,6 +513,9 @@ instance Show Bytecode where
     show (JumpIfTrue x) =   "JUMP_IF_TRUE " ++ show x
     show (JumpIfFalse x) =  "JUMP_IF_FALSE " ++ show x
     show (Jump x) =         "JUMP " ++ show x
+    show (JumpIfTrueBefore x) =   "JUMP_IF_TRUE_BEFORE " ++ show x
+    show (JumpIfFalseBefore x) =  "JUMP_IF_FALSE_BEFORE " ++ show x
+    show (JumpBefore x) =         "JUMP_BEFORE " ++ show x
     show (JumpRef x) =      "JUMP_REF " ++ show x
     show Pop =              "POP"
     show Dup =              "DUP"

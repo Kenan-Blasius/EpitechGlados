@@ -7,6 +7,7 @@ import Data.Char
 import Debug.Trace
 import qualified Data.ByteString as BS
 import Data.Word (Word8)
+import Data.Bits
 
 -- * --
 -- ; Opcode Definitions
@@ -24,8 +25,12 @@ import Data.Word (Word8)
 -- CALL            0x0C
 -- RETURN          0x0D
 
-toHexaInt :: Int -> [Word8]
-toHexaInt x = [fromIntegral x]
+int8_ToBytes :: Int -> [Word8]
+int8_ToBytes x = [fromIntegral x]
+
+int32_ToBytes :: Int -> [Word8]
+int32_ToBytes x = map fromIntegral [x .&. 0xFF, (x `shiftR` 8) .&. 0xFF, (x `shiftR` 16) .&. 0xFF, (x `shiftR` 24) .&. 0xFF]
+
 
 toHexaString :: String -> [Word8]
 toHexaString x = map (fromIntegral . ord) x
@@ -39,16 +44,21 @@ getNmbrOfJumps (x:xs) = case x of
     JumpRef _ -> 1 + getNmbrOfJumps xs
     _ -> getNmbrOfJumps xs
 
+-- TODO variables names stored as id
+
 getLengthOfOperation :: Bytecode -> Int
-getLengthOfOperation (LoadConst _) = 2
+getLengthOfOperation (LoadConst _) = 5 -- 1 for the opcode and 4 for the int
 getLengthOfOperation (LoadVar _) = 2
-getLengthOfOperation (StoreVar _) = 2
+getLengthOfOperation (StoreVar _) = 2 -- usually 8 bytes for a pointer
 getLengthOfOperation (BinaryOp _) = 2
 getLengthOfOperation (UnaryOp _) = 2
 getLengthOfOperation (CompareOp _) = 2
-getLengthOfOperation (JumpIfTrue _) = 2
-getLengthOfOperation (JumpIfFalse _) = 2
-getLengthOfOperation (Jump _) = 2
+getLengthOfOperation (JumpIfTrue _) = 5 -- should not append
+getLengthOfOperation (JumpIfFalse _) = 5 -- should not append
+getLengthOfOperation (Jump _) = 5 -- should not append
+getLengthOfOperation (JumpIfTrueBefore _) = 5
+getLengthOfOperation (JumpIfFalseBefore _) = 5
+getLengthOfOperation (JumpBefore _) = 5
 getLengthOfOperation (JumpRef _) = 0 -- because it's a reference, it's removed from the bytecode
 getLengthOfOperation Pop = 1
 getLengthOfOperation Dup = 1
@@ -58,16 +68,18 @@ getLengthOfOperation Return = 1
 --                 bytecode  -> id -> position
 remplaceJumpRef :: [Bytecode] -> Int -> Int -> [Bytecode]
 remplaceJumpRef [] _ _ = []
-remplaceJumpRef ((JumpIfTrue x) : xs) jumpId pos | jumpId == x = JumpIfTrue pos : remplaceJumpRef xs jumpId pos
-remplaceJumpRef ((JumpIfFalse x) : xs) jumpId pos | jumpId == x = JumpIfFalse pos : remplaceJumpRef xs jumpId pos
-remplaceJumpRef ((Jump x) : xs) jumpId pos | jumpId == x = Jump pos : remplaceJumpRef xs jumpId pos
+remplaceJumpRef ((JumpIfTrueBefore x) : xs) jumpId pos | jumpId == x = (JumpIfTrue pos : remplaceJumpRef xs jumpId pos)
+remplaceJumpRef ((JumpIfFalseBefore x) : xs) jumpId pos | jumpId == x = (JumpIfFalse pos : remplaceJumpRef xs jumpId pos)
+remplaceJumpRef ((JumpBefore x) : xs) jumpId pos | jumpId == x = (Jump pos : remplaceJumpRef xs jumpId pos)
 remplaceJumpRef (x:xs) jumpId pos = x : remplaceJumpRef xs jumpId pos
 
 
 --                bytecode -> jumpId -> position
 findJumpRef :: [Bytecode] -> Int -> Int -> Int
 findJumpRef [] _ _ = trace "Error: No JumpRef found" 0
-findJumpRef ((JumpRef x) : xs) jumpId pos = if jumpId == x then pos else findJumpRef xs jumpId (pos + getLengthOfOperation (JumpRef x))
+findJumpRef ((JumpRef x) : xs) jumpId pos = if jumpId == x then
+    trace ("findJumpRef: " ++ show x ++ " " ++ show jumpId ++ " " ++ show pos) pos
+    else findJumpRef xs jumpId (pos + getLengthOfOperation (JumpRef x))
 findJumpRef (x:xs) jumpId pos = findJumpRef xs jumpId (pos + getLengthOfOperation x)
 
 
@@ -78,21 +90,21 @@ remplaceAllJump bytecode jumpId nmb_jmp = remplaceAllJump (remplaceJumpRef bytec
 
 --                  cur_instr  -> bytes
 toHexaInstruction :: Bytecode -> [Word8]
-toHexaInstruction (LoadConst x) =   (0x01 : toHexaInt x)
-toHexaInstruction (LoadVar x) =     (0x02 : toHexaString x)
+toHexaInstruction (LoadConst x) =   (0x01 : int32_ToBytes x)
+toHexaInstruction (LoadVar x) =     (0x02 : toHexaString x) -- TODO as id
 toHexaInstruction (StoreVar x) =    (0x03 : toHexaString x)
 toHexaInstruction (BinaryOp x) =    (0x04 : toHexaString x)
 toHexaInstruction (UnaryOp x) =     (0x05 : toHexaString x)
 toHexaInstruction (CompareOp x) =   (0x06 : [charToWord8 (x !! 0)])
-toHexaInstruction (JumpIfTrue x) =  (0x07 : toHexaInt x)
-toHexaInstruction (JumpIfFalse x) = (0x08 : toHexaInt x)
-toHexaInstruction (Jump x) =        (0x09 : toHexaInt x)
+toHexaInstruction (JumpIfTrue x) =  (0x07 : int32_ToBytes x)
+toHexaInstruction (JumpIfFalse x) = (0x08 : int32_ToBytes x)
+toHexaInstruction (Jump x) =        (0x09 : int32_ToBytes x)
 --  JumpRef should not append
 toHexaInstruction Pop =             [0x0A]
 toHexaInstruction Dup =             [0x0B]
-toHexaInstruction (Call x) =        (0x0C : toHexaInt x)
+toHexaInstruction (Call x) =        (0x0C : int8_ToBytes x)
 toHexaInstruction Return =          [0x0D]
-toHexaInstruction _ = trace "Error: toHexaInstruction: Unknown instruction" []
+toHexaInstruction x = trace ("Error: toHexaInstruction: Unknown instruction" ++ show x) []
 
 --                 instrs     -> bytes
 bytecodeToBytes :: [Bytecode] -> [Word8]
@@ -104,11 +116,9 @@ writeBytesToFile filePath bytes = BS.writeFile filePath (BS.pack bytes)
 
 bytecodeToBinary :: [Bytecode] -> IO ()
 bytecodeToBinary bytecode = do
-    print (bytecodeToBytes bytecode)
     let nmp_jmp = getNmbrOfJumps bytecode
     let bytecode2 = remplaceAllJump bytecode 1 nmp_jmp -- 1 because the first jump is at 1
     let bytecode3 = filter (\x -> case x of JumpRef _ -> False; _ -> True) bytecode2
     print (bytecode3)
     print (bytecodeToBytes bytecode3)
     writeBytesToFile "file.bin" (bytecodeToBytes bytecode3)
-
