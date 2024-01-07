@@ -25,11 +25,11 @@ import Data.Bits
 -- CALL            0x0C
 -- RETURN          0x0D
 
-toHexaInt :: Int -> [Word8]
-toHexaInt x = [fromIntegral x]
+int8_ToBytes :: Int -> [Word8]
+int8_ToBytes x = [fromIntegral x]
 
-intToBytes :: Int -> [Word8]
-intToBytes x = map fromIntegral [x .&. 0xFF, (x `shiftR` 8) .&. 0xFF, (x `shiftR` 16) .&. 0xFF, (x `shiftR` 24) .&. 0xFF]
+int32_ToBytes :: Int -> [Word8]
+int32_ToBytes x = map fromIntegral [x .&. 0xFF, (x `shiftR` 8) .&. 0xFF, (x `shiftR` 16) .&. 0xFF, (x `shiftR` 24) .&. 0xFF]
 
 
 toHexaString :: String -> [Word8]
@@ -90,19 +90,19 @@ remplaceAllJump bytecode jumpId nmb_jmp = remplaceAllJump (remplaceJumpRef bytec
 
 --                  cur_instr  -> bytes
 toHexaInstruction :: Bytecode -> [Word8]
-toHexaInstruction (LoadConst x) =   (0x01 : intToBytes x)
+toHexaInstruction (LoadConst x) =   (0x01 : int32_ToBytes x)
 toHexaInstruction (LoadVar x) =     (0x02 : toHexaString x) -- TODO as id
 toHexaInstruction (StoreVar x) =    (0x03 : toHexaString x)
 toHexaInstruction (BinaryOp x) =    (0x04 : toHexaString x)
 toHexaInstruction (UnaryOp x) =     (0x05 : toHexaString x)
 toHexaInstruction (CompareOp x) =   (0x06 : [charToWord8 (x !! 0)])
-toHexaInstruction (JumpIfTrue x) =  (0x07 : intToBytes x)
-toHexaInstruction (JumpIfFalse x) = (0x08 : intToBytes x)
-toHexaInstruction (Jump x) =        (0x09 : intToBytes x)
+toHexaInstruction (JumpIfTrue x) =  (0x07 : int32_ToBytes x)
+toHexaInstruction (JumpIfFalse x) = (0x08 : int32_ToBytes x)
+toHexaInstruction (Jump x) =        (0x09 : int32_ToBytes x)
 --  JumpRef should not append
 toHexaInstruction Pop =             [0x0A]
 toHexaInstruction Dup =             [0x0B]
-toHexaInstruction (Call x) =        (0x0C : toHexaInt x)
+toHexaInstruction (Call x) =        (0x0C : int8_ToBytes x)
 toHexaInstruction Return =          [0x0D]
 toHexaInstruction x = trace ("Error: toHexaInstruction: Unknown instruction" ++ show x) []
 
@@ -122,4 +122,3 @@ bytecodeToBinary bytecode = do
     print (bytecode3)
     print (bytecodeToBytes bytecode3)
     writeBytesToFile "file.bin" (bytecodeToBytes bytecode3)
-
