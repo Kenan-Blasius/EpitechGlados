@@ -86,7 +86,9 @@ findJumpRef (x:xs) jumpId pos = findJumpRef xs jumpId (pos + getLengthOfOperatio
 --                 bytecode  -> jumpId -> nmb_jmp
 remplaceAllJump :: [Bytecode] -> Int -> Int -> [Bytecode]
 remplaceAllJump bytecode jumpId nmb_jmp | jumpId > nmb_jmp = bytecode
-remplaceAllJump bytecode jumpId nmb_jmp = remplaceAllJump (remplaceJumpRef bytecode jumpId (findJumpRef bytecode jumpId 0)) (jumpId + 1) nmb_jmp
+remplaceAllJump bytecode jumpId nmb_jmp = remplaceAllJump (remplaceJumpRef bytecode jumpId (findJumpRef bytecode jumpId 32)) (jumpId + 1) nmb_jmp
+-- * --                                                                                                                 |
+-- * --                                                                                                           pos of begining
 
 --                  cur_instr  -> bytes
 toHexaInstruction :: Bytecode -> [Word8]
@@ -106,6 +108,9 @@ toHexaInstruction (Call x) =        (0x0C : int8_ToBytes x)
 toHexaInstruction Return =          [0x0D]
 toHexaInstruction x = trace ("Error: toHexaInstruction: Unknown instruction" ++ show x) []
 
+getHeader :: [Word8]
+getHeader = [0x7a, 0x69, 0x7a, 0x69] ++ (toHexaString "This is the comment section\0")
+
 --                 instrs     -> bytes
 bytecodeToBytes :: [Bytecode] -> [Word8]
 bytecodeToBytes [] = []
@@ -121,4 +126,4 @@ bytecodeToBinary bytecode = do
     let bytecode3 = filter (\x -> case x of JumpRef _ -> False; _ -> True) bytecode2
     print (bytecode3)
     print (bytecodeToBytes bytecode3)
-    writeBytesToFile "file.bin" (bytecodeToBytes bytecode3)
+    writeBytesToFile "file.bin" (getHeader ++ (bytecodeToBytes bytecode3))

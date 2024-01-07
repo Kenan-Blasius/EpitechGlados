@@ -1,4 +1,5 @@
 import System.Environment
+import System.Exit
 
 import Debug.Trace
 
@@ -149,6 +150,11 @@ evalEachValue bytecodes (x:xs) stack pc table = do
         $ evalEachValue bytecodes (drop new_pc bytecodes) new_stack new_pc new_table
 
 
+--[0x7a, 0x69, 0x7a, 0x69]
+checkMagicNumber :: [Word8] -> Bool
+checkMagicNumber [0x7a, 0x69, 0x7a, 0x69] = True
+checkMagicNumber _ = False
+
 stringToWord8 :: String -> [Word8]
 stringToWord8 str = unpack (UTF8.fromString str)
 
@@ -159,9 +165,19 @@ main = do
     case args of
         [filename] -> do
             contents <- readFile filename
+            -- putStrLn "Magic number check"
             let bytecode = stringToWord8 contents
-            let (_, stack, _) = evalEachValue bytecode bytecode [] 0 []
-            putStrLn ("Value returned = " ++ show (stack !! 0))
+            if checkMagicNumber (take 4 bytecode) == False then do
+                putStrLn "Magic number is incorrect"
+                exitWith (ExitFailure 84)
+            else do
+                let (_, stack, _) = evalEachValue bytecode (drop 32 bytecode) [] 32 []
+                if length stack < 1 then do
+                    putStrLn ("Stack is empty")
+                    exitWith (ExitFailure 84)
+                else do
+                    putStrLn ("Result: " ++ show (stack !! 0))
+                    exitWith (ExitSuccess)
 
         _ -> do
             putStrLn "No file given as an argument"
@@ -171,6 +187,12 @@ main = do
 -- handle several bytes as a value
 
 -- TODO PRECISEION OF TYPE (int, string, bool) OF VARIABLES IN BYTECODE !!!
--- DECLARE_INT a
--- DECLARE_STRING b
--- DECLARE_BOOL c
+-- DECLARE_TYPE INT a
+-- DECLARE_TYPE STRING b
+-- DECLARE_TYPE BOOL c
+
+-- LOAD_CONST 1
+-- |
+-- 1,1,0,0,0,  2
+--   -------   |
+--     int    type
