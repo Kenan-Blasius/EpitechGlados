@@ -16,6 +16,7 @@ fun debugTest (int a, char c, string s, float f) : (const my_int)
     // int pemdasHardcore5 = 20 + 5 * 3 - 7 % 3 / 2 + 15 - 3 * 2 % 4 * 12 / 6 + 3 - 2 * 4 % 5 + 9 * 3 - 7 + 2 / 4 % 3 / 18 / 2 + 5 * 2 % 3 + 10 - 3 * 6 + 2 % 4 / 16 - 3 * 2 + 5 / 2 % 7;
 
     string my_UTF16_string = "This is a string with UTF16 characters: éèàçù and some chinese characters: 你好吗？ and some emojis: 😂😄🤣🌟";
+    string my_string = "This is a string with some \"escaped\" characters: \128514 and \r and \" and \\ and \n and \t and \'";
     char my_chinese_char = '你';
     char my_emoji_char = '😂';
     // Variable name with UTF16 characters

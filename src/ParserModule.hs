@@ -10,11 +10,13 @@ module ParserModule (
     parseSome,
     parseUInt,
     parseInt,
+    parseEscapedChar,
     parsePair,
     parseOrBoth,
     parseList,
 ) where
 
+import Data.Char (chr)
 import Control.Applicative
 -- import Debug.Trace
 
@@ -208,6 +210,27 @@ parseInt = Parser f
         --     (x, ys) <- runParser parseUInt xs
         --     return (x, ys)
         -- f xs = runParser parseUInt xs
+
+parseEscapedChar :: Parser Char
+parseEscapedChar = Parser f
+    where
+        f x = do
+            (_, ys) <- runParser (parseChar '\\') x
+            case runParser (parseAnyChar ['\\', '\"', '\'', 'n', 't', 'b', 'r', 'f', 'v']) ys of
+                Just (z,zs) -> case z of
+                    '\\' -> return ('\\', zs)
+                    '\"' -> return ('\"', zs)
+                    '\'' -> return ('\'', zs)
+                    'n' -> return ('\n', zs)
+                    't' -> return ('\t', zs)
+                    'b' -> return ('\b', zs)
+                    'r' -> return ('\r', zs)
+                    'f' -> return ('\f', zs)
+                    'v' -> return ('\v', zs)
+                    _ -> Nothing
+                Nothing -> case runParser (parseUInt) ys of
+                    Just (w, ws) -> return (chr (w), ws)
+                    Nothing -> Nothing
 
 parsePair :: Parser a -> Parser (a, a) -- Dumb since the format is fixed
 parsePair (Parser f) = Parser h

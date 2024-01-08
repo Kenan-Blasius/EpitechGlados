@@ -88,7 +88,7 @@ parseStringToken = Parser f
     where
         f x = case runParser (parseChar '\"') x of
             -- parse all chars in UTF-16 except "
-            Just (_, ys) -> case runParser (parseMany (parseAnyChar [chr i | i <- [0x0000 .. 0x10FFFF], chr i /= '\"'])) ys of
+            Just (_, ys) -> case runParser (parseMany (parseEscapedChar <|> parseAnyChar [chr i | i <- [0x0000 .. 0x10FFFF], chr i /= '\"'])) ys of
                 Just (z, zs) -> case runParser (parseChar '\"') zs of
                     Just (_, ws) -> Just (StringToken z, ws)
                     Nothing -> throw (ParserError "Missing \" token")
@@ -100,7 +100,7 @@ parseCharToken = Parser f
     where
         f x = case runParser (parseChar '\'') x of
             -- parse all chars in UTF-16 except '
-            Just (_, ys) -> case runParser (parseAnyChar [chr i | i <- [0x0000 .. 0x10FFFF], chr i /= '\'']) ys of
+            Just (_, ys) -> case runParser (parseEscapedChar <|> parseAnyChar [chr i | i <- [0x0000 .. 0x10FFFF], chr i /= '\'']) ys of
                 Just (z, zs) -> case runParser (parseChar '\'') zs of
                     Just (_, ws) -> Just (CharToken z, ws)
                     Nothing -> throw (ParserError "Missing ' token")
