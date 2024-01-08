@@ -55,6 +55,7 @@ getLengthOfOperation (CompareOp _) = 2
 getLengthOfOperation (JumpIfTrue _) = 5 -- should not append
 getLengthOfOperation (JumpIfFalse _) = 5 -- should not append
 getLengthOfOperation (Jump _) = 5 -- should not append
+getLengthOfOperation (JumpWithArgs _ _) = 9 -- should not append
 getLengthOfOperation (JumpIfTrueBefore _) = 5
 getLengthOfOperation (JumpIfFalseBefore _) = 5
 getLengthOfOperation (JumpBefore _) = 5
@@ -63,11 +64,8 @@ getLengthOfOperation Pop = 1
 getLengthOfOperation Dup = 1
 getLengthOfOperation (Call _) = 2
 getLengthOfOperation Return = 1
-getLengthOfOperation EntryPoint = 1
 getLengthOfOperation (FunEntryPoint _) = 0
-getLengthOfOperation (FunEntryPointBefore _) = 0
-getLengthOfOperation (CallUserFun _) = 5 -- should not append
-getLengthOfOperation (CallUserFunBefore _) = 5
+getLengthOfOperation (CallUserFun _ _) = 9 -- should not append
 getLengthOfOperation LoadPC = 1
 
 
@@ -106,12 +104,12 @@ remplaceAllJump bytecode jumpId nmb_jmp = remplaceAllJump (remplaceJumpRef bytec
 
 getFunctData :: [Bytecode] -> Int -> [(Int, String)]
 getFunctData [] _ = []
-getFunctData (FunEntryPointBefore x : xs) pos = (pos, x) : getFunctData xs pos
+getFunctData (FunEntryPoint x : xs) pos = (pos, x) : getFunctData xs pos
 getFunctData (x:xs) pos = getFunctData xs (pos + getLengthOfOperation x)
 
 remplaceFunEntryPoint :: [Bytecode] -> (Int, String) -> [Bytecode]
 remplaceFunEntryPoint [] _ = []
-remplaceFunEntryPoint ((CallUserFunBefore x) : xs) (pos, name) | x == name = (Jump pos : remplaceFunEntryPoint xs (pos, name))
+remplaceFunEntryPoint ((CallUserFun x y) : xs) (pos, name) | x == name = (JumpWithArgs pos y : remplaceFunEntryPoint xs (pos, name))
 remplaceFunEntryPoint (x:xs) fun_data = x : remplaceFunEntryPoint xs fun_data
 
 
@@ -121,8 +119,8 @@ remplaceAllFun bytecode [] = bytecode
 remplaceAllFun bytecode (x : xs) = (remplaceAllFun (remplaceFunEntryPoint bytecode x) xs)
 
 findPosMain :: [Bytecode] -> Int -> Int
-findPosMain [] pos = 0
-findPosMain (FunEntryPointBefore "main" : xs) pos = pos
+findPosMain [] _ = 0
+findPosMain (FunEntryPoint "main" : _) pos = pos
 findPosMain (x:xs) pos = trace ("findPosMain: " ++ show x ++ " " ++ show pos) (findPosMain xs (pos + getLengthOfOperation x))
 
 
@@ -139,12 +137,13 @@ toHexaInstruction (CompareOp x) =   (0x06 : [charToWord8 (x !! 0)])
 toHexaInstruction (JumpIfTrue x) =  (0x07 : int32_ToBytes x)
 toHexaInstruction (JumpIfFalse x) = (0x08 : int32_ToBytes x)
 toHexaInstruction (Jump x) =        (0x09 : int32_ToBytes x)
+toHexaInstruction (JumpWithArgs x y) = (0x0A : int32_ToBytes x ++ int8_ToBytes y) -- 1 + 4 + 1 bytes
 --  JumpRef should not append
-toHexaInstruction Pop =             [0x0A]
-toHexaInstruction Dup =             [0x0B]
-toHexaInstruction (Call x) =        (0x0C : int8_ToBytes x)
-toHexaInstruction Return =          [0x0D]
-toHexaInstruction LoadPC =          [0x0E]
+toHexaInstruction Pop =             [0x0B]
+toHexaInstruction Dup =             [0x0C]
+toHexaInstruction (Call x) =        (0x0D : int8_ToBytes x)
+toHexaInstruction Return =          [0x0E]
+toHexaInstruction LoadPC =          [0x0F]
 toHexaInstruction x = trace ("Error: toHexaInstruction: Unknown instruction" ++ show x) []
 
 -- * ------------------------------------------ HEADER ------------------------------------------ * --
@@ -174,7 +173,7 @@ bytecodeToBinary bytecode = do
     -- print ("bytecode4")
     -- print (bytecode4)
     let posMain = findPosMain bytecode4 sizeOfHeader
-    let bytecode5 = [(Jump posMain)] ++ filter (\x -> case x of FunEntryPointBefore _ -> False; _ -> True) bytecode4
+    let bytecode5 = [(Jump posMain)] ++ filter (\x -> case x of FunEntryPoint _ -> False; _ -> True) bytecode4
     print ("bytecode5")
     print (bytecode5)
     let binary = getHeader ++ (bytecodeToBytes bytecode5)

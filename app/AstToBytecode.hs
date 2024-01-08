@@ -89,14 +89,28 @@ astConditionToBytecode x bytecode = trace ("astConditionToBytecode NO AST CONDIT
 astStoreValue :: AST -> [Bytecode]
 astStoreValue (AST [IntTypeAST, SymbolAST x]) = trace ("Get Value Int symbol " ++ show x) $ [StoreVar x]
 astStoreValue (AST [SymbolAST x]) = trace ("Get Value Symbol " ++ show x) $ [StoreVar x]
-astStoreValue _ = trace ("astStoreValue NO AST STORE NODE FOUND") $ []
+astStoreValue x = trace ("astStoreValue NO AST STORE NODE FOUND" ++ show x) $ []
 
 astStoreArgs :: AST -> [Bytecode]
 astStoreArgs DeadLeafAST = trace ("astStoreArgs empty") $ []
 astStoreArgs (AST []) = trace ("astStoreArgs End") $ []
-astStoreArgs (AST (x:xs)) = astStoreValue x ++ astStoreArgs (AST xs)
-astStoreArgs x = trace ("astStoreArgs ERROR " ++ show x) $ []
+astStoreArgs (AST ((AST x) :xs)) = trace ("astStoreArgs AST " ++ show x) $ astStoreArgs (AST x) ++ astStoreArgs (AST xs)
+astStoreArgs x = astStoreValue x
 
+nmbArgs :: AST -> Int
+nmbArgs DeadLeafAST = 0
+nmbArgs (AST [IntTypeAST, SymbolAST _]) = 1
+nmbArgs (AST [SymbolAST _]) = 1
+nmbArgs (AST (x:xs)) = (nmbArgs x) + (nmbArgs (AST xs))
+nmbArgs x = trace ("nmbArgs ERROR " ++ show x) $ 0
+
+pushArgs :: AST -> [Bytecode]
+pushArgs DeadLeafAST = trace ("pushArgs empty") $ []
+pushArgs (AST []) = trace ("pushArgs End") $ []
+pushArgs (AST [IntTypeAST, SymbolAST x]) = trace ("pushArgs Int symbol " ++ show x) $ [LoadVar x]
+pushArgs (AST [SymbolAST x]) = trace ("pushArgs Symbol " ++ show x) $ [LoadVar x]
+pushArgs (AST (x:xs)) = pushArgs x ++ pushArgs (AST xs)
+pushArgs x = trace ("pushArgs ERROR " ++ show x) $ []
 
 -- TODO the argument  [Bytecode] is useless, remove it
 
@@ -128,7 +142,7 @@ astToBytecode' (AST [SymbolAST "exit", x]) bytecode jmp =
 
 astToBytecode' (AST (SymbolAST x : (AST y) : xs)) bytecode jmp = do
     let (yAST, yBytecode, jmp_2) = astToBytecode' (AST xs) bytecode jmp
-    trace ("call function " ++ show x ++ " args " ++ show y) $ (yAST, bytecode ++ (astStoreArgs (AST y) ++ [LoadPC, CallUserFunBefore x] ++ yBytecode), jmp_2)
+    trace ("call function " ++ show x ++ " args " ++ show y) $ (yAST, bytecode ++ (pushArgs (AST y) ++ [LoadPC, CallUserFun x (nmbArgs (AST y))] ++ yBytecode), jmp_2)
 
 -- * (AST (x:xs))
 astToBytecode' (AST (x:xs)) bytecode jmp = trace ("Processing AST node: " ++ show x) $
@@ -139,8 +153,8 @@ astToBytecode' (AST (x:xs)) bytecode jmp = trace ("Processing AST node: " ++ sho
 -- FunTypeAST return_type
 astToBytecode' (FunAST name args return_type scope) bytecode jmp = trace ("FunAST: " ++ show name ++ " " ++ show args ++ " " ++ show return_type ++ " " ++ show scope) $ do
     let (_, scopeBytecode, jmp_2) = trace ("scopeAST: " ++ show scope) astToBytecode' scope bytecode jmp
-    trace ("scopeBytecode " ++ show scopeBytecode) (AST [], bytecode ++ [FunEntryPointBefore name] ++ (astStoreArgs args) ++ scopeBytecode ++ [Return], jmp_2)
-    -- trace ("scopeBytecode " ++ show scopeBytecode) (AST [], bytecode ++ [FunEntryPointBefore name] ++ [PushFrame] ++ (astStoreArgs args) ++ scopeBytecode ++ [PopFrame, Return], jmp_2) -- TODO add return type
+    trace ("scopeBytecode " ++ show scopeBytecode) (AST [], bytecode ++ [FunEntryPoint name] ++ (astStoreArgs args) ++ scopeBytecode ++ [Return], jmp_2)
+    -- trace ("scopeBytecode " ++ show scopeBytecode) (AST [], bytecode ++ [FunEntryPoint name] ++ [PushFrame] ++ (astStoreArgs args) ++ scopeBytecode ++ [PopFrame, Return], jmp_2) -- TODO add return type
 
 -- * IF / ELSE IF / ELSE
 astToBytecode' (IfAST cond expr1 elseIfExpr1) bytecode jmp = trace ("IfAST: " ++ show cond ++ " |expr1| " ++ show expr1 ++ " |do| " ++ show elseIfExpr1) $ do
