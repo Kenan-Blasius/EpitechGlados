@@ -1403,7 +1403,7 @@ sexprToAstTest =
                         FunAST "sum"
                             (AST [AST [IntTypeAST, SymbolAST "a"], AST [IntTypeAST, SymbolAST "b"]])
                             (FunTypeAST (AST [IntTypeAST]))
-                            (AST [ReturnAST (PlusAST (AST [SymbolAST "a"]) (AST [SymbolAST "b"]))]),
+                            (AST [ReturnAST (AST [PlusAST (AST [SymbolAST "a"]) (AST [SymbolAST "b"])])]),
                         AssignAST (AST [IntTypeAST, SymbolAST "a"]) (AST [SymbolAST "sum", (AST [AST [IntAST 1], AST [IntAST 2]])])
                     ])
             assertEqual "sexprToAst" (expected) (result)),
