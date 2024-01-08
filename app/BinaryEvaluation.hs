@@ -39,10 +39,13 @@ import Data.Char
 -- (Call x) -- 2
 -- Return -- 1
 
-type VariableName = String
-data VariableType = IntType | StringType | BoolType deriving (Show)
+headerSize :: Int
+headerSize = 32
 
-data VariableElement = MyInt Int | MyString String | MyChar Char deriving (Show)
+type VariableName = String
+data VariableType = IntType | StringType | BoolType | CharType | FloatType | AddressType deriving (Show)
+
+data VariableElement = MyInt Int | MyString String | MyChar Char | MyBool Bool | MyFloat Float deriving (Show)
 
 type VariableEntry = (VariableName, VariableType, VariableElement)
 type VariableTable = [VariableEntry]
@@ -59,22 +62,28 @@ intToChar :: Int -> Char
 intToChar = chr
 
 --             ope      stack   new_stack
-binaryOpCall :: Word8 -> [Int] -> [Int]
-binaryOpCall 43 (x:y:xs) = (x + y) : xs
-binaryOpCall 45 (x:y:xs) = (x - y) : xs
-binaryOpCall 42 (x:y:xs) = (x * y) : xs
-binaryOpCall 47 (x:y:xs) = (x `div` y) : xs
-binaryOpCall 37 (x:y:xs) = (x `mod` y) : xs
+binaryOpCall :: Word8 -> StackTable -> StackTable
+binaryOpCall 43 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x + y)) : xs
+binaryOpCall 45 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x - y)) : xs
+binaryOpCall 42 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x * y)) : xs
+binaryOpCall 47 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x `div` y)) : xs
+binaryOpCall 37 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x `mod` y)) : xs
+binaryOpCall _ stack = stack  -- Default case, no operation for other Word8 values
+
 -- maybe & or | ?
 binaryOpCall _ _ = []
 
-compareOpCall :: Word8 -> [Int] -> [Int]
-compareOpCall 60 (x:y:xs) = trace ("x = " ++ show y ++ " < y = " ++ show x) ((if y < x then 1 else 0) : xs)
-compareOpCall 62 (x:y:xs) = trace ("x = " ++ show y ++ " > y = " ++ show x) ((if y > x then 1 else 0) : xs)
-compareOpCall 61 (x:y:xs) = trace ("x = " ++ show x ++ " == y = " ++ show y) ((if x == y then 1 else 0) : xs)
+compareOpCall :: Word8 -> StackTable -> StackTable
+compareOpCall 60 ((_, MyInt y) : (_, MyInt x) : xs) =
+    trace ("x = " ++ show y ++ " < y = " ++ show x) ((if y < x then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 62 ((_, MyInt y) : (_, MyInt x) : xs) =
+    trace ("x = " ++ show y ++ " > y = " ++ show x) ((if y > x then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 61 ((_, MyInt y) : (_, MyInt x) : xs) =
+    trace ("x = " ++ show x ++ " == y = " ++ show y) ((if x == y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall _ stack = trace ("stack = " ++ show stack) stack
+
 -- binary side
 -- >= <= != !
-compareOpCall _ stack = trace ("stack = " ++ show stack) stack
 
 
 
@@ -100,7 +109,26 @@ updateVariable name varType element ((n, t, e):xs)
     | otherwise = (n, t, e) : updateVariable name varType element xs
 
 
+getLastIntFromStack :: StackTable -> Int
+getLastIntFromStack [] = 0
+getLastIntFromStack ((IntType, MyInt x):xs) = x
+getLastIntFromStack ((_, _):xs) = trace "Not an int" $ getLastIntFromStack xs
 
+getLastAddressFromStack :: StackTable -> Int
+getLastAddressFromStack [] = -1
+getLastAddressFromStack ((AddressType, MyInt x):xs) = x
+getLastAddressFromStack ((_, _):xs) = trace "Not an address" $ getLastAddressFromStack xs
+
+deleteUntilAddress :: StackTable -> StackTable
+deleteUntilAddress [] = []
+deleteUntilAddress ((AddressType, _):xs) = xs
+deleteUntilAddress (_:xs) = deleteUntilAddress xs
+
+deleteUntilAddressExceptOne :: StackTable -> Int -> StackTable
+deleteUntilAddressExceptOne [] _ = []
+deleteUntilAddressExceptOne (x:xs) 0 = x : deleteUntilAddress xs
+deleteUntilAddressExceptOne ((AddressType, _):xs) n = xs
+deleteUntilAddressExceptOne (_:xs) n = deleteUntilAddressExceptOne xs (n + 1)
 
 
 bytesToInt :: [Word8] -> Int
@@ -113,38 +141,40 @@ bytesToInt bytes =
     byte n = genericTake (4 :: Int) bytes !! n
 
 --           opcode   values    stack     PC    VariableTable    (new_stack, new_pc, new_VariableTable)
-evalValue :: Word8 -> [Word8] -> [Int] -> Int -> VariableTable -> ([Int], Int, VariableTable)
+evalValue :: Word8 -> [Word8] -> StackTable -> Int -> VariableTable -> (StackTable, Int, VariableTable)
 -- * OK
-evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToInt values)) (((bytesToInt values) : stack), pc + 5, table)
+evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToInt values)) (((IntType, (MyInt (bytesToInt values))) : stack), pc + 5, table)
 -- TODO
-evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (word8ToInt (values !! 0))) ((getIntFromVariable [intToChar (word8ToInt (values !! 0))] table : stack), pc + 2, table)
+evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (word8ToInt (head values))) ((IntType, (MyInt (getIntFromVariable [intToChar (word8ToInt (head values))] table))) : stack, pc + 2, table)
 -- TODO
-evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (word8ToInt (values !! 0))) (stack, pc + 2, updateVariable [intToChar (word8ToInt (values !! 0))] IntType (MyInt (stack !! 0)) table)
+evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (word8ToInt (head values))) (tail stack, pc + 2, updateVariable [intToChar (word8ToInt (head values))] IntType (MyInt (getLastIntFromStack stack)) table)
 -- TODO
-evalValue 0x04 values stack pc table = trace ("BINARY_OP "     ++ show (word8ToInt (values !! 0))) (binaryOpCall (values !! 0) stack, pc + 2, table)
+evalValue 0x04 values stack pc table = trace ("BINARY_OP "     ++ show (word8ToInt (head values))) (binaryOpCall (head values) stack, pc + 2, table)
 -- TODO
-evalValue 0x05 values stack pc table = trace ("UNARY_OP "      ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2, table)
+evalValue 0x05 values stack pc table = trace ("UNARY_OP "      ++ show (word8ToInt (head values))) (((IntType, (MyInt (word8ToInt (head values)))) : stack), pc + 2, table)
 -- * OK
-evalValue 0x06 values stack pc table = trace ("COMPARE_OP "    ++ show (word8ToInt (values !! 0))) (compareOpCall (values !! 0) stack, pc + 2, table)
+evalValue 0x06 values stack pc table = trace ("COMPARE_OP "    ++ show (word8ToInt (head values))) (compareOpCall (head values) stack, pc + 2, table)
 -- * OK
-evalValue 0x07 values stack pc table = trace ("JUMP_IF_TRUE "  ++ show (bytesToInt values)) (if (stack !! 0) /= 0 then (stack, (bytesToInt values), table) else (stack, pc + 5, table))
+evalValue 0x07 values stack pc table = trace ("JUMP_IF_TRUE "  ++ show (bytesToInt values)) (if (getLastIntFromStack stack) /= 0 then (tail stack, (bytesToInt values), table) else (tail stack, pc + 5, table))
 -- * OK
-evalValue 0x08 values stack pc table = trace ("JUMP_IF_FALSE " ++ show (bytesToInt values)) (if (stack !! 0) == 0 then (stack, (bytesToInt values), table) else (stack, pc + 5, table))
+evalValue 0x08 values stack pc table = trace ("JUMP_IF_FALSE " ++ show (bytesToInt values)) (if (getLastIntFromStack stack) == 0 then (tail stack, (bytesToInt values), table) else (tail stack, pc + 5, table))
 -- * OK
 evalValue 0x09 values stack _ table = trace ("JUMP "          ++ show (bytesToInt values)) (stack, bytesToInt values, table)
 -- TODO, Pop the top value from the stack.
-evalValue 0x0A values stack pc table = trace  "POP "                                               ((word8ToInt (values !! 0) : stack), pc + 1, table)
+evalValue 0x0A values stack pc table = trace  "POP "                                               ((IntType, (MyInt (word8ToInt (head values)))) : stack, pc + 1, table)
 -- TODO, Duplicate the top value on the stack.
-evalValue 0x0B values stack pc table = trace  "DUP "                                               ((word8ToInt (values !! 0) : stack), pc + 1, table)
+evalValue 0x0B values stack pc table = trace  "DUP "                                               ((IntType, (MyInt (word8ToInt (head values)))) : stack, pc + 1, table)
 -- TODO, if x == 1, print, if x == 60, exit
-evalValue 0x0C values stack pc table = trace ("CALL "          ++ show (word8ToInt (values !! 0))) ((word8ToInt (values !! 0) : stack), pc + 2, table)
+evalValue 0x0C values stack pc table = trace ("CALL "          ++ show (word8ToInt (head values))) ((IntType, (MyInt (word8ToInt (head values)))) : stack, pc + 2, table)
 -- TODO, return the value at the top of the stack to the caller.
-evalValue 0x0D _ stack _ table = trace  "RETURN "                                            (stack, -1, table)
+evalValue 0x0D _ stack _ table = trace  "RETURN "                                            (deleteUntilAddressExceptOne stack 0, getLastAddressFromStack stack, table)
+-- TODO create a new frame
+evalValue 0x0E values stack pc table = trace "LOAD_PC "                                            (((AddressType, (MyInt (pc + 6))) : stack), pc + 1, table) -- pc + 6 because LOAD_PC + JUMP
 evalValue a b c d e = trace ("Unknown opcode: " ++ show a ++ " | values: " ++ show b ++ " | stack: " ++ show c ++ " | pc: " ++ show d ++ " | table: " ++ show e) ([], -1, [])
 
 -- ? we have two bytecodes lists because if we move forward in the list, we can't go back
 --              bytecodes  bytecodes  stack      PC   VariableTable     (new_bytecodes, new_stack, new_VariableTable)
-evalEachValue :: [Word8] -> [Word8] -> [Int] -> Int -> VariableTable -> ([Word8], [Int], VariableTable)
+evalEachValue :: [Word8] -> [Word8] -> StackTable -> Int -> VariableTable -> ([Word8], StackTable, VariableTable)
 evalEachValue _ [] stack _ _ = trace ("-- End of bytecodes Stack: " ++ show stack) ([], stack, [])
 evalEachValue bytecodes (x:xs) stack pc table = do
     let (new_stack, new_pc, new_table) = trace ("evalValue executed with pc = " ++ show pc ++ " | opcode = " ++ show x) $ evalValue x xs stack pc table
@@ -175,12 +205,12 @@ main = do
                 putStrLn "Magic number is incorrect"
                 exitWith (ExitFailure 84)
             else do
-                let (_, stack, _) = evalEachValue bytecode (drop 32 bytecode) [] 32 []
+                let (_, stack, _) = evalEachValue bytecode (drop headerSize bytecode) [] headerSize []
                 if length stack < 1 then do
                     putStrLn ("Stack is empty")
                     exitWith (ExitFailure 84)
                 else do
-                    putStrLn ("Result: " ++ show (stack !! 0))
+                    putStrLn ("Result: " ++ show (getLastIntFromStack stack))
                     exitWith (ExitSuccess)
 
         _ -> do

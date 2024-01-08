@@ -11,7 +11,7 @@ import Data.Bits
 
 
 sizeOfHeader :: Int
-sizeOfHeader = 32
+sizeOfHeader = 32 + 5 -- 32 for the header and 5 for the first jump
 
 -- * --
 -- ; Opcode Definitions
@@ -64,8 +64,8 @@ getLengthOfOperation Dup = 1
 getLengthOfOperation (Call _) = 2
 getLengthOfOperation Return = 1
 getLengthOfOperation EntryPoint = 1
-getLengthOfOperation (FunEntryPoint _) = 5
-getLengthOfOperation (FunEntryPointBefore _) = 5
+getLengthOfOperation (FunEntryPoint _) = 0
+getLengthOfOperation (FunEntryPointBefore _) = 0
 getLengthOfOperation (CallUserFun _) = 5 -- should not append
 getLengthOfOperation (CallUserFunBefore _) = 5
 getLengthOfOperation LoadPC = 1
@@ -106,7 +106,7 @@ remplaceAllJump bytecode jumpId nmb_jmp = remplaceAllJump (remplaceJumpRef bytec
 
 getFunctData :: [Bytecode] -> Int -> [(Int, String)]
 getFunctData [] _ = []
-getFunctData (FunEntryPointBefore x : xs) pos = (pos, x) : getFunctData xs (pos + 5)
+getFunctData (FunEntryPointBefore x : xs) pos = (pos, x) : getFunctData xs pos
 getFunctData (x:xs) pos = getFunctData xs (pos + getLengthOfOperation x)
 
 remplaceFunEntryPoint :: [Bytecode] -> (Int, String) -> [Bytecode]
@@ -119,6 +119,11 @@ remplaceFunEntryPoint (x:xs) fun_data = x : remplaceFunEntryPoint xs fun_data
 remplaceAllFun :: [Bytecode] -> [(Int, String)] -> [Bytecode]
 remplaceAllFun bytecode [] = bytecode
 remplaceAllFun bytecode (x : xs) = (remplaceAllFun (remplaceFunEntryPoint bytecode x) xs)
+
+findPosMain :: [Bytecode] -> Int -> Int
+findPosMain [] pos = 0
+findPosMain (FunEntryPointBefore "main" : xs) pos = pos
+findPosMain (x:xs) pos = trace ("findPosMain: " ++ show x ++ " " ++ show pos) (findPosMain xs (pos + getLengthOfOperation x))
 
 
 -- * ------------------------------------------ INSTRUCTION ------------------------------------------ * --
@@ -139,6 +144,7 @@ toHexaInstruction Pop =             [0x0A]
 toHexaInstruction Dup =             [0x0B]
 toHexaInstruction (Call x) =        (0x0C : int8_ToBytes x)
 toHexaInstruction Return =          [0x0D]
+toHexaInstruction LoadPC =          [0x0E]
 toHexaInstruction x = trace ("Error: toHexaInstruction: Unknown instruction" ++ show x) []
 
 -- * ------------------------------------------ HEADER ------------------------------------------ * --
@@ -159,16 +165,22 @@ bytecodeToBinary bytecode = do
     let nmp_jmp = getNmbrOfJumps bytecode
     let bytecode2 = remplaceAllJump bytecode 1 nmp_jmp -- 1 because the first jump is at 1
     let bytecode3 = filter (\x -> case x of JumpRef _ -> False; _ -> True) bytecode2
-    print ("bytecode3")
-    print (bytecode3)
+    -- print ("bytecode3")
+    -- print (bytecode3)
     let funct_data = getFunctData bytecode3 sizeOfHeader
-    print ("funct_data")
-    print (funct_data)
+    -- print ("funct_data")
+    -- print (funct_data)
     let bytecode4 = (remplaceAllFun bytecode3 funct_data)
-    print ("bytecode4")
-    print (bytecode4)
-    -- print (bytecodeToBytes bytecode4)
-    -- writeBytesToFile "file.bin" (getHeader ++ (bytecodeToBytes bytecode3))
+    -- print ("bytecode4")
+    -- print (bytecode4)
+    let posMain = findPosMain bytecode4 sizeOfHeader
+    let bytecode5 = [(Jump posMain)] ++ filter (\x -> case x of FunEntryPointBefore _ -> False; _ -> True) bytecode4
+    print ("bytecode5")
+    print (bytecode5)
+    let binary = getHeader ++ (bytecodeToBytes bytecode5)
+    print ("binary")
+    print (binary)
+    writeBytesToFile "file.bin" binary
 
 -- todo 5 first bytes after header are a jmp to the main function (entry point)
 
