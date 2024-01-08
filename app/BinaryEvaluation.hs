@@ -139,50 +139,49 @@ bytesToInt bytes =
   where
     byte n = genericTake (4 :: Int) bytes !! n
 
+
+-- ? stack is global, JUMP_WITH_ARGS is useless ?
 --           opcode   values    stack     PC    VariableTable    (new_stack, new_pc, new_VariableTable)
 evalValue :: Word8 -> [Word8] -> StackTable -> Int -> VariableTable -> (StackTable, Int, VariableTable)
--- * OK
 evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToInt values))        (((IntType, (MyInt (bytesToInt values))) : stack), pc + 5, table)
--- * OK
 evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (word8ToInt (head values))) ((IntType, (MyInt (getIntFromVariable [intToChar (word8ToInt (head values))] table))) : stack, pc + 2, table)
--- * OK
 evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (word8ToInt (head values))) (tail stack, pc + 2, updateVariable [intToChar (word8ToInt (head values))] IntType (MyInt (getLastIntFromStack stack)) table)
 -- TODO && || !
 evalValue 0x04 values stack pc table = trace ("BINARY_OP "     ++ show (word8ToInt (head values))) (binaryOpCall (head values) stack, pc + 2, table)
 -- TODO
 evalValue 0x05 values stack pc table = trace ("UNARY_OP "      ++ show (word8ToInt (head values))) (((IntType, (MyInt (word8ToInt (head values)))) : stack), pc + 2, table)
--- * OK
 evalValue 0x06 values stack pc table = trace ("COMPARE_OP "    ++ show (word8ToInt (head values))) (compareOpCall (head values) stack, pc + 2, table)
--- * OK
 evalValue 0x07 values stack pc table = trace ("JUMP_IF_TRUE "  ++ show (bytesToInt values))        (if (getLastIntFromStack stack) /= 0 then (tail stack, (bytesToInt values), table) else (tail stack, pc + 5, table))
--- * OK
 evalValue 0x08 values stack pc table = trace ("JUMP_IF_FALSE " ++ show (bytesToInt values))        (if (getLastIntFromStack stack) == 0 then (tail stack, (bytesToInt values), table) else (tail stack, pc + 5, table))
--- * OK
 evalValue 0x09 values stack _ table = trace ("JUMP "          ++ show (bytesToInt values))         (stack, bytesToInt values, table)
--- TODO new table frame + grab args
+-- TODO new table frame + (take last x values from stack)
+-- ! CREATE A NEW VARIABLE TABLE
 evalValue 0x0A values stack _ table = trace  ("JUMP_WITH_ARGS " ++ show (bytesToInt values) ++ " " ++ show (word8ToInt (head (drop 4 values)))) (stack, bytesToInt values, table)
--- * OK
 evalValue 0x0B _ stack pc table = trace  "POP "                                                    (tail stack, pc + 1, table)
--- * OK
 evalValue 0x0C _ (s:stack) pc table = trace  "DUP "                                                (s : s : stack, pc + 1, table)
 -- TODO, if x == 1, print, if x == 60, exit
 evalValue 0x0D values stack pc table = trace ("CALL "          ++ show (word8ToInt (head values))) ((IntType, (MyInt (word8ToInt (head values)))) : stack, pc + 2, table)
--- * OK
+-- ! TAKE THE LAST VARIABLE TABLE
 evalValue 0x0E _ stack _ table = trace  "RETURN "                                                  (deleteUntilAddressExceptOne stack 0, getLastAddressFromStack stack, table)
--- * OK
 evalValue 0x0F _ stack pc table = trace "LOAD_PC "                                                 (((AddressType, (MyInt (pc + 6))) : stack), pc + 1, table) -- pc + 6 because LOAD_PC + JUMP
 evalValue a b c d e = trace ("Unknown opcode: " ++ show a ++ " | values: " ++ show b ++ " | stack: " ++ show c ++ " | pc: " ++ show d ++ " | table: " ++ show e) ([], -1, [])
 
 -- ? we have two bytecodes lists because if we move forward in the list, we can't go back
---              bytecodes  bytecodes  stack      PC   VariableTable     (new_bytecodes, new_stack, new_VariableTable)
-evalEachValue :: [Word8] -> [Word8] -> StackTable -> Int -> VariableTable -> ([Word8], StackTable, VariableTable)
-evalEachValue _ [] stack _ _ = trace ("-- End of bytecodes Stack: " ++ show stack) ([], stack, [])
-evalEachValue bytecodes (x:xs) stack pc table = do
-    let (new_stack, new_pc, new_table) = trace ("evalValue executed with pc = " ++ show pc ++ " | opcode = " ++ show x) $ evalValue x xs stack pc table
-    if new_pc == -1 then ([], new_stack, [])
+--              bytecodes  bytecodes  stack      PC   VariableTable    -> stack
+evalEachValue :: [Word8] -> [Word8] -> StackTable -> Int -> [VariableTable] -> StackTable
+evalEachValue _ [] stack _ _ = trace ("-- End of bytecodes Stack: " ++ show stack) stack
+evalEachValue bytecodes (x:xs) stack pc tables = do
+    let (new_stack, new_pc, new_table) = trace ("evalValue executed with pc = " ++ show pc ++ " | opcode = " ++ show x) $ evalValue x xs stack pc (head tables) -- ? head or tail ?
+    let debugInfo = "pc = " ++ show pc ++ " | opcode = " ++ show x ++ " | stack = " ++ show stack ++ " | new_stack = " ++ show new_stack ++ " | new_pc = " ++ show new_pc ++ " | new_table = " ++ show new_table
+    if new_pc == -1 then
+        stack
     else
-        trace ("pc = " ++ show pc ++ " | opcode = " ++ show x ++ " | stack = " ++ show stack ++ " | new_stack = " ++ show new_stack ++ " | new_pc = " ++ show new_pc ++ " | new_table = " ++ show new_table)
-        $ evalEachValue bytecodes (drop new_pc bytecodes) new_stack new_pc new_table
+        if x == 0x0A then
+            trace debugInfo $ evalEachValue bytecodes (drop new_pc bytecodes) new_stack new_pc ([] : new_table : (tail tables))
+        else if x == 0x0E then
+            trace debugInfo $ evalEachValue bytecodes (drop new_pc bytecodes) new_stack new_pc (tail tables)
+        else
+            trace debugInfo $ evalEachValue bytecodes (drop new_pc bytecodes) new_stack new_pc (new_table : (tail tables))
 
 
 --[0x7a, 0x69, 0x7a, 0x69]
@@ -206,7 +205,7 @@ main = do
                 putStrLn "Magic number is incorrect"
                 exitWith (ExitFailure 84)
             else do
-                let (_, stack, _) = evalEachValue bytecode (drop headerSize bytecode) [] headerSize []
+                let stack = evalEachValue bytecode (drop headerSize bytecode) [] headerSize [[]]
                 if length stack < 1 then do
                     putStrLn ("Stack is empty")
                     exitWith (ExitFailure 84)
