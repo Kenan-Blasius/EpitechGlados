@@ -9,6 +9,10 @@ import qualified Data.ByteString as BS
 import Data.Word (Word8)
 import Data.Bits
 
+
+sizeOfHeader :: Int
+sizeOfHeader = 32
+
 -- * --
 -- ; Opcode Definitions
 -- LOAD_CONST      0x01
@@ -38,11 +42,6 @@ toHexaString x = map (fromIntegral . ord) x
 charToWord8 :: Char -> Word8
 charToWord8 = fromIntegral . fromEnum
 
-getNmbrOfJumps :: [Bytecode] -> Int
-getNmbrOfJumps [] = 0
-getNmbrOfJumps (x:xs) = case x of
-    JumpRef _ -> 1 + getNmbrOfJumps xs
-    _ -> getNmbrOfJumps xs
 
 -- TODO variables names stored as id
 
@@ -71,6 +70,15 @@ getLengthOfOperation (CallUserFun _) = 5 -- should not append
 getLengthOfOperation (CallUserFunBefore _) = 5
 getLengthOfOperation LoadPC = 1
 
+
+-- * ------------------------------------------ JUMP ------------------------------------------ * --
+
+getNmbrOfJumps :: [Bytecode] -> Int
+getNmbrOfJumps [] = 0
+getNmbrOfJumps (x:xs) = case x of
+    JumpRef _ -> 1 + getNmbrOfJumps xs
+    _ -> getNmbrOfJumps xs
+
 --                 bytecode  -> id -> position
 remplaceJumpRef :: [Bytecode] -> Int -> Int -> [Bytecode]
 remplaceJumpRef [] _ _ = []
@@ -92,12 +100,28 @@ findJumpRef (x:xs) jumpId pos = findJumpRef xs jumpId (pos + getLengthOfOperatio
 --                 bytecode  -> jumpId -> nmb_jmp
 remplaceAllJump :: [Bytecode] -> Int -> Int -> [Bytecode]
 remplaceAllJump bytecode jumpId nmb_jmp | jumpId > nmb_jmp = bytecode
-remplaceAllJump bytecode jumpId nmb_jmp = remplaceAllJump (remplaceJumpRef bytecode jumpId (findJumpRef bytecode jumpId 32)) (jumpId + 1) nmb_jmp
--- * --                                                                                                                 |
--- * --                                                                                                           pos of begining
+remplaceAllJump bytecode jumpId nmb_jmp = remplaceAllJump (remplaceJumpRef bytecode jumpId (findJumpRef bytecode jumpId sizeOfHeader)) (jumpId + 1) nmb_jmp
 
-remplaceAllFunJump :: [Bytecode] -> Int -> Int -> [Bytecode]
-remplaceAllFunJump bytecode jumpId nmb_jmp | jumpId > nmb_jmp = bytecode
+-- * ------------------------------------------ FUNCTION CALL ------------------------------------------ * --
+
+getFunctData :: [Bytecode] -> Int -> [(Int, String)]
+getFunctData [] _ = []
+getFunctData (FunEntryPointBefore x : xs) pos = (pos, x) : getFunctData xs (pos + 5)
+getFunctData (x:xs) pos = getFunctData xs (pos + getLengthOfOperation x)
+
+remplaceFunEntryPoint :: [Bytecode] -> (Int, String) -> [Bytecode]
+remplaceFunEntryPoint [] _ = []
+remplaceFunEntryPoint ((CallUserFunBefore x) : xs) (pos, name) | x == name = (Jump pos : remplaceFunEntryPoint xs (pos, name))
+remplaceFunEntryPoint (x:xs) fun_data = x : remplaceFunEntryPoint xs fun_data
+
+
+--                 bytecode  -> (pos, name) ->      bytecode
+remplaceAllFun :: [Bytecode] -> [(Int, String)] -> [Bytecode]
+remplaceAllFun bytecode [] = bytecode
+remplaceAllFun bytecode (x : xs) = (remplaceAllFun (remplaceFunEntryPoint bytecode x) xs)
+
+
+-- * ------------------------------------------ INSTRUCTION ------------------------------------------ * --
 
 --                  cur_instr  -> bytes
 toHexaInstruction :: Bytecode -> [Word8]
@@ -117,6 +141,8 @@ toHexaInstruction (Call x) =        (0x0C : int8_ToBytes x)
 toHexaInstruction Return =          [0x0D]
 toHexaInstruction x = trace ("Error: toHexaInstruction: Unknown instruction" ++ show x) []
 
+-- * ------------------------------------------ HEADER ------------------------------------------ * --
+
 getHeader :: [Word8]
 getHeader = [0x7a, 0x69, 0x7a, 0x69] ++ (toHexaString "This is the comment section\0")
 
@@ -133,8 +159,18 @@ bytecodeToBinary bytecode = do
     let nmp_jmp = getNmbrOfJumps bytecode
     let bytecode2 = remplaceAllJump bytecode 1 nmp_jmp -- 1 because the first jump is at 1
     let bytecode3 = filter (\x -> case x of JumpRef _ -> False; _ -> True) bytecode2
+    print ("bytecode3")
     print (bytecode3)
-    print (bytecodeToBytes bytecode3)
-    writeBytesToFile "file.bin" (getHeader ++ (bytecodeToBytes bytecode3))
+    let funct_data = getFunctData bytecode3 sizeOfHeader
+    print ("funct_data")
+    print (funct_data)
+    let bytecode4 = (remplaceAllFun bytecode3 funct_data)
+    print ("bytecode4")
+    print (bytecode4)
+    -- print (bytecodeToBytes bytecode4)
+    -- writeBytesToFile "file.bin" (getHeader ++ (bytecodeToBytes bytecode3))
 
 -- todo 5 first bytes after header are a jmp to the main function (entry point)
+
+-- ? maybe later also for store the string
+

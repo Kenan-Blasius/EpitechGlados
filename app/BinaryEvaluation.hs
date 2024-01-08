@@ -48,7 +48,7 @@ type VariableEntry = (VariableName, VariableType, VariableElement)
 type VariableTable = [VariableEntry]
 
 
-type StackEntry = (StackType, StackElement)
+type StackEntry = (VariableType, VariableElement)
 type StackTable = [StackEntry]
 
 
