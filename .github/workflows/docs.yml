@@ -2,9 +2,10 @@ name: update docs
 
 on:
   push:
-    # Only run workflow if docs/ changed AND the push is on main branch
+    # Only run workflow if docs/ changed AND the push is on main or develop branch
     branches:
       - main
+      - develop
     paths:
       - 'docs/**'
       - '.github/workflows/docs.yml'
