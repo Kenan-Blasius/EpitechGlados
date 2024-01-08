@@ -282,11 +282,8 @@ sexprToAst x | case splitAtValue LineSeparator x of
             Just (b, _, a) -> (b, LineSeparator, a)
     AST [sexprToAst before] <> sexprToAst after
 -- ! Return token
-sexprToAst (ReturnToken : expr : _) = do
-    let expr2 = case expr of
-            ListToken x -> x
-            _ -> [expr]
-    ReturnAST (sexprToAst expr2)
+sexprToAst (ReturnToken : xs) = do
+    ReturnAST (sexprToAst xs)
 -- ! Symbol Tree
 sexprToAst x | listOperatorsASTCheck [AssignToken] x =            binaryOperatorsAST AssignToken AssignAST x
 sexprToAst x | listOperatorsASTCheck [PlusEqualToken] x =         binaryOperatorsAST PlusEqualToken PlusEqualAST x
