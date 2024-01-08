@@ -3,15 +3,25 @@
 ## Description
 
 GLaDOS est un projet de création de langage de programmation.
-Actuelement, il s'agit d'un interpréteur [Chez Scheme Lisp](https://github.com/cisco/ChezScheme/releases/tag/v9.5.8).
+Ce projet est divisé en 2 parties :
+
+- Un compilateur
+  - Un Parser qui transforme un fichier de code en AST
+  - Un compilateur qui transforme l'AST en bytecode puis en fichier binaire
+- Une machine virtuelle
+  - Un programme qui lit un fichier binaire et l'execute
 
 ## Installation
 
 Clonez le repo et lancez `make re`.
 
+## Syntaxe
+
+La syntaxe du langage est décrite dans ici : [Syntaxe](syntax.md)
+
 ## Utilisation
 
-Lancez `./glados <fichier>` pour exécuter un fichier (Chez Scheme lisp) tout comme vous executeriez un code python avec `python <fichier>`.
+Lancez `./glados <fichier>` pour compiler un fichier `.bin` puis `./eval <fichier.bin>` pour l'executer.
 
 ## Auteurs
 
