@@ -36,7 +36,7 @@ parser file filename = do
         putStrLn $ show $ cleanFile file False
         putStrLn "------------------------------------"
         let cleanedFile = cleanFile file False
-        tokenList <- parseFile cleanedFile 1 [absoluteFilename]
+        tokenList <- parseFile cleanedFile 1 [absoluteFilename] file
         checkSyntax tokenList
         putStrLn $ show $ tokenList
         putStrLn "------------------------------------"

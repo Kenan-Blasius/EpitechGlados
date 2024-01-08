@@ -177,20 +177,20 @@ parseToken =
     <|> empty
 
 -- INFO: Create token list
-parseLine :: String -> Int -> String -> IO ([Token])
-parseLine str lineNumber filename =
+parseLine :: String -> Int -> String -> String -> IO ([Token])
+parseLine str lineNumber filename originalStr =
     catch (
         -- for each word in the string generate the tokens
         case runParser (parseMany parseToken) str of
             Just (x, _) -> do
                 return (x)
             Nothing -> do
-                throw (ParserError ("Invalid syntax on file: " ++ show filename ++ " at line " ++ show lineNumber ++ ": " ++ str))
+                throw (ParserError ("Invalid syntax on file: " ++ show filename ++ " at line " ++ show lineNumber ++ ": " ++ originalStr))
         ) handler
     where
         handler :: ParserError -> IO ([Token])
         handler e = do
-            throw (ParserError ("Invalid syntax on file: " ++ show filename ++ " at line " ++ show lineNumber ++ ":\n" ++ str ++ "\n" ++ show e))
+            throw (ParserError ("Invalid syntax on file: " ++ show filename ++ " at line " ++ show lineNumber ++ ":\n" ++ originalStr ++ "\n" ++ show e))
 
 includeFile :: String -> [String] -> IO ([Token])
 includeFile str filenames = do
@@ -204,7 +204,7 @@ includeFile str filenames = do
     putStrLn $ show $ cleanFile file False
     putStrLn "------------------------------------"
     let cleanedFile = cleanFile file False
-    parseFile cleanedFile 1 filenames
+    parseFile cleanedFile 1 filenames file
 
 mergeSymbols :: [Token] -> [String] -> IO [Token]
 mergeSymbols [] _ = return []
@@ -264,12 +264,13 @@ mergeSymbols (x:xs) filenames = do
     rest <- mergeSymbols xs filenames
     return (x : rest)
 
-parseFile :: File -> Int -> [String] -> IO ([Token])
-parseFile (File []) _ _ = return ([])
-parseFile (File (x:xs)) lineNumber filenames = do
-    parsedLine <- parseLine x lineNumber (head filenames)
+parseFile :: File -> Int -> [String] -> File -> IO ([Token])
+parseFile (File []) _ _ _ = return ([])
+parseFile _ _ _ (File []) = return ([])
+parseFile (File (x:xs)) lineNumber filenames (File (ox:oxs)) = do
+    parsedLine <- parseLine x lineNumber (head filenames) ox
     currentLine <- mergeSymbols parsedLine filenames
-    rest <- parseFile (File xs) (lineNumber + 1) filenames
+    rest <- parseFile (File xs) (lineNumber + 1) filenames (File oxs)
     return (currentLine ++ rest)
 
 -- INFO: Convert token list to SExpr
