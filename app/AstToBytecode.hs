@@ -189,6 +189,59 @@ astToBytecode' (ModuloAST x y) bytecode jmp = trace ("ModuloAST: " ++ show x ++ 
         (_, yBytecode, jmp2) = astToBytecode' (AST [y]) bytecode jmp1
     in (AST [], concat [xBytecode, yBytecode, [BinaryOp "%"]], jmp2)
 
+-- * Incrementation and decrementation
+astToBytecode' (IncrementAST x) bytecode jmp = trace ("IncrementAST: " ++ show x) $
+    let (_, xBytecode, jmp1) = astToBytecode' x bytecode jmp
+        incrementCode = [LoadConst 1, BinaryOp "+"]
+        (_, storeCode) = astStoreValue x []
+    in (AST [], xBytecode ++ incrementCode ++ storeCode, jmp1)
+
+astToBytecode' (DecrementAST x) bytecode jmp = trace ("DecrementAST: " ++ show x) $
+    let (_, xBytecode, jmp1) = astToBytecode' x bytecode jmp
+        decrementCode = [LoadConst 1, BinaryOp "-"]
+        (_, storeCode) = astStoreValue x []
+    in (AST [], xBytecode ++ decrementCode ++ storeCode, jmp1)
+
+-- * Assignation avec opération (ex: +=, -=, /=, %=)
+astToBytecode' (PlusEqualAST x y) bytecode jmp = trace ("PlusEqualAST: " ++ show x ++ " += " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' x bytecode jmp
+        (_, yBytecode, jmp2) = astToBytecode' y bytecode jmp1
+        (_, storeCode) = astStoreValue x []
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "+"] ++ storeCode, jmp2)
+
+astToBytecode' (MinusEqualAST x y) bytecode jmp = trace ("MinusEqualAST: " ++ show x ++ " -= " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' x bytecode jmp
+        (_, yBytecode, jmp2) = astToBytecode' y bytecode jmp1
+        (_, storeCode) = astStoreValue x []
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "-"] ++ storeCode, jmp2)
+
+astToBytecode' (TimesEqualAST x y) bytecode jmp = trace ("TimesEqualAST: " ++ show x ++ " *= " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' x bytecode jmp
+        (_, yBytecode, jmp2) = astToBytecode' y bytecode jmp1
+        (_, storeCode) = astStoreValue x []
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "*"] ++ storeCode, jmp2)
+
+astToBytecode' (DivideEqualAST x y) bytecode jmp = trace ("DivideEqualAST: " ++ show x ++ " /= " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' x bytecode jmp
+        (_, yBytecode, jmp2) = astToBytecode' y bytecode jmp1
+        (_, storeCode) = astStoreValue x []
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "/"] ++ storeCode, jmp2)
+
+-- * && and ||
+astToBytecode' (AndAST x y) bytecode jmp = trace ("AndAST: " ++ show x ++ " && " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' x bytecode jmp
+        (_, yBytecode, jmp2) = astToBytecode' y bytecode jmp1
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "&&"], jmp2)
+
+astToBytecode' (OrAST x y) bytecode jmp = trace ("OrAST: " ++ show x ++ " || " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' x bytecode jmp
+        (_, yBytecode, jmp2) = astToBytecode' y bytecode jmp1
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "||"], jmp2)
+
+
+
+
+
 
 -- * Load operations
 -- TODO LoadVar

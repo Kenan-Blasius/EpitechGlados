@@ -3,11 +3,13 @@ import System.Environment
 import Debug.Trace
 
 import qualified Data.ByteString.UTF8 as UTF8
+import qualified Data.ByteString as BS
 import Data.ByteString (unpack)
 import Data.Word (Word8)
 import Data.Bits
 import Data.List (genericTake)
 import Data.Char
+import Data.Int (Int32)
 
 -- ; Opcode Definitions
 -- LOAD_CONST      0x01
@@ -56,10 +58,10 @@ intToChar = chr
 --             ope      stack   new_stack
 binaryOpCall :: Word8 -> [Int] -> [Int]
 binaryOpCall 43 (x:y:xs) = (x + y) : xs
-binaryOpCall 45 (x:y:xs) = (x - y) : xs
+binaryOpCall 45 (x:y:xs) = (y - x) : xs
 binaryOpCall 42 (x:y:xs) = (x * y) : xs
-binaryOpCall 47 (x:y:xs) = (x `div` y) : xs
-binaryOpCall 37 (x:y:xs) = (x `mod` y) : xs
+binaryOpCall 47 (x:y:xs) = (y `div` x) : xs
+binaryOpCall 37 (x:y:xs) = (y `mod` x) : xs
 -- maybe & or | ?
 binaryOpCall _ _ = []
 
@@ -96,14 +98,16 @@ updateVariable name varType element ((n, t, e):xs)
 
 
 
-
-
 bytesToInt :: [Word8] -> Int
 bytesToInt bytes =
-    fromIntegral (byte 0) +
-    (fromIntegral (byte 1) `shiftL` 8) +
-    (fromIntegral (byte 2) `shiftL` 16) +
-    (fromIntegral (byte 3) `shiftL` 24)
+    let val :: Int32
+        val = fromIntegral (byte 0) .|.
+              (fromIntegral (byte 1) `shiftL` 8) .|.
+              (fromIntegral (byte 2) `shiftL` 16) .|.
+              (fromIntegral (byte 3) `shiftL` 24)
+    in if testBit val 31  -- Teste si le bit de signe (32ème bit) est activé
+       then fromIntegral (val - fromIntegral (2^32 :: Int32))  -- Ajuste pour les nombres négatifs
+       else fromIntegral val
   where
     byte n = genericTake (4 :: Int) bytes !! n
 
@@ -152,19 +156,21 @@ evalEachValue bytecodes (x:xs) stack pc table = do
 stringToWord8 :: String -> [Word8]
 stringToWord8 str = unpack (UTF8.fromString str)
 
+byteStringToWord8List :: BS.ByteString -> [Word8]
+byteStringToWord8List = unpack
+
 -- open file given in argument, and print it
 main :: IO ()
 main = do
     args <- getArgs
     case args of
         [filename] -> do
-            contents <- readFile filename
-            let bytecode = stringToWord8 contents
+            contents <- BS.readFile filename  -- Lire le fichier binaire
+            let bytecode = byteStringToWord8List contents  -- Convertir en liste de Word8
             let (_, stack, _) = evalEachValue bytecode bytecode [] 0 []
             putStrLn ("Value returned = " ++ show (stack !! 0))
 
-        _ -> do
-            putStrLn "No file given as an argument"
+        _ -> putStrLn "No file given as an argument"
 
 
 -- not forgot to remove value from stack when we use it
