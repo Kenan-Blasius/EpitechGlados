@@ -1,4 +1,4 @@
-#include "factorial.c"
+#include "examples/factorial.c"
 
 fun debugTest (int a, char c, string s, float f) : (const my_int)
 {

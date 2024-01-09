@@ -1,5 +1,5 @@
 #define my_int int
-#include "debug.c"
+#include "examples/debug.c"
 
 fun factorial (int n) : (int)
 {

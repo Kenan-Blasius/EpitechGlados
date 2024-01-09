@@ -655,7 +655,7 @@ parseFileTest =
             assertEqual "parseFile" ([IntTypeToken, SymbolToken "return_my_return", AssignToken, IntToken 42]) (result)
         ),
         TestCase (do
-            let originalFile = (File ["#include \"test.our\""])
+            let originalFile = (File ["#include \"examples/test.c\""])
             let cleanedFile = cleanFile originalFile False
             result <- parseFile cleanedFile 0 [""] originalFile
             assertEqual "parseFile" ([DefineToken, SymbolToken "my_int", IntTypeToken, FunToken, SymbolToken "main", OpenParenthesis, CloseParenthesis, FunTypeToken, SymbolToken "my_int", OpenBraces, ReturnToken, IntToken 0, LineSeparator, CloseBraces]) (result)

@@ -1,4 +1,4 @@
-#include "test2.our"
+#include "examples/test2.c"
 
 fun main() : my_int
 {
