@@ -486,6 +486,7 @@ data DataType =  IntType
                 | CharType
                 | FunType
                 | VoidType
+                | BoolType
                 deriving (Show, Eq)
 
 data Bytecode = LoadConst Int DataType

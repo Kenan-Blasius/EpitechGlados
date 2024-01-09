@@ -139,9 +139,9 @@ dispAllBytecode (x:xs) pos = trace (show pos ++ " " ++ show x) (dispAllBytecode 
 
 --                  cur_instr  -> bytes
 toHexaInstruction :: Bytecode -> [Word8]
-toHexaInstruction (LoadConst x) =   (0x01 : int32_ToBytes x ++ [dataTypeToByte t])
-toHexaInstruction (LoadVar x) =     (0x02 : toHexaString x ++ [dataTypeToByte t]) -- TODO as id
-toHexaInstruction (StoreVar x) =    (0x03 : toHexaString x ++ [dataTypeToByte t])
+toHexaInstruction (LoadConst x t) =   (0x01 : int32_ToBytes x ++ [dataTypeToByte t])
+toHexaInstruction (LoadVar x t) =     (0x02 : toHexaString x ++ [dataTypeToByte t]) -- TODO as id
+toHexaInstruction (StoreVar x t) =    (0x03 : toHexaString x ++ [dataTypeToByte t])
 toHexaInstruction (BinaryOp x) =    (0x04 : [charToWord8 (head x)])
 toHexaInstruction (UnaryOp x) =     (0x05 : [charToWord8 (head x)])
 toHexaInstruction (CompareOp x) =   (0x06 : [charToWord8 (head x)])
