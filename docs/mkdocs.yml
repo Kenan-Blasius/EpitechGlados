@@ -61,5 +61,7 @@ repo_name: Epitech-2026/Glados
 repo_url: https://github.com/EpitechPromo2026/B-FUN-500-MAR-5-2-glados-niels.ouvrard
 
 nav:
-- Installation:
+- Acceuil:
   - index.md
+- Syntaxe:
+  - syntax.md

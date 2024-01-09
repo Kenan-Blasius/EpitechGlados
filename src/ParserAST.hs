@@ -30,11 +30,11 @@ splitAtValue val (x:xs)
 splitAtLastValue :: Eq a => a -> [a] -> Maybe ([a], a, [a])
 splitAtLastValue _ [] = Nothing
 -- splitAtValue until we ge nothing
-splitAtLastValue val (x:xs) = case splitAtValue val xs of
+splitAtLastValue val xs = case splitAtValue val xs of
     Nothing -> Nothing
-    Just (before, v, after) -> case splitAtLastValue val xs of
-        Nothing -> Just (x:before, v, after)
-        Just (before2, v2, after2) -> Just (x:before2, v2, after2)
+    Just (before, v, after) -> case splitAtLastValue val after of
+        Nothing -> Just (before, v, after)
+        Just (before2, v2, after2) -> Just (before ++ v:before2, v2, after2)
 
 getIfChain :: [Token] -> ([Token], [Token])
 getIfChain [] = ([], [])
@@ -282,11 +282,8 @@ sexprToAst x | case splitAtValue LineSeparator x of
             Just (b, _, a) -> (b, LineSeparator, a)
     AST [sexprToAst before] <> sexprToAst after
 -- ! Return token
-sexprToAst (ReturnToken : expr : _) = do
-    let expr2 = case expr of
-            ListToken x -> x
-            _ -> [expr]
-    ReturnAST (sexprToAst expr2)
+sexprToAst (ReturnToken : xs) = do
+    ReturnAST (sexprToAst xs)
 -- ! Symbol Tree
 sexprToAst x | listOperatorsASTCheck [AssignToken] x =            binaryOperatorsAST AssignToken AssignAST x
 sexprToAst x | listOperatorsASTCheck [PlusEqualToken] x =         binaryOperatorsAST PlusEqualToken PlusEqualAST x

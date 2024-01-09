@@ -1,4 +1,7 @@
 module ParserToken (
+    getAbsolutePath,
+    cleanFile,
+
     parseKeyword,
     parseIntToken,
     parseSymbolToken,
@@ -30,6 +33,23 @@ getAbsolutePath :: FilePath -> IO FilePath
 getAbsolutePath relativePath = do
     currentDir <- getCurrentDirectory
     return $ normalise (currentDir </> relativePath)
+
+-- Define the function to clean the file from all comments
+cleanFile :: File -> Bool -> File
+cleanFile (File []) _ = File []
+cleanFile (File (x:xs)) inComment = do
+    let (stillInComment, line) = cleanLine x inComment
+    File ([line] ++ (getFileArray (cleanFile (File xs) stillInComment)))
+    where
+        cleanLine :: String -> Bool -> (Bool, String)
+        cleanLine [] isInComment = (isInComment, [])
+        cleanLine (y:ys) isInComment | isInComment == False && y == '/' && head ys == '/' = (isInComment, [])
+                                    | isInComment == False && y == '/' && head ys == '*' = (True, (snd (cleanLine (tail ys) True)))
+                                    | isInComment == True && y == '*' && head ys == '/' = (False, " " ++ (snd (cleanLine (tail ys) False)))
+                                    | isInComment == True = (isInComment, (snd (cleanLine ys isInComment)))
+                                    | otherwise = (isInComment, [y] ++ (snd (cleanLine ys isInComment)))
+        getFileArray :: File -> [String]
+        getFileArray (File y) = y
 
 -- INFO: Token Parser
 parseKeyword :: String -> Token -> Parser Token
@@ -68,7 +88,7 @@ parseStringToken = Parser f
     where
         f x = case runParser (parseChar '\"') x of
             -- parse all chars in UTF-16 except "
-            Just (_, ys) -> case runParser (parseMany (parseAnyChar [chr i | i <- [0x0000 .. 0x10FFFF], chr i /= '\"'])) ys of
+            Just (_, ys) -> case runParser (parseMany (parseEscapedChar <|> parseAnyChar [chr i | i <- [0x0000 .. 0x10FFFF], chr i /= '\"'])) ys of
                 Just (z, zs) -> case runParser (parseChar '\"') zs of
                     Just (_, ws) -> Just (StringToken z, ws)
                     Nothing -> throw (ParserError "Missing \" token")
@@ -80,7 +100,7 @@ parseCharToken = Parser f
     where
         f x = case runParser (parseChar '\'') x of
             -- parse all chars in UTF-16 except '
-            Just (_, ys) -> case runParser (parseAnyChar [chr i | i <- [0x0000 .. 0x10FFFF], chr i /= '\'']) ys of
+            Just (_, ys) -> case runParser (parseEscapedChar <|> parseAnyChar [chr i | i <- [0x0000 .. 0x10FFFF], chr i /= '\'']) ys of
                 Just (z, zs) -> case runParser (parseChar '\'') zs of
                     Just (_, ws) -> Just (CharToken z, ws)
                     Nothing -> throw (ParserError "Missing ' token")
@@ -104,10 +124,10 @@ parseToken =
     <|> (parseKeyword "float" FloatTypeToken)
     <|> (parseKeyword "char" CharTypeToken)
     <|> (parseKeyword "string" StringTypeToken)
-    -- Comments
-    <|> (parseKeyword "/*" CommentStart)
-    <|> (parseKeyword "*/" CommentEnd)
-    <|> (parseKeyword "//" InlineCommentStart)
+    -- -- Comments
+    -- <|> (parseKeyword "/*" CommentStart)
+    -- <|> (parseKeyword "*/" CommentEnd)
+    -- <|> (parseKeyword "//" InlineCommentStart)
     -- Separator
     <|> (parseKeyword "," CommaToken)
     -- Line separator
@@ -157,20 +177,20 @@ parseToken =
     <|> empty
 
 -- INFO: Create token list
-parseLine :: String -> Int -> String -> IO ([Token])
-parseLine str lineNumber filename =
+parseLine :: String -> Int -> String -> String -> IO ([Token])
+parseLine str lineNumber filename originalStr =
     catch (
         -- for each word in the string generate the tokens
         case runParser (parseMany parseToken) str of
             Just (x, _) -> do
                 return (x)
             Nothing -> do
-                throw (ParserError ("Invalid syntax on file: " ++ show filename ++ " at line " ++ show lineNumber ++ ": " ++ str))
+                throw (ParserError ("Invalid syntax on file: " ++ show filename ++ " at line " ++ show lineNumber ++ ": " ++ originalStr))
         ) handler
     where
         handler :: ParserError -> IO ([Token])
         handler e = do
-            throw (ParserError ("Invalid syntax on file: " ++ show filename ++ " at line " ++ show lineNumber ++ ":\n" ++ str ++ "\n" ++ show e))
+            throw (ParserError ("Invalid syntax on file: " ++ show filename ++ " at line " ++ show lineNumber ++ ":\n" ++ originalStr ++ "\n" ++ show e))
 
 includeFile :: String -> [String] -> IO ([Token])
 includeFile str filenames = do
@@ -181,12 +201,15 @@ includeFile str filenames = do
     putStrLn "------------------------------------"
     putStrLn $ show file
     putStrLn "------------------------------------"
-    parseFile file 1 filenames
+    putStrLn $ show $ cleanFile file False
+    putStrLn "------------------------------------"
+    let cleanedFile = cleanFile file False
+    parseFile cleanedFile 1 filenames file
 
 mergeSymbols :: [Token] -> [String] -> IO [Token]
 mergeSymbols [] _ = return []
--- Once we found a InlineCommentStart we ignore all the rest of the line
-mergeSymbols (InlineCommentStart : _) _ = return []
+-- -- Once we found a InlineCommentStart we ignore all the rest of the line
+-- mergeSymbols (InlineCommentStart : _) _ = return []
 -- include a file
 mergeSymbols (IncludeToken : xs) filenames | head (filter (/= SpaceToken) xs) == StringToken str = do
     filename <- getAbsolutePath str
@@ -241,20 +264,21 @@ mergeSymbols (x:xs) filenames = do
     rest <- mergeSymbols xs filenames
     return (x : rest)
 
-parseFile :: File -> Int -> [String] -> IO ([Token])
-parseFile (File []) _ _ = return ([])
-parseFile (File (x:xs)) lineNumber filenames = do
-    parsedLine <- parseLine x lineNumber (head filenames)
+parseFile :: File -> Int -> [String] -> File -> IO ([Token])
+parseFile (File []) _ _ _ = return ([])
+parseFile _ _ _ (File []) = return ([])
+parseFile (File (x:xs)) lineNumber filenames (File (ox:oxs)) = do
+    parsedLine <- parseLine x lineNumber (head filenames) ox
     currentLine <- mergeSymbols parsedLine filenames
-    rest <- parseFile (File xs) (lineNumber + 1) filenames
+    rest <- parseFile (File xs) (lineNumber + 1) filenames (File oxs)
     return (currentLine ++ rest)
 
 -- INFO: Convert token list to SExpr
 getSubList :: Token -> Token -> [Token] -> ([Token], [Token])
 getSubList _ _ [] = ([], [])
--- Comment case
-getSubList CommentStart CommentEnd (x:xs) | x == CommentEnd = ([], xs)
-getSubList CommentStart CommentEnd (_:xs) = getSubList CommentStart CommentEnd xs
+-- -- Comment case
+-- getSubList CommentStart CommentEnd (x:xs) | x == CommentEnd = ([], xs)
+-- getSubList CommentStart CommentEnd (_:xs) = getSubList CommentStart CommentEnd xs
 -- All case
 getSubList _ close (x:xs) | x == close = ([], xs)
 getSubList open close (x:xs) | x == open = do
@@ -267,10 +291,10 @@ getSubList open close (x:xs) = do
 
 tokenListToSexpr :: [Token] -> [Token]
 tokenListToSexpr [] = []
--- all between comment is ignored
-tokenListToSexpr (CommentStart : xs) = do
-    let (_, rest) = getSubList CommentStart CommentEnd xs
-    tokenListToSexpr rest
+-- -- all between comment is ignored
+-- tokenListToSexpr (CommentStart : xs) = do
+--     let (_, rest) = getSubList CommentStart CommentEnd xs
+--     tokenListToSexpr rest
 -- Fix minus token being assigned to the number even if it should be a binary operator
 tokenListToSexpr (SymbolToken x : IntToken y : xs) | y < 0 = do
     (SymbolToken x : MinusToken : IntToken (-y) : tokenListToSexpr xs)
