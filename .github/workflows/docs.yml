@@ -15,9 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          repository: EpitechPromo2026/B-FUN-500-MAR-5-2-glados-niels.ouvrard
-          ref: main
 
       - name: Clone Glados public repo
         uses: actions/checkout@v3
