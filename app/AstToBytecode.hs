@@ -81,8 +81,8 @@ astConditionToBytecode (GreaterThanAST      cond1 cond2) = (valueSimpleToBytecod
 astConditionToBytecode (LessThanEqualAST    cond1 cond2) = (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "<="]
 astConditionToBytecode (GreaterThanEqualAST cond1 cond2) = (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp ">="]
 astConditionToBytecode (NotEqualAST         cond1 cond2) = (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "!="]
--- astConditionToBytecode (AndAST cond1 cond2) =
--- astConditionToBytecode (OrAST cond1 cond2) =
+astConditionToBytecode (AndAST cond1 cond2) = astConditionToBytecode cond1 ++ astConditionToBytecode cond2 ++ [BinaryOp "&&"]
+astConditionToBytecode (OrAST cond1 cond2) = astConditionToBytecode cond1 ++ astConditionToBytecode cond2 ++ [BinaryOp "||"]
 astConditionToBytecode x = trace ("astConditionToBytecode NO AST CONDITION NODE FOUND: " ++ show x) []
 
 
@@ -222,8 +222,59 @@ astToBytecode' (ModuloAST x y) jmp = trace ("ModuloAST: " ++ show x ++ " % " ++ 
         (_, yBytecode, jmp2) = astToBytecode' (AST [y]) jmp1
     in (AST [], concat [xBytecode, yBytecode, [BinaryOp "%"]], jmp2)
 
+-- * Incrementation and decrementation
+astToBytecode' (IncrementAST x) jmp = trace ("IncrementAST: " ++ show x) $
+    let (_, xBytecode, jmp1) = astToBytecode' x jmp
+        incrementCode = [LoadConst 1, BinaryOp "+"]
+        storeCode = astStoreValue x
+    in (AST [], xBytecode ++ incrementCode ++ storeCode, jmp1)
+
+astToBytecode' (DecrementAST x) jmp = trace ("DecrementAST: " ++ show x) $
+    let (_, xBytecode, jmp1) = astToBytecode' x jmp
+        decrementCode = [LoadConst 1, BinaryOp "-"]
+        storeCode = astStoreValue x
+    in (AST [], xBytecode ++ decrementCode ++ storeCode, jmp1)
+
+-- * Assignation avec opération (ex: +=, -=, /=, %=)
+astToBytecode' (PlusEqualAST x y) jmp = trace ("PlusEqualAST: " ++ show x ++ " += " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' x jmp
+        (_, yBytecode, jmp2) = astToBytecode' y jmp1
+        storeCode = astStoreValue x
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "+"] ++ storeCode, jmp2)
+
+astToBytecode' (MinusEqualAST x y) jmp = trace ("MinusEqualAST: " ++ show x ++ " -= " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' x jmp
+        (_, yBytecode, jmp2) = astToBytecode' y jmp1
+        storeCode = astStoreValue x
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "-"] ++ storeCode, jmp2)
+
+astToBytecode' (TimesEqualAST x y) jmp = trace ("TimesEqualAST: " ++ show x ++ " *= " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' x jmp
+        (_, yBytecode, jmp2) = astToBytecode' y jmp1
+        storeCode = astStoreValue x
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "*"] ++ storeCode, jmp2)
+
+astToBytecode' (DivideEqualAST x y) jmp = trace ("DivideEqualAST: " ++ show x ++ " /= " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' x jmp
+        (_, yBytecode, jmp2) = astToBytecode' y jmp1
+        storeCode = astStoreValue x
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "/"] ++ storeCode, jmp2)
+
+-- * && and ||
+astToBytecode' (AndAST x y) jmp = trace ("AndAST: " ++ show x ++ " && " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' x jmp
+        (_, yBytecode, jmp2) = astToBytecode' y jmp1
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "&&"], jmp2)
+
+astToBytecode' (OrAST x y) jmp = trace ("OrAST: " ++ show x ++ " || " ++ show y) $
+    let (_, xBytecode, jmp1) = astToBytecode' x jmp
+        (_, yBytecode, jmp2) = astToBytecode' y jmp1
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "||"], jmp2)
+
 -- * Load operations
 astToBytecode' (SymbolAST x) jmp = trace ("SymbolAST: " ++ show x) $ (AST [], [LoadVar x], jmp)
 astToBytecode' (IntAST x) jmp = trace ("IntAST: " ++ show x) $ (AST [], [LoadConst x], jmp)
 astToBytecode' DeadLeafAST jmp = trace ("DeadLeafAST") $ (AST [], [], jmp)
 astToBytecode' a jmp = trace ("Unknown AST node bytecode: " ++ show a ++ " ") (a, [], jmp)
+
+-- todo code variable on id, to handle more than 1 byte

@@ -3,12 +3,13 @@ import System.Exit
 
 import Debug.Trace
 
-import qualified Data.ByteString.UTF8 as UTF8
+import qualified Data.ByteString as BS
 import Data.ByteString (unpack)
 import Data.Word (Word8)
 import Data.Bits
 import Data.List (genericTake)
 import Data.Char
+import Data.Int (Int32)
 
 -- ; Opcode Definitions
 -- LOAD_CONST      0x01
@@ -69,16 +70,19 @@ binaryOpCall 45 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x - y)) : 
 binaryOpCall 42 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x * y)) : xs
 binaryOpCall 47 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x `div` y)) : xs
 binaryOpCall 37 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x `mod` y)) : xs
+binaryOpCall 38 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x .&. y)) : xs
+binaryOpCall 124 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x .|. y)) : xs
+binaryOpCall 94 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x `xor` y)) : xs
 binaryOpCall _ stack = stack  -- Default case, no operation for other Word8 values
 -- maybe & or | ?
 
 compareOpCall :: Word8 -> StackTable -> StackTable
 compareOpCall 60 ((_, MyInt y) : (_, MyInt x) : xs) =
-    trace ("x = " ++ show y ++ " < y = " ++ show x) ((if y < x then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+    trace ("stack : top = " ++ show y ++ " > x = " ++ show x) ((if x < y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
 compareOpCall 62 ((_, MyInt y) : (_, MyInt x) : xs) =
-    trace ("x = " ++ show y ++ " > y = " ++ show x) ((if y > x then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+    trace ("stack : top = " ++ show y ++ " < x = " ++ show x) ((if x > y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
 compareOpCall 61 ((_, MyInt y) : (_, MyInt x) : xs) =
-    trace ("x = " ++ show x ++ " == y = " ++ show y) ((if x == y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+    trace ("stack : top = " ++ show y ++ " == x = " ++ show x) ((if x == y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
 compareOpCall _ stack = trace ("stack = " ++ show stack) stack
 
 -- binary side
@@ -137,10 +141,14 @@ deleteUntilAddressExceptOne (_:xs) n = deleteUntilAddressExceptOne xs (n + 1)
 
 bytesToInt :: [Word8] -> Int
 bytesToInt bytes =
-    fromIntegral (byte 0) +
-    (fromIntegral (byte 1) `shiftL` 8) +
-    (fromIntegral (byte 2) `shiftL` 16) +
-    (fromIntegral (byte 3) `shiftL` 24)
+    let val :: Int32
+        val = fromIntegral (byte 0) .|.
+              (fromIntegral (byte 1) `shiftL` 8) .|.
+              (fromIntegral (byte 2) `shiftL` 16) .|.
+              (fromIntegral (byte 3) `shiftL` 24)
+    in if testBit val 31  -- Teste si le bit de signe (32ème bit) est activé
+       then fromIntegral (val - (1 `shiftL` 32 :: Int32))  -- Ajuste pour les nombres négatifs
+       else fromIntegral val
   where
     byte n = genericTake (4 :: Int) bytes !! n
 
@@ -189,13 +197,12 @@ evalEachValue bytecodes (x:xs) stack pc tables = do
             trace debugInfo $ evalEachValue bytecodes (drop new_pc bytecodes) new_stack new_pc (new_table : (tail tables))
 
 
+byteStringToWord8List :: BS.ByteString -> [Word8]
+byteStringToWord8List = unpack
 --[0x7a, 0x69, 0x7a, 0x69]
 checkMagicNumber :: [Word8] -> Bool
 checkMagicNumber [0x7a, 0x69, 0x7a, 0x69] = True
 checkMagicNumber _ = False
-
-stringToWord8 :: String -> [Word8]
-stringToWord8 str = unpack (UTF8.fromString str)
 
 -- open file given in argument, and print it
 main :: IO ()
@@ -203,9 +210,8 @@ main = do
     args <- getArgs
     case args of
         [filename] -> do
-            contents <- readFile filename
-            -- putStrLn "Magic number check"
-            let bytecode = stringToWord8 contents
+            contents <- BS.readFile filename  -- Lire le fichier binaire
+            let bytecode = byteStringToWord8List contents  -- Convertir en liste de Word8
             if checkMagicNumber (take 4 bytecode) == False then do
                 putStrLn "Magic number is incorrect"
                 exitWith (ExitFailure 84)
@@ -218,8 +224,7 @@ main = do
                     putStrLn ("Result: " ++ show (getLastIntFromStack stack))
                     exitWith (ExitSuccess)
 
-        _ -> do
-            putStrLn "No file given as an argument"
+        _ -> putStrLn "No file given as an argument"
 
 
 -- not forgot to remove value from stack when we use it

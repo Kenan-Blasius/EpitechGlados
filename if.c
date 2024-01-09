@@ -1,5 +1,10 @@
-if (2 == 0) {
-    return 1;
+int a = 10;
+int b = 2;
+
+if (a > b && a > 100) {
+    return 1
 } else {
-    return 2;
+    return 0
 }
+
+return a;
