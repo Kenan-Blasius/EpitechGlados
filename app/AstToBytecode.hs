@@ -81,8 +81,8 @@ astConditionToBytecode (GreaterThanAST      cond1 cond2) = (valueSimpleToBytecod
 astConditionToBytecode (LessThanEqualAST    cond1 cond2) = (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "<="]
 astConditionToBytecode (GreaterThanEqualAST cond1 cond2) = (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp ">="]
 astConditionToBytecode (NotEqualAST         cond1 cond2) = (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "!="]
--- astConditionToBytecode (AndAST cond1 cond2) =
--- astConditionToBytecode (OrAST cond1 cond2) =
+astConditionToBytecode (AndAST cond1 cond2) = astConditionToBytecode cond1 ++ astConditionToBytecode cond2 ++ [BinaryOp "&&"]
+astConditionToBytecode (OrAST cond1 cond2) = astConditionToBytecode cond1 ++ astConditionToBytecode cond2 ++ [BinaryOp "||"]
 astConditionToBytecode x = trace ("astConditionToBytecode NO AST CONDITION NODE FOUND: " ++ show x) []
 
 
@@ -276,3 +276,5 @@ astToBytecode' (SymbolAST x) jmp = trace ("SymbolAST: " ++ show x) $ (AST [], [L
 astToBytecode' (IntAST x) jmp = trace ("IntAST: " ++ show x) $ (AST [], [LoadConst x], jmp)
 astToBytecode' DeadLeafAST jmp = trace ("DeadLeafAST") $ (AST [], [], jmp)
 astToBytecode' a jmp = trace ("Unknown AST node bytecode: " ++ show a ++ " ") (a, [], jmp)
+
+-- todo code variable on id, to handle more than 1 byte

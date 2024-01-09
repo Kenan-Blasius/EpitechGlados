@@ -70,16 +70,19 @@ binaryOpCall 45 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x - y)) : 
 binaryOpCall 42 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x * y)) : xs
 binaryOpCall 47 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x `div` y)) : xs
 binaryOpCall 37 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x `mod` y)) : xs
+binaryOpCall 38 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x .&. y)) : xs
+binaryOpCall 124 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x .|. y)) : xs
+binaryOpCall 94 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x `xor` y)) : xs
 binaryOpCall _ stack = stack  -- Default case, no operation for other Word8 values
 -- maybe & or | ?
 
 compareOpCall :: Word8 -> StackTable -> StackTable
 compareOpCall 60 ((_, MyInt y) : (_, MyInt x) : xs) =
-    trace ("x = " ++ show y ++ " < y = " ++ show x) ((if y < x then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+    trace ("stack : top = " ++ show y ++ " > x = " ++ show x) ((if x < y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
 compareOpCall 62 ((_, MyInt y) : (_, MyInt x) : xs) =
-    trace ("x = " ++ show y ++ " > y = " ++ show x) ((if y > x then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+    trace ("stack : top = " ++ show y ++ " < x = " ++ show x) ((if x > y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
 compareOpCall 61 ((_, MyInt y) : (_, MyInt x) : xs) =
-    trace ("x = " ++ show x ++ " == y = " ++ show y) ((if x == y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+    trace ("stack : top = " ++ show y ++ " == x = " ++ show x) ((if x == y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
 compareOpCall _ stack = trace ("stack = " ++ show stack) stack
 
 -- binary side

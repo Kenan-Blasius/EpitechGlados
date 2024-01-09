@@ -135,9 +135,9 @@ toHexaInstruction :: Bytecode -> [Word8]
 toHexaInstruction (LoadConst x) =   (0x01 : int32_ToBytes x)
 toHexaInstruction (LoadVar x) =     (0x02 : toHexaString x) -- TODO as id
 toHexaInstruction (StoreVar x) =    (0x03 : toHexaString x)
-toHexaInstruction (BinaryOp x) =    (0x04 : toHexaString x)
-toHexaInstruction (UnaryOp x) =     (0x05 : toHexaString x)
-toHexaInstruction (CompareOp x) =   (0x06 : [charToWord8 (x !! 0)])
+toHexaInstruction (BinaryOp x) =    (0x04 : [charToWord8 (head x)])
+toHexaInstruction (UnaryOp x) =     (0x05 : [charToWord8 (head x)])
+toHexaInstruction (CompareOp x) =   (0x06 : [charToWord8 (head x)])
 toHexaInstruction (JumpIfTrue x) =  (0x07 : int32_ToBytes x)
 toHexaInstruction (JumpIfFalse x) = (0x08 : int32_ToBytes x)
 toHexaInstruction (Jump x) =        (0x09 : int32_ToBytes x)
@@ -179,7 +179,7 @@ bytecodeToBinary bytecode = do
     let posMain = findPosMain bytecode4 sizeOfHeader
     let bytecode5 = [(Jump posMain)] ++ filter (\x -> case x of FunEntryPoint _ -> False; _ -> True) bytecode4
 
-    dispAllBytecode bytecode5 sizeOfHeader
+    dispAllBytecode bytecode5 (sizeOfHeader - 5)
     print ("bytecode5")
     print (bytecode5)
     let binary = getHeader ++ (bytecodeToBytes bytecode5)
