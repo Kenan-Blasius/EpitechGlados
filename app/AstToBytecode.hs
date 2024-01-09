@@ -187,8 +187,8 @@ astToBytecode' (ForAST initi cond increment scope) jmp = do
     (AST [], initiBytecode ++ [JumpRef (new_jmp + 1)] ++ condBytecode ++ [JumpIfFalseBefore new_jmp] ++ scopeBytecode ++ incrementBytecode ++ [JumpBefore (new_jmp + 1)] ++ [JumpRef new_jmp], new_jmp + 1)
 
 -- * RETURN
-astToBytecode' (ReturnAST (AST expr1)) jmp =
-    let (_, expr1Bytecode, jmp_1) = trace ("ReturnAST: " ++ show expr1) (astToBytecode' (AST expr1) jmp)
+astToBytecode' (ReturnAST expr1) jmp =
+    let (_, expr1Bytecode, jmp_1) = trace ("ReturnAST: " ++ show expr1) (astToBytecode' expr1 jmp)
     in (AST [], expr1Bytecode ++ [Return], jmp_1)
 
 -- * Assignation operation
