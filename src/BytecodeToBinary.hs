@@ -74,6 +74,8 @@ dataTypeToByte StringType = 0x02
 dataTypeToByte BoolType = 0x03
 dataTypeToByte FloatType = 0x04
 dataTypeToByte VoidType = 0x05
+dataTypeToByte CharType = 0x06
+dataTypeToByte FunType = 0x07
 
 
 -- * ------------------------------------------ JUMP ------------------------------------------ * --
