@@ -1,14 +1,12 @@
 #define my_int int
-#include "debug.our"
+#include "debug.c"
 
 fun factorial (int n) : (int)
 {
     if (n == 0) {
         return 1;
     } else {
-        // here i break the line to see the AST split with multiple lines
-        n = n * factorial(n-1);
-        return n;
+        return (n * factorial(n-1));
     }
 }
 
