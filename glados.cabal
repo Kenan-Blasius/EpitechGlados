@@ -25,6 +25,8 @@ source-repository head
 
 library
   exposed-modules:
+      AstToBytecode
+      BytecodeToBinary
       Parser
       ParserAST
       ParserModule
@@ -67,8 +69,6 @@ executable glados-exe
   main-is: Main.hs
   other-modules:
       Paths_glados
-      AstToBytecode
-      BytecodeToBinary
   autogen-modules:
       Paths_glados
   hs-source-dirs:

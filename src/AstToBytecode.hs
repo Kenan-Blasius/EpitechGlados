@@ -278,3 +278,5 @@ astToBytecode' DeadLeafAST jmp = trace ("DeadLeafAST") $ (AST [], [], jmp)
 astToBytecode' a jmp = trace ("Unknown AST node bytecode: " ++ show a ++ " ") (a, [], jmp)
 
 -- todo code variable on id, to handle more than 1 byte
+-- int a;
+-- we store empty, but store the type
