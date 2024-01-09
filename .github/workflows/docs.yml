@@ -1,7 +1,6 @@
 name: update docs
 
 on:
-  workflow_dispatch:
   push:
     # Only run workflow if docs/ changed AND the push is on main or develop branch
     branches:
@@ -24,7 +23,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: Kenan-Blasius/glados-doc
-          token: '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'
+          token: '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'
           path: glados-doc
 
       - name: Remove docs content
