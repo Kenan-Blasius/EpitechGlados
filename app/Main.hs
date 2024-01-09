@@ -17,9 +17,8 @@ main = do
             file <- return $ File (lines contents)
             ast <- parser file filename
             putStrLn $ show ast
-            let byt = []
             putStrLn "-----------------"
-            let (_, bytecode, _) = astToBytecode' ast byt 0
+            let (_, bytecode, _) = astToBytecode' ast 0
             putStrLn "-----------------"
             print bytecode
             putStrLn "-----------------"
