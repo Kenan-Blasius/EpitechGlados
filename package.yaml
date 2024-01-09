@@ -47,8 +47,6 @@ executables:
     source-dirs: app
     other-modules:
       - Paths_glados
-      - AstToBytecode
-      - BytecodeToBinary
     ghc-options:
       - -threaded
       - -rtsopts
