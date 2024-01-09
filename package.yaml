@@ -75,6 +75,9 @@ tests:
     main: Spec.hs
     source-dirs: test
     other-modules:
+      - UnitTestParser
+      - UnitTestCompiler
+      - UnitTestEvaluation
       - Paths_glados
     ghc-options:
       - -threaded
