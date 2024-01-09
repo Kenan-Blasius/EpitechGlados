@@ -111,7 +111,7 @@ updateVariable name varType element ((n, t, e):xs)
 getLastIntFromStack :: StackTable -> Int
 getLastIntFromStack [] = 0
 getLastIntFromStack ((IntType, MyInt x):_) = x
-getLastIntFromStack ((_, _):xs) = trace "Not an int" $ getLastIntFromStack xs
+getLastIntFromStack ((_, _):xs) = trace "Not an int, go next in stack" $ getLastIntFromStack xs
 
 deleteLastIntFromStack :: StackTable -> StackTable
 deleteLastIntFromStack [] = []
@@ -121,7 +121,7 @@ deleteLastIntFromStack (x:xs) = x : deleteLastIntFromStack xs
 getLastAddressFromStack :: StackTable -> Int
 getLastAddressFromStack [] = -1
 getLastAddressFromStack ((AddressType, MyInt x):_) = x
-getLastAddressFromStack ((_, _):xs) = trace "Not an address" $ getLastAddressFromStack xs
+getLastAddressFromStack ((_, _):xs) = trace "Not an address, go next in stack" $ getLastAddressFromStack xs
 
 deleteUntilAddress :: StackTable -> StackTable
 deleteUntilAddress [] = []
@@ -176,8 +176,8 @@ evalValue a b c d e = trace ("Unknown opcode: " ++ show a ++ " | values: " ++ sh
 evalEachValue :: [Word8] -> [Word8] -> StackTable -> Int -> [VariableTable] -> StackTable
 evalEachValue _ [] stack _ _ = trace ("-- End of bytecodes Stack: " ++ show stack) stack
 evalEachValue bytecodes (x:xs) stack pc tables = do
-    let (new_stack, new_pc, new_table) = trace ("evalValue executed with pc = " ++ show pc ++ " | opcode = " ++ show x) $ evalValue x xs stack pc (head tables) -- ? head or tail ?
-    let debugInfo = "pc = " ++ show pc ++ " | opcode = " ++ show x ++ " | stack = " ++ show stack ++ " | new_stack = " ++ show new_stack ++ " | new_pc = " ++ show new_pc ++ " | new_table = " ++ show new_table
+    let (new_stack, new_pc, new_table) = evalValue x xs stack pc (head tables) -- ? head or tail ?
+    let debugInfo = "pc = " ++ show pc ++ " | stack = " ++ show new_stack ++ " | next pc = " ++ show new_pc ++ " | table = " ++ show new_table
     if new_pc == -1 then
         stack
     else
