@@ -2,7 +2,6 @@ import System.Environment
 
 import Debug.Trace
 
-import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.ByteString as BS
 import Data.ByteString (unpack)
 import Data.Word (Word8)
@@ -106,7 +105,7 @@ bytesToInt bytes =
               (fromIntegral (byte 2) `shiftL` 16) .|.
               (fromIntegral (byte 3) `shiftL` 24)
     in if testBit val 31  -- Teste si le bit de signe (32ème bit) est activé
-       then fromIntegral (val - fromIntegral (2^32 :: Int32))  -- Ajuste pour les nombres négatifs
+       then fromIntegral (val - (1 `shiftL` 32 :: Int32))  -- Ajuste pour les nombres négatifs
        else fromIntegral val
   where
     byte n = genericTake (4 :: Int) bytes !! n
@@ -152,9 +151,6 @@ evalEachValue bytecodes (x:xs) stack pc table = do
         trace ("pc = " ++ show pc ++ " | opcode = " ++ show x ++ " | stack = " ++ show stack ++ " | new_stack = " ++ show new_stack ++ " | new_pc = " ++ show new_pc ++ " | new_table = " ++ show new_table)
         $ evalEachValue bytecodes (drop new_pc bytecodes) new_stack new_pc new_table
 
-
-stringToWord8 :: String -> [Word8]
-stringToWord8 str = unpack (UTF8.fromString str)
 
 byteStringToWord8List :: BS.ByteString -> [Word8]
 byteStringToWord8List = unpack
