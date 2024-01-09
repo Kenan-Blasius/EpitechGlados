@@ -1,4 +1,6 @@
-fun main () : int
+fun main (const int a) : int
 {
-    return 0;
+    int b;
+    string c;
+    char o;
 }

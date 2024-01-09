@@ -89,6 +89,7 @@ astConditionToBytecode x = trace ("astConditionToBytecode NO AST CONDITION NODE 
 astStoreValue :: AST -> [Bytecode]
 astStoreValue (AST [IntTypeAST, SymbolAST x]) = trace ("Get Value Int symbol " ++ show x) $ [StoreVar x IntType]
 astStoreValue (AST [SymbolAST x]) = trace ("Get Value Symbol " ++ show x) $ [StoreVar x StringType]
+astStoreValue (AST [CharTypeAST, SymbolAST x]) = trace ("Get Value Char symbol " ++ show x) $ [StoreVar x CharType]
 astStoreValue x = trace ("astStoreValue NO AST STORE NODE FOUND" ++ show x) $ []
 
 astStoreArgs :: AST -> [Bytecode]
@@ -120,6 +121,12 @@ astToBytecode' (AST [SymbolAST "print", x]) jmp =
 astToBytecode' (AST [SymbolAST "exit", x]) jmp =
     let (xAST, xBytecode, jmp_1) = astToBytecode' (AST [x]) jmp
     in (xAST, xBytecode ++ [Call 60], jmp_1)
+
+
+astToBytecode' (AST [IntTypeAST, SymbolAST x]) jmp = trace ("IntTypeAST: " ++ show x) $ (AST [], [LoadVar x IntType], jmp)
+astToBytecode' (AST [CharTypeAST, SymbolAST x]) jmp = trace ("CharTypeAST: " ++ show x) $ (AST [], [LoadVar x CharType], jmp)
+astToBytecode' (AST [StringTypeAST, SymbolAST x]) jmp = trace ("StringTypeAST: " ++ show x) $ (AST [], [LoadVar x StringType], jmp)
+-- astToBytecode' (BoolTypeAST, SymbolAST x) jmp = trace ("BoolTypeAST: " ++ show x) $ (AST [], [LoadVar 0 BoolType], jmp)
 
 -- maybe check the type of SymbolAST (variable, function, string...)
 -- ! scary but we keep it for now
