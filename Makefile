@@ -6,12 +6,14 @@
 ##
 
 BINARY_PATH :=  $(shell stack path --local-install-root)
-NAME = glados
+GLADOS = glados
+EVAL = eval
 TEST_DIR = test
 
 all:
 		stack build
-		cp $(BINARY_PATH)/bin/$(NAME)-exe ./$(NAME)
+		cp $(BINARY_PATH)/bin/$(GLADOS)-exe ./$(GLADOS)
+		cp $(BINARY_PATH)/bin/$(EVAL)-exe ./$(EVAL)
 
 clean:
 		stack clean

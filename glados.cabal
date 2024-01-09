@@ -1,6 +1,6 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.35.0.
+-- This file has been generated from package.yaml by hpack version 0.36.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -26,6 +26,9 @@ source-repository head
 library
   exposed-modules:
       Parser
+      ParserAST
+      ParserModule
+      ParserToken
       Types
   other-modules:
       Paths_glados
@@ -36,12 +39,15 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , bytestring
+    , directory
+    , filepath
+    , mtl
   default-language: Haskell2010
 
-executable glados-exe
-  main-is: Main.hs
+executable eval-exe
+  main-is: BinaryEvaluation.hs
   other-modules:
-      Eval
       Paths_glados
   autogen-modules:
       Paths_glados
@@ -50,13 +56,39 @@ executable glados-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , glados
+    , mtl
+    , split
+    , utf8-string
+  default-language: Haskell2010
+
+executable glados-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_glados
+      AstToBytecode
+      BytecodeToBinary
+  autogen-modules:
+      Paths_glados
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , glados
+    , mtl
+    , split
   default-language: Haskell2010
 
 test-suite glados-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      UnitTestParser
+      UnitTestCompiler
+      UnitTestEvaluation
       Paths_glados
   autogen-modules:
       Paths_glados
@@ -66,5 +98,7 @@ test-suite glados-test
   build-depends:
       HUnit >=1.6.2.0
     , base >=4.7 && <5
+    , bytestring
     , glados
+    , mtl
   default-language: Haskell2010

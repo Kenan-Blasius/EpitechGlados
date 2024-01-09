@@ -1,0 +1,23 @@
+#define my_int int
+#include "debug.our"
+
+fun factorial (int n) : (int)
+{
+    if (n == 0) {
+        return 1;
+    } else {
+        // here i break the line to see the AST split with multiple lines
+        n = n * factorial(n-1);
+        return n;
+    }
+}
+
+fun main () : int
+{
+    int a = factorial(a); int b = factorialTest(b, 'b');
+
+    print(a);
+    print(b);
+
+    return 0;
+}

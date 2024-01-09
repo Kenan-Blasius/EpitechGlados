@@ -2,7 +2,8 @@ module Main (main) where
 
 import System.Environment
 import Types
-import Eval
+import AstToBytecode
+import BytecodeToBinary
 import Parser
 
 -- INFO: Main function
@@ -11,10 +12,17 @@ main = do
     args <- getArgs
     case args of
         [filename] -> do
-            putStrLn $ "Running file: " ++ filename
+            -- putStrLn $ "Running file: " ++ filename
             contents <- readFile filename
             file <- return $ File (lines contents)
-            ast <- parser file
-            putStrLn $ show $ evalAST ast
+            ast <- parser file filename
+            putStrLn $ show ast
+            putStrLn "-----------------"
+            let (_, bytecode, _) = astToBytecode' ast 0
+            putStrLn "-----------------"
+            print bytecode
+            putStrLn "-----------------"
+            bytecodeToBinary bytecode
+
         _ -> do
             putStrLn "No file given as an argument"
