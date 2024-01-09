@@ -23,6 +23,7 @@ fun debugTest (int a, char c, string s, float f) : (const my_int)
     int 你好吗 = 42;
     int 42var = 42;
     int forme = 42;
+    forme = -forme;
 
     float myFloat = -84.42;
 
