@@ -1,4 +1,4 @@
-fun factorial (int n) : int
+fun factorial (int n) : (int)
 {
     if (n == 0) {
         return 1;
@@ -10,7 +10,7 @@ fun factorial (int n) : int
 
 fun main () : int
 {
-    int a = 5;
+    int a = 6;
 
     a = factorial(a);
 
