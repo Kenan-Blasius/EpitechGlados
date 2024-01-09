@@ -46,9 +46,9 @@ charToWord8 = fromIntegral . fromEnum
 -- TODO variables names stored as id
 
 getLengthOfOperation :: Bytecode -> Int
-getLengthOfOperation (LoadConst _) = 5 -- 1 for the opcode and 4 for the int
-getLengthOfOperation (LoadVar _) = 2
-getLengthOfOperation (StoreVar _) = 2 -- usually 8 bytes for a pointer
+getLengthOfOperation (LoadConst _ _) = 6 -- 1 for the opcode and 4 for the int and 1 for the type
+getLengthOfOperation (LoadVar _ _) = 3
+getLengthOfOperation (StoreVar _ _) = 3 -- usually 8 bytes for a pointer
 getLengthOfOperation (BinaryOp _) = 2
 getLengthOfOperation (UnaryOp _) = 2
 getLengthOfOperation (CompareOp _) = 2
@@ -67,6 +67,13 @@ getLengthOfOperation Return = 1
 getLengthOfOperation (FunEntryPoint _) = 0
 getLengthOfOperation (CallUserFun _) = 5
 getLengthOfOperation LoadPC = 1
+
+dataTypeToByte :: DataType -> Word8
+dataTypeToByte IntType = 0x01
+dataTypeToByte StringType = 0x02
+dataTypeToByte BoolType = 0x03
+dataTypeToByte FloatType = 0x04
+dataTypeToByte VoidType = 0x05
 
 
 -- * ------------------------------------------ JUMP ------------------------------------------ * --
@@ -132,9 +139,9 @@ dispAllBytecode (x:xs) pos = trace (show pos ++ " " ++ show x) (dispAllBytecode 
 
 --                  cur_instr  -> bytes
 toHexaInstruction :: Bytecode -> [Word8]
-toHexaInstruction (LoadConst x) =   (0x01 : int32_ToBytes x)
-toHexaInstruction (LoadVar x) =     (0x02 : toHexaString x) -- TODO as id
-toHexaInstruction (StoreVar x) =    (0x03 : toHexaString x)
+toHexaInstruction (LoadConst x) =   (0x01 : int32_ToBytes x ++ [dataTypeToByte t])
+toHexaInstruction (LoadVar x) =     (0x02 : toHexaString x ++ [dataTypeToByte t]) -- TODO as id
+toHexaInstruction (StoreVar x) =    (0x03 : toHexaString x ++ [dataTypeToByte t])
 toHexaInstruction (BinaryOp x) =    (0x04 : [charToWord8 (head x)])
 toHexaInstruction (UnaryOp x) =     (0x05 : [charToWord8 (head x)])
 toHexaInstruction (CompareOp x) =   (0x06 : [charToWord8 (head x)])

@@ -6,7 +6,8 @@ module Types (
     Environment,
     indent,
     printAST,
-    Bytecode (..)
+    Bytecode (..),
+    DataType(..)
 ) where
 
 import Control.Exception
@@ -479,9 +480,17 @@ instance Semigroup AST where
 
 
 
-data Bytecode = LoadConst Int
-              | LoadVar String
-              | StoreVar String
+data DataType =  IntType
+                | FloatType
+                | StringType
+                | CharType
+                | FunType
+                | VoidType
+                deriving (Show, Eq)
+
+data Bytecode = LoadConst Int DataType
+              | LoadVar String DataType
+              | StoreVar String DataType
               | BinaryOp String
               | UnaryOp String
               | CompareOp String
@@ -510,9 +519,9 @@ data Bytecode = LoadConst Int
               deriving Eq
 
 instance Show Bytecode where
-    show (LoadConst x) =    "LoadConst " ++ show x
-    show (LoadVar x) =      "LoadVar " ++ x
-    show (StoreVar x) =     "StoreVar " ++ x
+    show (LoadConst x y) =    "LoadConst " ++ show x ++ " " ++ show y
+    show (LoadVar x y) =      "LoadVar " ++ x ++ " " ++ show y
+    show (StoreVar x y) =     "StoreVar " ++ x ++ " " ++ show y
     show (BinaryOp x) =     "BinaryOp " ++ x
     show (UnaryOp x) =      "UnaryOp " ++ x
     show (CompareOp x) =    "CompareOp " ++ x

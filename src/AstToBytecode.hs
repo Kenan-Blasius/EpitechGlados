@@ -5,7 +5,7 @@ module AstToBytecode (
     astStoreValue,
 ) where
 
-import Types
+import Types(Bytecode(..), AST(..), DataType(..))
 import Debug.Trace
 
 -- | IfAST AST AST AST
@@ -67,8 +67,8 @@ valueSimpleToBytecode :: AST -> [Bytecode]
 valueSimpleToBytecode (AST []) = []
 valueSimpleToBytecode (AST (x:_)) = trace ("valueSimpleToBytecode AST (x:xs): " ++ show x) $
     case x of
-        IntAST y -> trace ("valueSimpleToBytecode IntAST: " ++ show y) [LoadConst y]
-        SymbolAST y -> trace ("valueSimpleToBytecode SymbolAST: " ++ show y) [LoadVar y]
+        IntAST y -> trace ("valueSimpleToBytecode IntAST: " ++ show y) [LoadConst y IntType]
+        SymbolAST y -> trace ("valueSimpleToBytecode SymbolAST: " ++ show y) [LoadVar y StringType]
         y -> trace ("valueSimpleToBytecode NO AST SIMPLE NODE FOUND: " ++ show y) []
 valueSimpleToBytecode x = trace ("valueSimpleToBytecode NO AST SIMPLE NODE FOUND: " ++ show x) []
 
@@ -87,8 +87,8 @@ astConditionToBytecode x = trace ("astConditionToBytecode NO AST CONDITION NODE 
 
 
 astStoreValue :: AST -> [Bytecode]
-astStoreValue (AST [IntTypeAST, SymbolAST x]) = trace ("Get Value Int symbol " ++ show x) $ [StoreVar x]
-astStoreValue (AST [SymbolAST x]) = trace ("Get Value Symbol " ++ show x) $ [StoreVar x]
+astStoreValue (AST [IntTypeAST, SymbolAST x]) = trace ("Get Value Int symbol " ++ show x) $ [StoreVar x IntType]
+astStoreValue (AST [SymbolAST x]) = trace ("Get Value Symbol " ++ show x) $ [StoreVar x StringType]
 astStoreValue x = trace ("astStoreValue NO AST STORE NODE FOUND" ++ show x) $ []
 
 astStoreArgs :: AST -> [Bytecode]
@@ -225,13 +225,13 @@ astToBytecode' (ModuloAST x y) jmp = trace ("ModuloAST: " ++ show x ++ " % " ++ 
 -- * Incrementation and decrementation
 astToBytecode' (IncrementAST x) jmp = trace ("IncrementAST: " ++ show x) $
     let (_, xBytecode, jmp1) = astToBytecode' x jmp
-        incrementCode = [LoadConst 1, BinaryOp "+"]
+        incrementCode = [LoadConst 1 IntType, BinaryOp "+"]
         storeCode = astStoreValue x
     in (AST [], xBytecode ++ incrementCode ++ storeCode, jmp1)
 
 astToBytecode' (DecrementAST x) jmp = trace ("DecrementAST: " ++ show x) $
     let (_, xBytecode, jmp1) = astToBytecode' x jmp
-        decrementCode = [LoadConst 1, BinaryOp "-"]
+        decrementCode = [LoadConst 1 IntType, BinaryOp "-"]
         storeCode = astStoreValue x
     in (AST [], xBytecode ++ decrementCode ++ storeCode, jmp1)
 
@@ -272,8 +272,8 @@ astToBytecode' (OrAST x y) jmp = trace ("OrAST: " ++ show x ++ " || " ++ show y)
     in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "||"], jmp2)
 
 -- * Load operations
-astToBytecode' (SymbolAST x) jmp = trace ("SymbolAST: " ++ show x) $ (AST [], [LoadVar x], jmp)
-astToBytecode' (IntAST x) jmp = trace ("IntAST: " ++ show x) $ (AST [], [LoadConst x], jmp)
+astToBytecode' (SymbolAST x) jmp = trace ("SymbolAST: " ++ show x) $ (AST [], [LoadVar x StringType], jmp)
+astToBytecode' (IntAST x) jmp = trace ("IntAST: " ++ show x) $ (AST [], [LoadConst x IntType], jmp)
 astToBytecode' DeadLeafAST jmp = trace ("DeadLeafAST") $ (AST [], [], jmp)
 astToBytecode' a jmp = trace ("Unknown AST node bytecode: " ++ show a ++ " ") (a, [], jmp)
 
