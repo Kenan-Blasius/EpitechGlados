@@ -140,9 +140,16 @@ astToBytecode' (AST [SymbolAST "exit", x]) bytecode jmp =
 --     call(a,b)
 -- }
 
-astToBytecode' (AST (SymbolAST x : (AST y) : xs)) bytecode jmp = do
-    let (yAST, yBytecode, jmp_2) = astToBytecode' (AST xs) bytecode jmp
-    trace ("call function " ++ show x ++ " args " ++ show y) $ (yAST, bytecode ++ (pushArgs (AST y) ++ [LoadPC, CallUserFun x (nmbArgs (AST y))] ++ yBytecode), jmp_2)
+-- ! scary but we keep it for now
+astToBytecode' (AST (SymbolAST x : y : xs)) bytecode jmp = do
+    let (_, aBytecode, _) = astToBytecode' y bytecode jmp
+    let (yAST, yBytecode, jmp_2) = trace ("call function " ++ show x ++ " args " ++ show y ++ " xs " ++ show xs) $ astToBytecode' (AST xs) bytecode jmp
+    trace ("call function " ++ show x ++ " args " ++ show y) $ (yAST, bytecode ++ (aBytecode ++ [LoadPC, CallUserFun x 0] ++ yBytecode), jmp_2)
+
+-- ! old version
+-- astToBytecode' (AST (SymbolAST x : (AST y) : xs)) bytecode jmp = do
+--     let (yAST, yBytecode, jmp_2) = astToBytecode' (AST xs) bytecode jmp
+--     trace ("call function " ++ show x ++ " args " ++ show y) $ (yAST, bytecode ++ (pushArgs (AST y) ++ [LoadPC, CallUserFun x (nmbArgs (AST y))] ++ yBytecode), jmp_2)
 
 -- * (AST (x:xs))
 astToBytecode' (AST (x:xs)) bytecode jmp = trace ("Processing AST node: " ++ show x) $

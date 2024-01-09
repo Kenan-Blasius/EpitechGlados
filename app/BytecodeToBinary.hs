@@ -55,7 +55,7 @@ getLengthOfOperation (CompareOp _) = 2
 getLengthOfOperation (JumpIfTrue _) = 5 -- should not append
 getLengthOfOperation (JumpIfFalse _) = 5 -- should not append
 getLengthOfOperation (Jump _) = 5 -- should not append
-getLengthOfOperation (JumpWithArgs _ _) = 9 -- should not append
+getLengthOfOperation (JumpWithArgs _ _) = 6 -- should not append
 getLengthOfOperation (JumpIfTrueBefore _) = 5
 getLengthOfOperation (JumpIfFalseBefore _) = 5
 getLengthOfOperation (JumpBefore _) = 5
@@ -65,7 +65,7 @@ getLengthOfOperation Dup = 1
 getLengthOfOperation (Call _) = 2
 getLengthOfOperation Return = 1
 getLengthOfOperation (FunEntryPoint _) = 0
-getLengthOfOperation (CallUserFun _ _) = 9 -- should not append
+getLengthOfOperation (CallUserFun _ _) = 6 -- should not append
 getLengthOfOperation LoadPC = 1
 
 
