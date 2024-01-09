@@ -1,7 +1,6 @@
 name: update docs
 
 on:
-  workflow_dispatch:
   push:
     # Only run workflow if docs/ changed AND the push is on main or develop branch
     branches:
