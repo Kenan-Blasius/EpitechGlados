@@ -97,13 +97,7 @@ astStoreArgs (AST []) = trace ("astStoreArgs End") $ []
 astStoreArgs (AST ((AST x) :xs)) = trace ("astStoreArgs AST " ++ show x) $ astStoreArgs (AST x) ++ astStoreArgs (AST xs)
 astStoreArgs x = astStoreValue x
 
-nmbArgs :: AST -> Int
-nmbArgs DeadLeafAST = 0
-nmbArgs (AST [IntTypeAST, SymbolAST _]) = 1
-nmbArgs (AST [SymbolAST _]) = 1
-nmbArgs (AST (x:xs)) = (nmbArgs x) + (nmbArgs (AST xs))
-nmbArgs x = trace ("nmbArgs ERROR " ++ show x) $ 0
-
+-- maybe usefull for scary function
 pushArgs :: AST -> [Bytecode]
 pushArgs DeadLeafAST = trace ("pushArgs empty") $ []
 pushArgs (AST []) = trace ("pushArgs End") $ []
@@ -144,7 +138,7 @@ astToBytecode' (AST [SymbolAST "exit", x]) bytecode jmp =
 astToBytecode' (AST (SymbolAST x : y : xs)) bytecode jmp = do
     let (_, aBytecode, _) = astToBytecode' y bytecode jmp
     let (yAST, yBytecode, jmp_2) = trace ("call function " ++ show x ++ " args " ++ show y ++ " xs " ++ show xs) $ astToBytecode' (AST xs) bytecode jmp
-    trace ("call function " ++ show x ++ " args " ++ show y) $ (yAST, bytecode ++ (aBytecode ++ [LoadPC, CallUserFun x 0] ++ yBytecode), jmp_2)
+    trace ("call function " ++ show x ++ " args " ++ show y) $ (yAST, bytecode ++ (aBytecode ++ [LoadPC, CallUserFun x] ++ yBytecode), jmp_2)
 
 -- ! old version
 -- astToBytecode' (AST (SymbolAST x : (AST y) : xs)) bytecode jmp = do

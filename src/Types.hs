@@ -488,7 +488,7 @@ data Bytecode = LoadConst Int
               | JumpIfTrue Int
               | JumpIfFalse Int
               | Jump Int
-              | JumpWithArgs Int Int
+              | JumpNewScope Int
               | JumpIfTrueBefore Int
               | JumpIfFalseBefore Int
               | JumpBefore Int
@@ -498,7 +498,7 @@ data Bytecode = LoadConst Int
               | Call Int
               | Return
               | FunEntryPoint String
-              | CallUserFun String Int
+              | CallUserFun String
               | LoadPC
             --  ? | PushFrame
             --  ? | PopFrame
@@ -519,7 +519,7 @@ instance Show Bytecode where
     show (JumpIfTrue x) =   "JUMP_IF_TRUE " ++ show x
     show (JumpIfFalse x) =  "JUMP_IF_FALSE " ++ show x
     show (Jump x) =         "JUMP " ++ show x
-    show (JumpWithArgs x y) = "JUMP_WITH_ARGS " ++ show x ++ " " ++ show y
+    show (JumpNewScope x) = "JUMP_NEW_SCOPE " ++ show x ++ " "
     show (JumpIfTrueBefore x) =   "JUMP_IF_TRUE_BEFORE " ++ show x
     show (JumpIfFalseBefore x) =  "JUMP_IF_FALSE_BEFORE " ++ show x
     show (JumpBefore x) =         "JUMP_BEFORE " ++ show x
@@ -529,7 +529,7 @@ instance Show Bytecode where
     show (Call x) =         "CALL " ++ show x
     show Return =           "RETURN"
     show (FunEntryPoint x) = "FUN_ENTRY_POINT " ++ show x
-    show (CallUserFun x y) =  "CALL_USER_FUN " ++ show x ++ " " ++ show y
+    show (CallUserFun x) =  "CALL_USER_FUN " ++ show x
     show LoadPC =           "LOAD_PC"
     -- ? show PushFrame =        "PUSH_FRAME"
     -- ? show PopFrame =         "POP_FRAME"

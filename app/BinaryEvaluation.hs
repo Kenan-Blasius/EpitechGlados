@@ -20,7 +20,7 @@ import Data.Char
 -- JUMP_IF_TRUE    0x07
 -- JUMP_IF_FALSE   0x08
 -- JUMP            0x09
--- JUMP_WITH_ARGS  0x0A
+-- JUMP_NEW_SCOPE  0x0A
 -- POP             0x0B
 -- DUP             0x0C
 -- CALL            0x0D
@@ -145,7 +145,7 @@ bytesToInt bytes =
     byte n = genericTake (4 :: Int) bytes !! n
 
 
--- ? stack is global, JUMP_WITH_ARGS is useless ?
+-- ? stack is global, JUMP_NEW_SCOPE is useless ?
 --           opcode   values    stack     PC    VariableTable    (new_stack, new_pc, new_VariableTable)
 evalValue :: Word8 -> [Word8] -> StackTable -> Int -> VariableTable -> (StackTable, Int, VariableTable)
 evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToInt values))        (((IntType, (MyInt (bytesToInt values))) : stack), pc + 5, table)
@@ -161,14 +161,14 @@ evalValue 0x08 values stack pc table = trace ("JUMP_IF_FALSE " ++ show (bytesToI
 evalValue 0x09 values stack _ table = trace ("JUMP "          ++ show (bytesToInt values))         (stack, bytesToInt values, table)
 -- TODO new table frame + (take last x values from stack)
 -- ! CREATE A NEW VARIABLE TABLE
-evalValue 0x0A values stack _ table = trace  ("JUMP_WITH_ARGS " ++ show (bytesToInt values) ++ " " ++ show (word8ToInt (head (drop 4 values)))) (stack, bytesToInt values, table)
+evalValue 0x0A values stack _ table = trace  ("JUMP_NEW_SCOPE " ++ show (bytesToInt values))       (stack, bytesToInt values, table)
 evalValue 0x0B _ stack pc table = trace  "POP "                                                    (tail stack, pc + 1, table)
 evalValue 0x0C _ (s:stack) pc table = trace  "DUP "                                                (s : s : stack, pc + 1, table)
 -- TODO, if x == 1, print, if x == 60, exit
 evalValue 0x0D values stack pc table = trace ("CALL "          ++ show (word8ToInt (head values))) ((IntType, (MyInt (word8ToInt (head values)))) : stack, pc + 2, table)
 -- ! TAKE THE LAST VARIABLE TABLE
 evalValue 0x0E _ stack _ table = trace  "RETURN "                                                  (deleteUntilAddressExceptOne stack 0, getLastAddressFromStack stack, table)
-evalValue 0x0F _ stack pc table = trace "LOAD_PC "                                                 (((AddressType, (MyInt (pc + 7))) : stack), pc + 1, table) -- ! pc + 6 because LOAD_PC + JUMP put at 6 afetr next change
+evalValue 0x0F _ stack pc table = trace "LOAD_PC "                                                 (((AddressType, (MyInt (pc + 1 + 5))) : stack), pc + 1, table) -- ! pc + 5 because LOAD_PC + JUMP_
 evalValue a b c d e = trace ("Unknown opcode: " ++ show a ++ " | values: " ++ show b ++ " | stack: " ++ show c ++ " | pc: " ++ show d ++ " | table: " ++ show e) ([], -1, [])
 
 -- ? we have two bytecodes lists because if we move forward in the list, we can't go back
