@@ -281,6 +281,7 @@ astToBytecode' (OrAST x y) jmp = trace ("OrAST: " ++ show x ++ " || " ++ show y)
 -- * Load operations
 astToBytecode' (SymbolAST x) jmp = trace ("SymbolAST: " ++ show x) $ (AST [], [LoadVar x StringType], jmp)
 astToBytecode' (IntAST x) jmp = trace ("IntAST: " ++ show x) $ (AST [], [LoadConst x IntType], jmp)
+astToBytecode' (CharAST x) jmp = trace ("CharAST: " ++ show x) $ (AST [], [LoadConst (fromEnum x) CharType], jmp)
 astToBytecode' DeadLeafAST jmp = trace ("DeadLeafAST") $ (AST [], [], jmp)
 astToBytecode' a jmp = trace ("Unknown AST node bytecode: " ++ show a ++ " ") (a, [], jmp)
 

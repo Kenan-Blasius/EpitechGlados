@@ -93,8 +93,8 @@ compareOpCall x stack = trace ("ERROR COMPARE OP : " ++ show x ++ " | stack : " 
 
 lenOp :: Word8 -> Int
 lenOp 0x01 = 6 -- LOAD_CONST     (int 4, type 1)
-lenOp 0x02 = 3 -- LOAD_VAR       (int 4, type 1)
-lenOp 0x03 = 3 -- STORE_VAR      (int 4, type 1)
+lenOp 0x02 = 3 -- LOAD_VAR       (int 1, type 1)
+lenOp 0x03 = 3 -- STORE_VAR      (int 1, type 1)
 lenOp 0x04 = 2 -- BINARY_OP      (int 1)
 lenOp 0x05 = 2 -- UNARY_OP       (int 1)
 lenOp 0x06 = 2 -- COMPARE_OP     (int 1)
@@ -172,12 +172,30 @@ bytesToInt bytes =
     byte n = genericTake (4 :: Int) bytes !! n
 
 
+-- dataTypeToByte :: DataType -> Word8
+-- dataTypeToByte IntType = 0x01
+-- dataTypeToByte StringType = 0x02
+-- dataTypeToByte BoolType = 0x03
+-- dataTypeToByte FloatType = 0x04
+-- dataTypeToByte VoidType = 0x05
+-- dataTypeToByte CharType = 0x06
+-- dataTypeToByte FunType = 0x07
+
+loadConst :: [Word8] -> StackEntry
+loadConst (a:b:c:d:t:_) | t == 0x01 = (IntType, MyInt       (bytesToInt                [a, b, c, d]))
+-- loadConst (a:b:c:d:t:_) | t == 0x02 = (StringType, MyString (intToChar (bytesToInt [a, b, c, d])))
+-- loadConst (a:b:c:d:t:_) | t == 0x03 = (BoolType, MyBool     (bytesToInt                [a, b, c, d]))
+loadConst (a:b:c:d:t:_) | t == 0x04 = (FloatType, MyFloat   (fromIntegral  (bytesToInt [a, b, c, d])))
+loadConst (a:b:c:d:t:_) | t == 0x05 = (AddressType, MyInt   (bytesToInt                [a, b, c, d]))
+loadConst (a:b:c:d:t:_) | t == 0x06 = (CharType, MyChar     (intToChar     (bytesToInt [a, b, c, d])))
+loadConst _ = trace "ERROR LOAD CONST" (IntType, MyInt 0)
+
 -- * ---------------------------------------------- EVAL ----------------------------------------------
 
 -- ? stack is global, JUMP_NEW_SCOPE is useless ?
 --           opcode   values    stack     PC    VariableTable    (new_stack, new_pc, new_VariableTable)
 evalValue :: Word8 -> [Word8] -> StackTable -> Int -> VariableTable -> (StackTable, Int, VariableTable)
-evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToInt values))        (((IntType, (MyInt (bytesToInt values))) : stack), pc + lenOp 0x01 , table)
+evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToInt values))        (loadConst values : stack, pc + lenOp 0x01, table)
 evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (word8ToInt (head values))) ((IntType, (MyInt (getIntFromVariable [intToChar (word8ToInt (head values))] table))) : stack, pc + lenOp 0x02, table)
 evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (word8ToInt (head values))) (deleteLastIntFromStack stack, pc + lenOp 0x03, updateVariable [intToChar (word8ToInt (head values))] IntType (MyInt (getLastIntFromStack stack)) table)
 -- TODO && || !
@@ -194,7 +212,7 @@ evalValue 0x0A values stack _ table = trace  ("JUMP_NEW_SCOPE " ++ show (bytesTo
 evalValue 0x0B _ stack pc table = trace  "POP "                                                    (tail stack, pc + lenOp 0x0B, table)
 evalValue 0x0C _ (s:stack) pc table = trace  "DUP "                                                (s : s : stack, pc + lenOp 0x0C, table)
 -- TODO, if x == 1, print, if x == 60, exit
-evalValue 0x0D values stack pc table = trace ("CALL "          ++ show (word8ToInt (head values))) ((IntType, (MyInt (word8ToInt (head values)))) : stack, pc + lenOp 0x0D, table)
+evalValue 0x0D values stack pc table = trace ("CALL "          ++ show (word8ToInt (head values))) (stack, pc + lenOp 0x0D, table)
 -- ! TAKE THE LAST VARIABLE TABLE
 evalValue 0x0E _ stack _ table = trace  "RETURN "                                                  (deleteUntilAddressExceptOne stack 0, getLastAddressFromStack stack, table)
 evalValue 0x0F _ stack pc table = trace "LOAD_PC "                                                 (((AddressType, (MyInt (pc + 1 + 5))) : stack), pc + lenOp 0x0F, table) -- ! pc + 5 because LOAD_PC + JUMP_
