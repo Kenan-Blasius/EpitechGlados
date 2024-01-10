@@ -8,6 +8,7 @@ import Debug.Trace
 import qualified Data.ByteString as BS
 import Data.Word (Word8)
 import Data.Bits
+import System.Exit (exitWith, ExitCode(..))
 
 
 sizeOfHeader :: Int
@@ -64,7 +65,7 @@ getLengthOfOperation Pop = 1
 getLengthOfOperation Dup = 1
 getLengthOfOperation (Call _) = 2
 getLengthOfOperation Return = 1
-getLengthOfOperation (FunEntryPoint _) = 0
+getLengthOfOperation (FunEntryPoint _ _) = 0
 getLengthOfOperation (CallUserFun _) = 5
 getLengthOfOperation LoadPC = 1
 
@@ -79,7 +80,7 @@ dataTypeToByte FunType = 0x07
 dataTypeToByte UnknownType = trace "ERROR ERROR /!\\: dataTypeToByte: UnknownType" 0x00
 
 
--- * ------------------------------------------ JUMP ------------------------------------------ * --
+-- * ------------------------------------------ JUMP ---------------------------------------------- * --
 
 getNmbrOfJumps :: [Bytecode] -> Int
 getNmbrOfJumps [] = 0
@@ -110,11 +111,11 @@ remplaceAllJump :: [Bytecode] -> Int -> Int -> [Bytecode]
 remplaceAllJump bytecode jumpId nmb_jmp | jumpId > nmb_jmp = bytecode
 remplaceAllJump bytecode jumpId nmb_jmp = remplaceAllJump (remplaceJumpRef bytecode jumpId (findJumpRef bytecode jumpId sizeOfHeader)) (jumpId + 1) nmb_jmp
 
--- * ------------------------------------------ FUNCTION CALL ------------------------------------------ * --
+-- * ------------------------------------------ FUNCTION CALL ------------------------------------- * --
 
 getFunctData :: [Bytecode] -> Int -> [(Int, String)]
 getFunctData [] _ = []
-getFunctData (FunEntryPoint x : xs) pos = (pos, x) : getFunctData xs pos
+getFunctData (FunEntryPoint x _ : xs) pos = (pos, x) : getFunctData xs pos
 getFunctData (x:xs) pos = getFunctData xs (pos + getLengthOfOperation x)
 
 remplaceFunEntryPoint :: [Bytecode] -> (Int, String) -> [Bytecode]
@@ -130,7 +131,7 @@ remplaceAllFun bytecode (x : xs) = (remplaceAllFun (remplaceFunEntryPoint byteco
 
 findPosMain :: [Bytecode] -> Int -> Int
 findPosMain [] _ = 0
-findPosMain (FunEntryPoint "main" : _) pos = pos
+findPosMain (FunEntryPoint "main" _ : _) pos = pos
 findPosMain (x:xs) pos = (findPosMain xs (pos + getLengthOfOperation x))
 
 dispAllBytecode :: [Bytecode] -> Int -> IO ()
@@ -138,7 +139,7 @@ dispAllBytecode [] _ = return ()
 dispAllBytecode (x:xs) pos = trace (show pos ++ " " ++ show x) (dispAllBytecode xs (pos + getLengthOfOperation x))
 
 
--- * ------------------------------------------ INSTRUCTION ------------------------------------------ * --
+-- * ------------------------------------------ INSTRUCTION --------------------------------------- * --
 
 --                  cur_instr  -> bytes
 toHexaInstruction :: Bytecode -> [Word8]
@@ -160,7 +161,7 @@ toHexaInstruction Return =          [0x0E]
 toHexaInstruction LoadPC =          [0x0F]
 toHexaInstruction x = trace ("Error: toHexaInstruction: Unknown instruction" ++ show x) []
 
--- * ------------------------------------------ HEADER ------------------------------------------ * --
+-- * ------------------------------------------ HEADER -------------------------------------------- * --
 
 getHeader :: [Word8]
 getHeader = [0x7a, 0x69, 0x7a, 0x69] ++ (toHexaString "This is the comment section\0")
@@ -173,12 +174,97 @@ bytecodeToBytes (x:xs) = (toHexaInstruction x) ++ bytecodeToBytes xs
 writeBytesToFile :: FilePath -> [Word8] -> IO ()
 writeBytesToFile filePath bytes = BS.writeFile filePath (BS.pack bytes)
 
+-- * ------------------------------------------ GET SCOPES VARIALES ------------------------------- * --
+
+differentUnknowType :: DataType -> Bool
+differentUnknowType UnknownType = False
+differentUnknowType _ = True
+
+
+-- check all StoreVar in a row
+getVariables :: [Bytecode] -> [(String, DataType)]
+getVariables [] = []
+getVariables (StoreVar x t : xs) | differentUnknowType t = (x, t) : getVariables xs
+-- getVariables (StoreVar x t : _) | t == UnknownType = error ("Error: Unknown type: " ++ show x)
+getVariables (FunEntryPoint _ _ : _) = [] -- we find another scope, so we stop
+getVariables (x:xs) = getVariables xs
+
+
+getScopesVariables :: [Bytecode] -> [(String, DataType, [(String, DataType)])]
+getScopesVariables [] = []
+getScopesVariables (FunEntryPoint x t : xs) = (x, t, getVariables xs) : getScopesVariables xs
+getScopesVariables (_:xs) = getScopesVariables xs
+
+
+-- * ------------------------------------------ FILL TYPES ---------------------------------------- * --
+
+remplaceType :: [(String, DataType)] -> String -> DataType
+remplaceType [] x = error ("Error: Unknown variable: " ++ show x)
+remplaceType ((name, t) : _) x | name == x = t
+remplaceType (_ : ys) x = remplaceType ys x
+
+-- ! StoreVar only for return function
+lookVarInFunction :: [Bytecode] -> [(String, DataType)] -> [Bytecode]
+lookVarInFunction [] _ = []
+lookVarInFunction (LoadVar x t : xs) vars = (LoadVar x (remplaceType vars x)) : lookVarInFunction xs vars
+lookVarInFunction (FunEntryPoint x t : xs) _ = (FunEntryPoint x t : xs) -- we find another scope, so we stop
+lookVarInFunction (x : xs) vars = x : lookVarInFunction xs vars
+
+findWhichFunction :: String -> [(String, DataType, [(String, DataType)])] -> [(String, DataType)]
+findWhichFunction x [] = error ("Error: No function to remplace: " ++ show x)
+findWhichFunction x ((name, _, vars) : _) | name == x = vars
+findWhichFunction x (_ : ys) = findWhichFunction x ys
+
+
+fillTypesInFunctions :: [Bytecode] -> [(String, DataType, [(String, DataType)])] -> [Bytecode]
+fillTypesInFunctions [] _ = []
+fillTypesInFunctions (FunEntryPoint x t : xs) scopes = (FunEntryPoint x t) : (fillTypesInFunctions (lookVarInFunction xs (findWhichFunction x scopes))) scopes
+fillTypesInFunctions (x : xs) scopes = x : fillTypesInFunctions xs scopes
+
+-- * ------------------------------------------ FILL TYPES USER FUNCTION ------------------------- * --
+
+findWhichFunctionReturn :: String -> [(String, DataType, [(String, DataType)])] -> DataType
+findWhichFunctionReturn x [] = error ("Error: No function to remplace: " ++ show x)
+findWhichFunctionReturn x ((name, t, _) : _) | name == x = trace ("findWhichFunctionReturn: " ++ show x ++ " " ++ show t) t
+findWhichFunctionReturn x (_ : ys) = findWhichFunctionReturn x ys
+
+checkGoodTypeReturn :: [(String, DataType)] -> String -> DataType -> DataType
+checkGoodTypeReturn [] x t = error ("Error: No variable found: " ++ show x ++ " type: " ++ show t)
+checkGoodTypeReturn ((name, t2) : _) x t | name == x && t2 == t = t
+checkGoodTypeReturn ((name, t2) : ys) x t = checkGoodTypeReturn ys x t
+
+remplaceNextStoreVar :: [Bytecode] -> [(String, DataType)] -> DataType -> [Bytecode]
+remplaceNextStoreVar [] _ _ = []
+remplaceNextStoreVar (StoreVar x _ : xs) scope t = (StoreVar x (checkGoodTypeReturn scope x t)) : remplaceNextStoreVar xs scope t
+remplaceNextStoreVar x _ _ = x
+
+fillTypesUserFunction :: [Bytecode] -> String -> [(String, DataType, [(String, DataType)])] -> [Bytecode]
+fillTypesUserFunction [] _ _ = []
+fillTypesUserFunction (FunEntryPoint x t : xs) _ scopes = (FunEntryPoint x t) : (fillTypesUserFunction xs x scopes)
+fillTypesUserFunction (CallUserFun x : xs) name scopes = (CallUserFun x) : (fillTypesUserFunction (remplaceNextStoreVar xs (findWhichFunction name scopes) (findWhichFunctionReturn x scopes)) name scopes)
+fillTypesUserFunction (x : xs) name scopes = x : fillTypesUserFunction xs name scopes
+
+-- * ------------------------------------------ MAIN ---------------------------------------------- * --
+
 bytecodeToBinary :: [Bytecode] -> IO ()
 bytecodeToBinary bytecode = do
     let nmp_jmp = getNmbrOfJumps bytecode
     let bytecode2 = remplaceAllJump bytecode 1 nmp_jmp -- 1 because the first jump is at 1
     putStrLn "--------------------------------"
     dispAllBytecode bytecode2 sizeOfHeader
+    putStrLn "--------------getScopesVariables------------------"
+    let scopes_variables = getScopesVariables bytecode2
+    print ("scopes_variables")
+    print (scopes_variables)
+    putStrLn "--------------fillTypesInFunctions------------------"
+    let bytecode_try = fillTypesInFunctions bytecode2 scopes_variables
+    dispAllBytecode bytecode_try sizeOfHeader
+    putStrLn "----------------fillTypesUserFunction----------------"
+    print ("bytecode_try")
+    dispAllBytecode (fillTypesUserFunction bytecode_try "" scopes_variables) sizeOfHeader
+
+    exitWith ExitSuccess
+
     putStrLn "--------------------------------"
     let bytecode3 = filter (\x -> case x of JumpRef _ -> False; _ -> True) bytecode2
     -- print ("bytecode3")
@@ -190,7 +276,7 @@ bytecodeToBinary bytecode = do
     -- print ("bytecode4")
     -- print (bytecode4)
     let posMain = findPosMain bytecode4 sizeOfHeader
-    let bytecode5 = [(Jump posMain)] ++ filter (\x -> case x of FunEntryPoint _ -> False; _ -> True) bytecode4
+    let bytecode5 = [(Jump posMain)] ++ filter (\x -> case x of FunEntryPoint _ _ -> False; _ -> True) bytecode4
 
     dispAllBytecode bytecode5 (sizeOfHeader - 5)
     print ("bytecode5")
@@ -200,9 +286,8 @@ bytecodeToBinary bytecode = do
     print (binary)
     writeBytesToFile "file.bin" binary
 
--- todo 5 first bytes after header are a jmp to the main function (entry point)
 
--- ? maybe later also for store the string
+-- ? store the strings at the end of the binary file
 
 
 

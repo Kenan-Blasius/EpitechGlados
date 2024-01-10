@@ -493,9 +493,9 @@ data DataType =  IntType
 data Bytecode = LoadConst Int DataType
               | LoadVar String DataType
               | StoreVar String DataType
-              | BinaryOp String
-              | UnaryOp String
-              | CompareOp String
+              | BinaryOp String -- ? DataType
+              | UnaryOp String -- ? DataType
+              | CompareOp String -- ? DataType
               | JumpIfTrue Int
               | JumpIfFalse Int
               | Jump Int
@@ -508,7 +508,7 @@ data Bytecode = LoadConst Int DataType
               | Dup
               | Call Int
               | Return
-              | FunEntryPoint String
+              | FunEntryPoint String DataType-- todo put the return type here
               | CallUserFun String
               | LoadPC
             --  ? | PushFrame
@@ -539,7 +539,7 @@ instance Show Bytecode where
     show Dup =              "Dup"
     show (Call x) =         "Call " ++ show x
     show Return =           "Return"
-    show (FunEntryPoint x) = "FunEntryPoint " ++ show x
+    show (FunEntryPoint x y) = "FunEntryPoint " ++ show x ++ " " ++ show y
     show (CallUserFun x) =  "CallUserFun " ++ show x
     show LoadPC =           "LoadPC"
     -- ? show PushFrame =        "PUSH_FRAME"

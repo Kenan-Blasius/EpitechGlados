@@ -111,6 +111,16 @@ astStoreArgs x = astStoreValue x
 -- INFO: This function takes an AST and returns a list of Bytecode instructions
 --       that can be executed by the VM.
 
+
+getTypes :: AST -> DataType
+getTypes (AST []) = error "ERROR getTypes empty"
+getTypes (IntTypeAST) = IntType
+getTypes (CharTypeAST) = CharType
+getTypes (StringTypeAST) = StringType
+getTypes (AST (x:xs)) = getTypes x
+getTypes x = error ("ERROR getTypes " ++ show x)
+
+
 --             AST      id_jmp -> (AST bytecode id_jmp)
 astToBytecode' :: AST -> Int -> (AST, [Bytecode], Int)
 astToBytecode' (AST []) jmp = (AST [], [], jmp)
@@ -148,9 +158,9 @@ astToBytecode' (AST (x:xs)) jmp = trace ("Processing AST node: " ++ show x) $
     in (xsAST, xBytecode ++ xsBytecode, jmp_2)
 
 -- FunTypeAST return_type
-astToBytecode' (FunAST name args return_type scope) jmp = trace ("FunAST: " ++ show name ++ " " ++ show args ++ " " ++ show return_type ++ " " ++ show scope) $ do
+astToBytecode' (FunAST name args (FunTypeAST return_type) scope) jmp = trace ("FunAST: " ++ show name ++ " " ++ show args ++ " " ++ show return_type ++ " " ++ show scope) $ do
     let (_, scopeBytecode, jmp_2) = trace ("scopeAST: " ++ show scope) astToBytecode' scope jmp
-    trace ("scopeBytecode " ++ show scopeBytecode) (AST [], [FunEntryPoint name] ++ (astStoreArgs args) ++ scopeBytecode ++ [Return], jmp_2)
+    trace ("scopeBytecode " ++ show scopeBytecode) (AST [], [FunEntryPoint name (getTypes return_type)] ++ (astStoreArgs args) ++ scopeBytecode ++ [Return], jmp_2)
     -- trace ("scopeBytecode " ++ show scopeBytecode) (AST [], [FunEntryPoint name] ++ [PushFrame] ++ (astStoreArgs args) ++ scopeBytecode ++ [PopFrame, Return], jmp_2) -- TODO add return type
 
 -- * IF / ELSE IF / ELSE
