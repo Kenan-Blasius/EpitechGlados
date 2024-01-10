@@ -76,6 +76,7 @@ dataTypeToByte FloatType = 0x04
 dataTypeToByte VoidType = 0x05
 dataTypeToByte CharType = 0x06
 dataTypeToByte FunType = 0x07
+dataTypeToByte UnknownType = trace "ERROR ERROR /!\\: dataTypeToByte: UnknownType" 0x00
 
 
 -- * ------------------------------------------ JUMP ------------------------------------------ * --
@@ -176,6 +177,9 @@ bytecodeToBinary :: [Bytecode] -> IO ()
 bytecodeToBinary bytecode = do
     let nmp_jmp = getNmbrOfJumps bytecode
     let bytecode2 = remplaceAllJump bytecode 1 nmp_jmp -- 1 because the first jump is at 1
+    putStrLn "--------------------------------"
+    dispAllBytecode bytecode2 sizeOfHeader
+    putStrLn "--------------------------------"
     let bytecode3 = filter (\x -> case x of JumpRef _ -> False; _ -> True) bytecode2
     -- print ("bytecode3")
     -- print (bytecode3)

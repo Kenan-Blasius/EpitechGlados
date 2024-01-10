@@ -190,6 +190,14 @@ loadConst (a:b:c:d:t:_) | t == 0x05 = (AddressType, MyInt   (bytesToInt         
 loadConst (a:b:c:d:t:_) | t == 0x06 = (CharType, MyChar     (intToChar     (bytesToInt [a, b, c, d])))
 loadConst _ = trace "ERROR LOAD CONST" (IntType, MyInt 0)
 
+
+printValueInStack :: StackEntry -> String
+printValueInStack (IntType, MyInt x) = show x
+printValueInStack (FloatType, MyFloat x) = show x
+printValueInStack (CharType, MyChar x) = show x
+printValueInStack (AddressType, MyInt x) = show x
+printValueInStack _ = "ERROR PRINT VALUE IN STACK"
+
 -- * ---------------------------------------------- EVAL ----------------------------------------------
 
 -- ? stack is global, JUMP_NEW_SCOPE is useless ?
@@ -211,8 +219,9 @@ evalValue 0x09 values stack _ table = trace ("JUMP "          ++ show (bytesToIn
 evalValue 0x0A values stack _ table = trace  ("JUMP_NEW_SCOPE " ++ show (bytesToInt values))       (stack, bytesToInt values, table)
 evalValue 0x0B _ stack pc table = trace  "POP "                                                    (tail stack, pc + lenOp 0x0B, table)
 evalValue 0x0C _ (s:stack) pc table = trace  "DUP "                                                (s : s : stack, pc + lenOp 0x0C, table)
--- TODO, if x == 1, print, if x == 60, exit
-evalValue 0x0D values stack pc table = trace ("CALL "          ++ show (word8ToInt (head values))) (stack, pc + lenOp 0x0D, table)
+-- * x == 1, print -- x == 60, exit
+evalValue 0x0D (1:_) (x:xs) pc table = trace ("CALL 1: " ++ printValueInStack x)                   (xs, pc + lenOp 0x0D, table)
+evalValue 0x0D (60:_) _ _ _ = trace "EXIT"                                                         ([], -1, [])
 -- ! TAKE THE LAST VARIABLE TABLE
 evalValue 0x0E _ stack _ table = trace  "RETURN "                                                  (deleteUntilAddressExceptOne stack 0, getLastAddressFromStack stack, table)
 evalValue 0x0F _ stack pc table = trace "LOAD_PC "                                                 (((AddressType, (MyInt (pc + 1 + 5))) : stack), pc + lenOp 0x0F, table) -- ! pc + 5 because LOAD_PC + JUMP_

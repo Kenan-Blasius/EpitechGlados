@@ -88,8 +88,9 @@ astConditionToBytecode x = trace ("astConditionToBytecode NO AST CONDITION NODE 
 
 astStoreValue :: AST -> [Bytecode]
 astStoreValue (AST [IntTypeAST, SymbolAST x]) = trace ("Get Value Int symbol " ++ show x) $ [StoreVar x IntType]
-astStoreValue (AST [SymbolAST x]) = trace ("Get Value Symbol " ++ show x) $ [StoreVar x StringType]
+astStoreValue (AST [StringTypeAST, SymbolAST x]) = trace ("Get Value String symbol " ++ show x) $ [StoreVar x StringType]
 astStoreValue (AST [CharTypeAST, SymbolAST x]) = trace ("Get Value Char symbol " ++ show x) $ [StoreVar x CharType]
+astStoreValue (AST [SymbolAST x]) = trace ("Get Value Symbol " ++ show x) $ [StoreVar x UnknownType] -- ! really unknown type ?
 astStoreValue x = trace ("astStoreValue NO AST STORE NODE FOUND" ++ show x) $ []
 
 astStoreArgs :: AST -> [Bytecode]
@@ -279,7 +280,7 @@ astToBytecode' (OrAST x y) jmp = trace ("OrAST: " ++ show x ++ " || " ++ show y)
     in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "||"], jmp2)
 
 -- * Load operations
-astToBytecode' (SymbolAST x) jmp = trace ("SymbolAST: " ++ show x) $ (AST [], [LoadVar x StringType], jmp)
+astToBytecode' (SymbolAST x) jmp = trace ("SymbolAST: " ++ show x) $ (AST [], [LoadVar x UnknownType], jmp) -- we can't know the type of the variable
 astToBytecode' (IntAST x) jmp = trace ("IntAST: " ++ show x) $ (AST [], [LoadConst x IntType], jmp)
 astToBytecode' (CharAST x) jmp = trace ("CharAST: " ++ show x) $ (AST [], [LoadConst (fromEnum x) CharType], jmp)
 astToBytecode' DeadLeafAST jmp = trace ("DeadLeafAST") $ (AST [], [], jmp)
