@@ -110,18 +110,13 @@ lenOp 0x0F = 1 -- LOAD_PC        ()
 lenOp _ = 0
 
 
--- Function to look up a variable in the table
-lookupVariable :: VariableName -> VariableTable -> Maybe VariableEntry
-lookupVariable _ [] = Nothing
-lookupVariable name ((n, t, e):xs)
-    | name == n = Just (n, t, e)
-    | otherwise = lookupVariable name xs
+-- * ---------------------------------------------- VARIABLE ----------------------------------------------
 
-
-getIntFromVariable :: VariableName -> VariableTable -> Int
-getIntFromVariable name table = case lookupVariable name table of
-    Just (_, _, MyInt x) -> x
-    _ -> 0
+getFromVariable :: VariableName -> VariableTable -> VariableElement
+getFromVariable name ((n, _, e):xs)
+    | name == n = e
+    | otherwise = getFromVariable name xs
+getFromVariable _ _ = trace "ERROR GET FROM VARIABLE" (MyInt 0)
 
 -- Function to update the value of an existing variable in the table
 updateVariable :: VariableName -> VariableType -> VariableElement -> VariableTable -> VariableTable
@@ -130,6 +125,8 @@ updateVariable name varType element ((n, t, e):xs)
     | name == n = (name, varType, element) : xs
     | otherwise = (n, t, e) : updateVariable name varType element xs
 
+
+-- * ---------------------------------------------- STACK ----------------------------------------------
 
 getLastIntFromStack :: StackTable -> Int
 getLastIntFromStack [] = 0
@@ -157,6 +154,7 @@ deleteUntilAddressExceptOne (x:xs) 0 = x : deleteUntilAddress xs
 deleteUntilAddressExceptOne ((AddressType, _):xs) _ = xs
 deleteUntilAddressExceptOne (_:xs) n = deleteUntilAddressExceptOne xs (n + 1)
 
+-- * ---------------------------------------------- BYTECODE ----------------------------------------------
 
 bytesToInt :: [Word8] -> Int
 bytesToInt bytes =
@@ -181,13 +179,15 @@ bytesToInt bytes =
 -- dataTypeToByte CharType = 0x06
 -- dataTypeToByte FunType = 0x07
 
+-- * ---------------------------------------------- STACK ----------------------------------------------
+
 loadConst :: [Word8] -> StackEntry
-loadConst (a:b:c:d:t:_) | t == 0x01 = (IntType, MyInt       (bytesToInt                [a, b, c, d]))
--- loadConst (a:b:c:d:t:_) | t == 0x02 = (StringType, MyString (intToChar (bytesToInt [a, b, c, d])))
--- loadConst (a:b:c:d:t:_) | t == 0x03 = (BoolType, MyBool     (bytesToInt                [a, b, c, d]))
-loadConst (a:b:c:d:t:_) | t == 0x04 = (FloatType, MyFloat   (fromIntegral  (bytesToInt [a, b, c, d])))
-loadConst (a:b:c:d:t:_) | t == 0x05 = (AddressType, MyInt   (bytesToInt                [a, b, c, d]))
-loadConst (a:b:c:d:t:_) | t == 0x06 = (CharType, MyChar     (intToChar     (bytesToInt [a, b, c, d])))
+loadConst (a:b:c:d:0x01:_) = trace ("LoadConst : Int " ++ show (bytesToInt [a, b, c, d])) (IntType, MyInt (bytesToInt [a, b, c, d]))
+-- loadConst (a:b:c:d:0x02:_) = trace ("LoadConst : " ++ ) (StringType, MyString (intToChar (bytesToInt [a, b, c, d])))
+-- loadConst (a:b:c:d:0x03:_) = trace ("LoadConst : " ++ ) (BoolType, MyBool     (bytesToInt                [a, b, c, d]))
+loadConst (a:b:c:d:0x04:_) = trace ("LoadConst : Float ") (FloatType, MyFloat   (fromIntegral  (bytesToInt [a, b, c, d])))
+loadConst (a:b:c:d:0x05:_) = trace ("LoadConst : Address " ++ show (bytesToInt [a, b, c, d])) (AddressType, MyInt (bytesToInt [a, b, c, d]))
+loadConst (a:b:c:d:0x06:_) = trace ("LoadConst : Char " ++ show (bytesToInt [a, b, c, d])) (CharType, MyChar     (intToChar     (bytesToInt [a, b, c, d])))
 loadConst _ = trace "ERROR LOAD CONST" (IntType, MyInt 0)
 
 
@@ -196,7 +196,31 @@ printValueInStack (IntType, MyInt x) = show x
 printValueInStack (FloatType, MyFloat x) = show x
 printValueInStack (CharType, MyChar x) = show x
 printValueInStack (AddressType, MyInt x) = show x
-printValueInStack _ = "ERROR PRINT VALUE IN STACK"
+printValueInStack x = show x
+
+getNthValue :: Int -> [Word8] -> Word8
+getNthValue 0 (x:_) = x
+getNthValue n (_:xs) = (getNthValue (n - 1) xs)
+getNthValue _ _ = trace "ERROR GET NTH VALUE" 0
+
+getTypeFromValue :: Word8 -> VariableType
+getTypeFromValue 0x01 = IntType
+getTypeFromValue 0x02 = StringType
+getTypeFromValue 0x03 = BoolType
+getTypeFromValue 0x04 = FloatType
+getTypeFromValue 0x05 = AddressType
+getTypeFromValue 0x06 = CharType
+getTypeFromValue _ = trace "ERROR GET TYPE FROM VALUE" IntType
+
+getVariableElementTypeFromStack :: Word8 -> StackTable -> VariableElement
+getVariableElementTypeFromStack w ((AddressType, _):xs) = getVariableElementTypeFromStack w xs
+getVariableElementTypeFromStack 0x01 ((_, MyInt x):_) = MyInt x
+getVariableElementTypeFromStack 0x02 ((_, MyString x):_) = MyString x
+getVariableElementTypeFromStack 0x03 ((_, MyBool x):_) = MyBool x
+getVariableElementTypeFromStack 0x04 ((_, MyFloat x):_) = MyFloat x
+getVariableElementTypeFromStack 0x05 ((_, MyInt x):_) = MyInt x
+getVariableElementTypeFromStack 0x06 ((_, MyChar x):_) = MyChar x
+getVariableElementTypeFromStack _ _ = MyInt 0
 
 -- * ---------------------------------------------- EVAL ----------------------------------------------
 
@@ -204,8 +228,10 @@ printValueInStack _ = "ERROR PRINT VALUE IN STACK"
 --           opcode   values    stack     PC    VariableTable    (new_stack, new_pc, new_VariableTable)
 evalValue :: Word8 -> [Word8] -> StackTable -> Int -> VariableTable -> (StackTable, Int, VariableTable)
 evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToInt values))        (loadConst values : stack, pc + lenOp 0x01, table)
-evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (word8ToInt (head values))) ((IntType, (MyInt (getIntFromVariable [intToChar (word8ToInt (head values))] table))) : stack, pc + lenOp 0x02, table)
-evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (word8ToInt (head values))) (deleteLastIntFromStack stack, pc + lenOp 0x03, updateVariable [intToChar (word8ToInt (head values))] IntType (MyInt (getLastIntFromStack stack)) table)
+-- evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (word8ToInt (head values))) ((IntType, (MyInt (getIntFromVariable [intToChar (word8ToInt (head values))] table))) : stack, pc + lenOp 0x02, table)
+evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (word8ToInt (head values)) ++ " type: " ++ show (getTypeFromValue (getNthValue 1 values)))
+                                                                                                   (((getTypeFromValue (getNthValue 1 values)), (getFromVariable [intToChar (word8ToInt (head values))] table)) : stack, pc + lenOp 0x02, table)
+evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (word8ToInt (head values))) (deleteLastIntFromStack stack, pc + lenOp 0x03, updateVariable [intToChar (word8ToInt (head values))] (getTypeFromValue (getNthValue 1 values)) (getVariableElementTypeFromStack (getNthValue 1 values) stack) table)
 -- TODO && || !
 evalValue 0x04 values stack pc table = trace ("BINARY_OP "     ++ show (word8ToInt (head values))) (binaryOpCall (head values) stack, pc + lenOp 0x04, table)
 -- TODO
@@ -273,35 +299,3 @@ main = do
                     exitWith (ExitSuccess)
 
         _ -> putStrLn "No file given as an argument"
-
-
--- not forgot to remove value from stack when we use it
--- handle several bytes as a value
-
--- TODO PRECISEION OF TYPE (int, string, bool) OF VARIABLES IN BYTECODE !!!
--- DECLARE_TYPE INT a
--- DECLARE_TYPE STRING b
--- DECLARE_TYPE BOOL c
-
--- LOAD_CONST 1
--- |
--- 1,2, 1,0,0,0,
---   |  -------
---   type (value)
-
--- STORE_VAR 1
--- |
--- 3,1, 1,0,0,0,
---   |  -------
---  type (value)
-
-
--- 1 -> int
--- 2 -> string
--- 3 -> bool
--- 4 -> char
--- 5 -> float
--- 6 -> function
-
--- 7 -> list ?
-
