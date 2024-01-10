@@ -65,3 +65,4 @@ nav:
   - index.md
 - Syntaxe:
   - syntax.md
+  - raw-bnf.md
