@@ -8,7 +8,6 @@ import Debug.Trace
 import qualified Data.ByteString as BS
 import Data.Word (Word8)
 import Data.Bits
-import System.Exit (exitWith, ExitCode(..))
 
 
 sizeOfHeader :: Int
@@ -187,7 +186,7 @@ getVariables [] = []
 getVariables (StoreVar x t : xs) | differentUnknowType t = (x, t) : getVariables xs
 -- getVariables (StoreVar x t : _) | t == UnknownType = error ("Error: Unknown type: " ++ show x)
 getVariables (FunEntryPoint _ _ : _) = [] -- we find another scope, so we stop
-getVariables (x:xs) = getVariables xs
+getVariables (_:xs) = getVariables xs
 
 
 getScopesVariables :: [Bytecode] -> [(String, DataType, [(String, DataType)])]
@@ -206,7 +205,7 @@ remplaceType (_ : ys) x = remplaceType ys x
 -- ! StoreVar only for return function
 lookVarInFunction :: [Bytecode] -> [(String, DataType)] -> [Bytecode]
 lookVarInFunction [] _ = []
-lookVarInFunction (LoadVar x t : xs) vars = (LoadVar x (remplaceType vars x)) : lookVarInFunction xs vars
+lookVarInFunction (LoadVar x _ : xs) vars = (LoadVar x (remplaceType vars x)) : lookVarInFunction xs vars
 lookVarInFunction (FunEntryPoint x t : xs) _ = (FunEntryPoint x t : xs) -- we find another scope, so we stop
 lookVarInFunction (x : xs) vars = x : lookVarInFunction xs vars
 
@@ -225,13 +224,13 @@ fillTypesInFunctions (x : xs) scopes = x : fillTypesInFunctions xs scopes
 
 findWhichFunctionReturn :: String -> [(String, DataType, [(String, DataType)])] -> DataType
 findWhichFunctionReturn x [] = error ("Error: No function to remplace: " ++ show x)
-findWhichFunctionReturn x ((name, t, _) : _) | name == x = trace ("findWhichFunctionReturn: " ++ show x ++ " " ++ show t) t
+findWhichFunctionReturn x ((name, t, _) : _) | name == x = t
 findWhichFunctionReturn x (_ : ys) = findWhichFunctionReturn x ys
 
 checkGoodTypeReturn :: [(String, DataType)] -> String -> DataType -> DataType
 checkGoodTypeReturn [] x t = error ("Error: No variable found: " ++ show x ++ " type: " ++ show t)
 checkGoodTypeReturn ((name, t2) : _) x t | name == x && t2 == t = t
-checkGoodTypeReturn ((name, t2) : ys) x t = checkGoodTypeReturn ys x t
+checkGoodTypeReturn (_ : ys) x t = checkGoodTypeReturn ys x t
 
 remplaceNextStoreVar :: [Bytecode] -> [(String, DataType)] -> DataType -> [Bytecode]
 remplaceNextStoreVar [] _ _ = []
@@ -244,29 +243,33 @@ fillTypesUserFunction (FunEntryPoint x t : xs) _ scopes = (FunEntryPoint x t) : 
 fillTypesUserFunction (CallUserFun x : xs) name scopes = (CallUserFun x) : (fillTypesUserFunction (remplaceNextStoreVar xs (findWhichFunction name scopes) (findWhichFunctionReturn x scopes)) name scopes)
 fillTypesUserFunction (x : xs) name scopes = x : fillTypesUserFunction xs name scopes
 
+-- todo check good variable send to function
+-- todo check good type return
+-- todo check good assignation type
+
 -- * ------------------------------------------ MAIN ---------------------------------------------- * --
 
 bytecodeToBinary :: [Bytecode] -> IO ()
 bytecodeToBinary bytecode = do
     let nmp_jmp = getNmbrOfJumps bytecode
     let bytecode2 = remplaceAllJump bytecode 1 nmp_jmp -- 1 because the first jump is at 1
-    putStrLn "--------------------------------"
-    dispAllBytecode bytecode2 sizeOfHeader
-    putStrLn "--------------getScopesVariables------------------"
+    -- putStrLn "--------------------------------"
+    -- dispAllBytecode bytecode2 sizeOfHeader
+    -- putStrLn "--------------getScopesVariables------------------"
     let scopes_variables = getScopesVariables bytecode2
-    print ("scopes_variables")
-    print (scopes_variables)
-    putStrLn "--------------fillTypesInFunctions------------------"
-    let bytecode_try = fillTypesInFunctions bytecode2 scopes_variables
-    dispAllBytecode bytecode_try sizeOfHeader
-    putStrLn "----------------fillTypesUserFunction----------------"
-    print ("bytecode_try")
-    dispAllBytecode (fillTypesUserFunction bytecode_try "" scopes_variables) sizeOfHeader
+    -- print ("scopes_variables")
+    -- print (scopes_variables)
+    -- putStrLn "--------------fillTypesInFunctions------------------"
+    let bytecode2_0 = fillTypesInFunctions bytecode2 scopes_variables
+    -- dispAllBytecode bytecode_try sizeOfHeader
+    -- putStrLn "----------------fillTypesUserFunction----------------"
+    -- print ("bytecode_try")
+    let bytecode2_1 = fillTypesUserFunction bytecode2_0 "" scopes_variables
 
-    exitWith ExitSuccess
+    -- exitWith ExitSuccess
 
-    putStrLn "--------------------------------"
-    let bytecode3 = filter (\x -> case x of JumpRef _ -> False; _ -> True) bytecode2
+    -- putStrLn "--------------------------------"
+    let bytecode3 = filter (\x -> case x of JumpRef _ -> False; _ -> True) bytecode2_1
     -- print ("bytecode3")
     -- print (bytecode3)
     let funct_data = getFunctData bytecode3 sizeOfHeader
@@ -279,8 +282,7 @@ bytecodeToBinary bytecode = do
     let bytecode5 = [(Jump posMain)] ++ filter (\x -> case x of FunEntryPoint _ _ -> False; _ -> True) bytecode4
 
     dispAllBytecode bytecode5 (sizeOfHeader - 5)
-    print ("bytecode5")
-    print (bytecode5)
+
     let binary = getHeader ++ (bytecodeToBytes bytecode5)
     print ("binary")
     print (binary)

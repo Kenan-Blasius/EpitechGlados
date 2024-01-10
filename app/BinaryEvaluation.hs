@@ -305,10 +305,3 @@ main = do
 
 -- 7 -> list ?
 
--- * (stack table) -> (local table) -> (global table)
-
-
--- todo all local variables are stored in (local table)
--- todo read the bytecode a first time to get all the FunEntryPoint and store them in the (global table)
-
--- todo type of values in the stack

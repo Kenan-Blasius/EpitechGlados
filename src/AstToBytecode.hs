@@ -117,7 +117,7 @@ getTypes (AST []) = error "ERROR getTypes empty"
 getTypes (IntTypeAST) = IntType
 getTypes (CharTypeAST) = CharType
 getTypes (StringTypeAST) = StringType
-getTypes (AST (x:xs)) = getTypes x
+getTypes (AST (x:_)) = getTypes x
 getTypes x = error ("ERROR getTypes " ++ show x)
 
 
