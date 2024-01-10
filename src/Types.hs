@@ -211,11 +211,11 @@ data AST = AST [AST] -- list of AST
          | IfAST AST AST AST -- cond expr1 elseIfExpr/elseExpr
          | ElseIfAST AST AST AST -- cond expr elseIfExpr/elseExpr
          | ElseAST AST -- expr
-         | DefineAST String AST -- name expr
+        --  | DefineAST String AST -- name expr
          | ForAST AST AST AST AST -- init cond incr expr
          | WhileAST AST AST -- cond expr
          | FunTypeAST AST -- type
-         | FunAST String AST AST AST -- name returnType arg expr
+         | FunAST String AST AST AST -- name arg returnType expr
          | ReturnAST AST -- expr
          | IntTypeAST -- type
          | FloatTypeAST -- type
@@ -281,11 +281,11 @@ instance Eq AST where
     IfAST cond1 expr1 elseIfExpr1 == IfAST cond2 expr2 elseIfExpr2 = cond1 == cond2 && expr1 == expr2 && elseIfExpr1 == elseIfExpr2
     ElseIfAST cond1 expr1 elseIfExpr1 == ElseIfAST cond2 expr2 elseIfExpr2 = cond1 == cond2 && expr1 == expr2 && elseIfExpr1 == elseIfExpr2
     ElseAST expr1 == ElseAST expr2 = expr1 == expr2
-    DefineAST name1 expr1 == DefineAST name2 expr2 = name1 == name2 && expr1 == expr2
+    -- DefineAST name1 expr1 == DefineAST name2 expr2 = name1 == name2 && expr1 == expr2
     ForAST init1 cond1 incr1 expr1 == ForAST init2 cond2 incr2 expr2 = init1 == init2 && cond1 == cond2 && incr1 == incr2 && expr1 == expr2
     WhileAST cond1 expr1 == WhileAST cond2 expr2 = cond1 == cond2 && expr1 == expr2
     FunTypeAST type1 == FunTypeAST type2 = type1 == type2
-    FunAST name1 type1 arg1 expr1 == FunAST name2 type2 arg2 expr2 = name1 == name2 && type1 == type2 && arg1 == arg2 && expr1 == expr2
+    FunAST name1 arg1 type1 expr1 == FunAST name2 arg2 type2 expr2 = name1 == name2 && arg1 == arg2 && type1 == type2 && expr1 == expr2
     ReturnAST expr1 == ReturnAST expr2 = expr1 == expr2
     IntTypeAST == IntTypeAST = True
     FloatTypeAST == FloatTypeAST = True
@@ -336,8 +336,8 @@ printAST = printASTIndented 0
         printASTIndented depth (IntAST value) = indent depth ++ "IntAST " ++ show value ++ "\n"
         printASTIndented depth (FloatAST value) = indent depth ++ "FloatAST " ++ show value ++ "\n"
         printASTIndented depth (SymbolAST name) = indent depth ++ "SymbolAST " ++ name ++ "\n"
-        printASTIndented depth (DefineAST name expr) =
-            indent depth ++ "DefineAST " ++ name ++ "\n" ++ printASTIndented (depth + 1) expr
+        -- printASTIndented depth (DefineAST name expr) =
+        --     indent depth ++ "DefineAST " ++ name ++ "\n" ++ printASTIndented (depth + 1) expr
         printASTIndented depth (IfAST cond expr1 elseIfExpr) =
             indent depth ++ "IfAST\n" ++
                 printASTIndented (depth + 1) cond ++
@@ -352,10 +352,10 @@ printAST = printASTIndented 0
                 indent (depth + 1) ++ "env: " ++ show env ++ "\n"
         printASTIndented depth (FunTypeAST typeAST) =
             indent depth ++ "FunTypeAST\n" ++ printASTIndented (depth + 1) typeAST
-        printASTIndented depth (FunAST name returnType arg expr) =
+        printASTIndented depth (FunAST name arg returnType expr) =
             indent depth ++ "FunAST " ++ name ++ "\n" ++
-                printASTIndented (depth + 1) returnType ++
                 printASTIndented (depth + 1) arg ++
+                printASTIndented (depth + 1) returnType ++
                 printASTIndented (depth + 1) expr
         printASTIndented depth (ElseAST expr) =
             indent depth ++ "ElseAST\n" ++ printASTIndented (depth + 1) expr

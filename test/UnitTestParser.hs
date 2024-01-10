@@ -397,7 +397,7 @@ equalsASTTest =
         TestCase (assertEqual "equalsAST" True (AST [SymbolAST "\"Hello World\""] == AST [SymbolAST "\"Hello World\""])),
         TestCase (assertEqual "equalsAST" True (AST [CharAST 'c'] == AST [CharAST 'c'])),
         TestCase (assertEqual "equalsAST" True (AST [AST [IntAST 1, IntAST 2, IntAST 3]] == AST [AST [IntAST 1, IntAST 2, IntAST 3]])),
-        TestCase (assertEqual "equalsAST" True (AST [DefineAST "my_var" (AST [IntAST 42])] == AST [DefineAST "my_var" (AST [IntAST 42])])),
+        -- TestCase (assertEqual "equalsAST" True (AST [DefineAST "my_var" (AST [IntAST 42])] == AST [DefineAST "my_var" (AST [IntAST 42])])),
         TestCase (assertEqual "equalsAST" True (AST [IfAST (AST [IntAST 1, SymbolAST "<", IntAST 2]) (AST [IntAST 41]) (AST [ElseIfAST (AST [IntAST 1, SymbolAST ">", IntAST 2]) (AST [IntAST 42]) (AST [ElseAST (AST [IntAST 43])])])] == AST [IfAST (AST [IntAST 1, SymbolAST "<", IntAST 2]) (AST [IntAST 41]) (AST [ElseIfAST (AST [IntAST 1, SymbolAST ">", IntAST 2]) (AST [IntAST 42]) (AST [ElseAST (AST [IntAST 43])])])])),
         TestCase (assertEqual "equalsAST" True (AST [ForAST (AST [IntTypeAST,SymbolAST "i",SymbolAST "=",IntAST 0]) (AST [SymbolAST "i",SymbolAST "<",IntAST 10]) (AST [SymbolAST "i++"]) (AST [AST [SymbolAST "a",SymbolAST "=",SymbolAST "a",SymbolAST "+",IntAST 1]])] == AST [ForAST (AST [IntTypeAST,SymbolAST "i",SymbolAST "=",IntAST 0]) (AST [SymbolAST "i",SymbolAST "<",IntAST 10]) (AST [SymbolAST "i++"]) (AST [AST [SymbolAST "a",SymbolAST "=",SymbolAST "a",SymbolAST "+",IntAST 1]])])),
         TestCase (assertEqual "equalsAST" True (AST [WhileAST (AST [SymbolAST "i",SymbolAST "<",IntAST 10]) (AST [AST [SymbolAST "a",SymbolAST "=",SymbolAST "a",SymbolAST "+",IntAST 1]])] == AST [WhileAST (AST [SymbolAST "i",SymbolAST "<",IntAST 10]) (AST [AST [SymbolAST "a",SymbolAST "=",SymbolAST "a",SymbolAST "+",IntAST 1]])])),
@@ -410,10 +410,10 @@ printASTTest :: Test
 printASTTest =
     TestList
     [
-        TestCase (assertEqual "printAST" "AST\n" (printAST (AST []))),
-        TestCase (assertEqual "printAST" "AST\n|   DefineAST my_var\n|   |   AST\n|   |   |   DeadLeafAST\n" (printAST (AST [DefineAST "my_var" (AST [DeadLeafAST])]))),
-        TestCase (assertEqual "printAST" "AST\n|   DefineAST my_var\n|   |   AST\n|   |   |   IntAST 42\n" (printAST (AST [DefineAST "my_var" (AST [IntAST 42])]))),
-        TestCase (assertEqual "printAST" "AST\n|   DefineAST my_var\n|   |   AST\n|   |   |   SymbolAST \"Hello World\"\n" (printAST (AST [DefineAST "my_var" (AST [SymbolAST "\"Hello World\""])])))
+        TestCase (assertEqual "printAST" "AST\n" (printAST (AST [])))
+        -- TestCase (assertEqual "printAST" "AST\n|   DefineAST my_var\n|   |   AST\n|   |   |   DeadLeafAST\n" (printAST (AST [DefineAST "my_var" (AST [DeadLeafAST])]))),
+        -- TestCase (assertEqual "printAST" "AST\n|   DefineAST my_var\n|   |   AST\n|   |   |   IntAST 42\n" (printAST (AST [DefineAST "my_var" (AST [IntAST 42])]))),
+        -- TestCase (assertEqual "printAST" "AST\n|   DefineAST my_var\n|   |   AST\n|   |   |   SymbolAST \"Hello World\"\n" (printAST (AST [DefineAST "my_var" (AST [SymbolAST "\"Hello World\""])])))
     ]
 
 parseKeywordTest :: Test
@@ -1255,11 +1255,11 @@ sexprToAstTest =
             let sexpr = tokenListToSexpr $ tokenList
             let result = sexprToAst sexpr
             let expected =
-                    (AST [IfAST
+                    (IfAST
                         (EqualAST (AST [SymbolAST "i"]) (AST [IntAST 1]))
-                        (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42])])
+                        (AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42]))
                         (DeadLeafAST)
-                    ])
+                    )
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
             let originalFile = (File ["if (i == 1) { a = 42; } else { a = 84; }"])
@@ -1268,12 +1268,11 @@ sexprToAstTest =
             let sexpr = tokenListToSexpr $ tokenList
             let result = sexprToAst sexpr
             let expected =
-                    (AST [IfAST
+                    (IfAST
                         (EqualAST (AST [SymbolAST "i"]) (AST [IntAST 1]))
-                        (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42])])
-                        (AST [ElseAST (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 84])])
-                        ])
-                    ])
+                        (AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42]))
+                        (ElseAST (AssignAST (AST [SymbolAST "a"]) (AST [IntAST 84])))
+                    )
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
             let originalFile = (File ["if (i == 1) { a = 42; } else if (i == 2) { a = 84; } else if (i == 3) { a = 168; } else { a = 336; }"])
@@ -1282,21 +1281,19 @@ sexprToAstTest =
             let sexpr = tokenListToSexpr $ tokenList
             let result = sexprToAst sexpr
             let expected =
-                    (AST [IfAST
+                    (IfAST
                         (EqualAST (AST [SymbolAST "i"]) (AST [IntAST 1]))
-                        (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42])])
-                        (AST [ElseIfAST
+                        (AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42]))
+                        (ElseIfAST
                             (EqualAST (AST [SymbolAST "i"]) (AST [IntAST 2]))
-                            (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 84])])
-                            (AST [ElseIfAST
+                            (AssignAST (AST [SymbolAST "a"]) (AST [IntAST 84]))
+                            (ElseIfAST
                                 (EqualAST (AST [SymbolAST "i"]) (AST [IntAST 3]))
-                                (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 168])])
-                                (AST [ElseAST
-                                    (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 336])])
-                                ])
-                            ])
-                        ])
-                    ])
+                                (AssignAST (AST [SymbolAST "a"]) (AST [IntAST 168]))
+                                (ElseAST (AssignAST (AST [SymbolAST "a"]) (AST [IntAST 336])))
+                            )
+                        )
+                    )
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
             let originalFile = (File ["if (1 > 2) { a = 42; } else if (1 < 2) { a = 84; } else { a = 168; } return a;"])
@@ -1307,14 +1304,12 @@ sexprToAstTest =
             let expected =
                     (AST [IfAST
                         (GreaterThanAST (AST [IntAST 1]) (AST [IntAST 2]))
-                        (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42])])
-                        (AST [ElseIfAST
+                        (AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42]))
+                        (ElseIfAST
                             (LessThanAST (AST [IntAST 1]) (AST [IntAST 2]))
-                            (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 84])])
-                            (AST [ElseAST
-                                (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 168])])
-                            ])
-                        ])
+                            (AssignAST (AST [SymbolAST "a"]) (AST [IntAST 84]))
+                            (ElseAST (AssignAST (AST [SymbolAST "a"]) (AST [IntAST 168])))
+                        )
                     , ReturnAST (AST [SymbolAST "a"])])
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
@@ -1324,15 +1319,15 @@ sexprToAstTest =
             let sexpr = tokenListToSexpr $ tokenList
             let result = sexprToAst sexpr
             let expected =
-                    (AST [IfAST
+                    (IfAST
                         (AndAST (NotAST (GreaterThanEqualAST (AST [IntAST 1]) (AST [IntAST 2]))) (EqualAST (AST [IntAST 1]) (AST [IntAST 2])))
-                        (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42])])
-                        (AST [ElseIfAST
+                        (AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42]))
+                        (ElseIfAST
                             (OrAST (LessThanEqualAST (AST [IntAST 1]) (AST [IntAST 2])) (NotEqualAST (AST [IntAST 1]) (AST [IntAST 2])))
-                            (AST [AssignAST (AST [SymbolAST "a"]) (AST [IntAST 84])])
+                            (AssignAST (AST [SymbolAST "a"]) (AST [IntAST 84]))
                             (DeadLeafAST)
-                        ])
-                    ])
+                        )
+                    )
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
             let originalFile = (File ["int b += a;"])
@@ -1340,7 +1335,7 @@ sexprToAstTest =
             tokenList <- parseFile cleanedFile 0 [""] originalFile
             let sexpr = tokenListToSexpr $ tokenList
             let result = sexprToAst sexpr
-            let expected = (AST [PlusEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"])])
+            let expected = (PlusEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"]))
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
             let originalFile = (File ["int b -= a;"])
@@ -1348,7 +1343,7 @@ sexprToAstTest =
             tokenList <- parseFile cleanedFile 0 [""] originalFile
             let sexpr = tokenListToSexpr $ tokenList
             let result = sexprToAst sexpr
-            let expected = (AST [MinusEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"])])
+            let expected = (MinusEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"]))
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
             let originalFile = (File ["int b *= a;"])
@@ -1356,7 +1351,7 @@ sexprToAstTest =
             tokenList <- parseFile cleanedFile 0 [""] originalFile
             let sexpr = tokenListToSexpr $ tokenList
             let result = sexprToAst sexpr
-            let expected = (AST [TimesEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"])])
+            let expected = (TimesEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"]))
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
             let originalFile = (File ["int b /= a;"])
@@ -1364,7 +1359,7 @@ sexprToAstTest =
             tokenList <- parseFile cleanedFile 0 [""] originalFile
             let sexpr = tokenListToSexpr $ tokenList
             let result = sexprToAst sexpr
-            let expected = (AST [DivideEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"])])
+            let expected = (DivideEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"]))
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
             let originalFile = (File ["int b %= a;"])
@@ -1372,7 +1367,7 @@ sexprToAstTest =
             tokenList <- parseFile cleanedFile 0 [""] originalFile
             let sexpr = tokenListToSexpr $ tokenList
             let result = sexprToAst sexpr
-            let expected = (AST [ModuloEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"])])
+            let expected = (ModuloEqualAST (AST [IntTypeAST, SymbolAST "b"]) (AST [SymbolAST "a"]))
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
             let originalFile = (File ["int a = 1; float b = 1.42; char c = 'c'; string d = \"Hello World!\""])
@@ -1389,12 +1384,30 @@ sexprToAstTest =
                     ])
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
-            let originalFile = (File ["#define my_int int"])
+            let originalFile = (File ["#define my_int (int)",
+                    "my_int a = 1;",
+                    "my_int b = 1 + 1;",
+                    "my_int c = 1 - 1;",
+                    "my_int d = 1 * 1;",
+                    "my_int e = 1 / 1;",
+                    "my_int f = 1 % 1;",
+                    "my_int g = 1++;",
+                    "my_int h = 1--;"])
             let cleanedFile = cleanFile originalFile False
             tokenList <- parseFile cleanedFile 0 [""] originalFile
             let sexpr = tokenListToSexpr $ tokenList
             let result = sexprToAst sexpr
-            let expected = (AST [DefineAST "my_int" (AST [IntTypeAST])])
+            let expected =
+                    (AST [
+                        AssignAST (AST [AST [IntTypeAST], SymbolAST "a"]) (AST [IntAST 1]),
+                        AssignAST (AST [AST [IntTypeAST], SymbolAST "b"]) (PlusAST (AST [IntAST 1]) (AST [IntAST 1])),
+                        AssignAST (AST [AST [IntTypeAST], SymbolAST "c"]) (MinusAST (AST [IntAST 1]) (AST [IntAST 1])),
+                        AssignAST (AST [AST [IntTypeAST], SymbolAST "d"]) (TimesAST (AST [IntAST 1]) (AST [IntAST 1])),
+                        AssignAST (AST [AST [IntTypeAST], SymbolAST "e"]) (DivideAST (AST [IntAST 1]) (AST [IntAST 1])),
+                        AssignAST (AST [AST [IntTypeAST], SymbolAST "f"]) (ModuloAST (AST [IntAST 1]) (AST [IntAST 1])),
+                        AssignAST (AST [AST [IntTypeAST], SymbolAST "g"]) (IncrementAST (AST [IntAST 1])),
+                        AssignAST (AST [AST [IntTypeAST], SymbolAST "h"]) (DecrementAST (AST [IntAST 1]))
+                    ])
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
             let originalFile = (File ["fun sum(int a, int b) : int { return (a + b); } int a = sum(1, 2);"])
@@ -1407,7 +1420,7 @@ sexprToAstTest =
                         FunAST "sum"
                             (AST [AST [IntTypeAST, SymbolAST "a"], AST [IntTypeAST, SymbolAST "b"]])
                             (FunTypeAST (AST [IntTypeAST]))
-                            (AST [ReturnAST (AST [PlusAST (AST [SymbolAST "a"]) (AST [SymbolAST "b"])])]),
+                            (ReturnAST (PlusAST (AST [SymbolAST "a"]) (AST [SymbolAST "b"]))),
                         AssignAST (AST [IntTypeAST, SymbolAST "a"]) (AST [SymbolAST "sum", (AST [AST [IntAST 1], AST [IntAST 2]])])
                     ])
             assertEqual "sexprToAst" (expected) (result)),
@@ -1417,7 +1430,7 @@ sexprToAstTest =
             tokenList <- parseFile cleanedFile 0 [""] originalFile
             let sexpr = tokenListToSexpr $ tokenList
             let result = sexprToAst sexpr
-            let expected = (AST [WhileAST (LessThanAST (AST [SymbolAST "i"]) (AST [IntAST 10])) (AST [IncrementAST (AST [SymbolAST "i"])])])
+            let expected = (WhileAST (LessThanAST (AST [SymbolAST "i"]) (AST [IntAST 10])) (IncrementAST (AST [SymbolAST "i"])))
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
             let originalFile = (File ["for (int i = 0; i < 10; i++) { print(i); }"])
@@ -1426,12 +1439,12 @@ sexprToAstTest =
             let sexpr = tokenListToSexpr $ tokenList
             let result = sexprToAst sexpr
             let expected =
-                    (AST [ForAST
+                    (ForAST
                         (AssignAST (AST [IntTypeAST, SymbolAST "i"]) (AST [IntAST 0]))
                         (LessThanAST (AST [SymbolAST "i"]) (AST [IntAST 10]))
                         (IncrementAST (AST [SymbolAST "i"]))
                         (AST [AST [SymbolAST "print", (AST [SymbolAST "i"])]])
-                    ])
+                    )
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
             let originalFile = (File ["int j = 1--; int i = j++;"])
