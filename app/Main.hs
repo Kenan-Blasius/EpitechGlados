@@ -17,11 +17,11 @@ main = do
             file <- return $ File (lines contents)
             ast <- parser file filename
             putStrLn $ show ast
-            putStrLn "-----------------"
+            putStrLn "--------astToBytecode---------"
             let (_, bytecode, _) = astToBytecode' ast 0
-            putStrLn "-----------------"
+            putStrLn "--------printBytecode---------"
             print bytecode
-            putStrLn "-----------------"
+            putStrLn "--------bytecodeToBinary---------"
             bytecodeToBinary bytecode
 
         _ -> do

@@ -6,7 +6,8 @@ module Types (
     Environment,
     indent,
     printAST,
-    Bytecode (..)
+    Bytecode (..),
+    DataType(..)
 ) where
 
 import Control.Exception
@@ -479,12 +480,24 @@ instance Semigroup AST where
 
 
 
-data Bytecode = LoadConst Int
-              | LoadVar String
-              | StoreVar String
-              | BinaryOp String
-              | UnaryOp String
-              | CompareOp String
+data DataType =  IntType
+                | FloatType
+                | StringType
+                | CharType
+                | FunType
+                | VoidType
+                | BoolType
+                | UnknownType
+                deriving (Show, Eq)
+
+data Bytecode = LoadConst Int DataType
+              | LoadVarBefore String DataType
+              | StoreVarBefore String DataType
+              | LoadVar Int DataType
+              | StoreVar Int DataType
+              | BinaryOp String -- ? DataType
+              | UnaryOp String -- ? DataType
+              | CompareOp String -- ? DataType
               | JumpIfTrue Int
               | JumpIfFalse Int
               | Jump Int
@@ -497,30 +510,36 @@ data Bytecode = LoadConst Int
               | Dup
               | Call Int
               | Return
-              | FunEntryPoint String
+              | FunEntryPoint String DataType
               | CallUserFun String
               | LoadPC
+            --   | BuildList Int
+            --   | Index
+            --   | ListAppend            -- No additional values needed
+            --   | ListConcat            -- No additional values needed
+            --   | ListSlice Int Int     -- Requires two Int values (start and end indices)
+            --   | ListLength            -- No additional values needed
+            --   | ListPop Int           -- Requires an Int value (index from which to pop)
+            --   | ListInsert Int        -- Requires two values - an Int (index) and a value to insert
             --  ? | PushFrame
             --  ? | PopFrame
             -- * Unused, but could be useful in the future
-            --   | BuildList Int
-            --   | Index
-            --   | Attribute String
-            --   | CreateObject Int
               deriving Eq
 
 instance Show Bytecode where
-    show (LoadConst x) =    "LoadConst " ++ show x
-    show (LoadVar x) =      "LoadVar " ++ x
-    show (StoreVar x) =     "StoreVar " ++ x
-    show (BinaryOp x) =     "BinaryOp " ++ x
-    show (UnaryOp x) =      "UnaryOp " ++ x
+    show (LoadConst x y) =    "LoadConst " ++ show x ++ " " ++ show y
+    show (LoadVarBefore x y) =  "LoadVarBefore "  ++ x ++ " " ++ show y
+    show (StoreVarBefore x y) = "StoreVarBefore " ++ x ++ " " ++ show y
+    show (LoadVar x y) =      "LoadVar "  ++ show x ++ " " ++ show y
+    show (StoreVar x y) =     "StoreVar " ++ show x ++ " " ++ show y
+    show (BinaryOp x) =     "BinaryOp "  ++ x
+    show (UnaryOp x) =      "UnaryOp "   ++ x
     show (CompareOp x) =    "CompareOp " ++ x
-    show (JumpIfTrue x) =   "JumpIfTrue " ++ show x
+    show (JumpIfTrue x) =   "JumpIfTrue "  ++ show x
     show (JumpIfFalse x) =  "JumpIfFalse " ++ show x
     show (Jump x) =         "Jump " ++ show x
     show (JumpNewScope x) = "JumpNewScope " ++ show x ++ " "
-    show (JumpIfTrueBefore x) =   "JumpIfTrueBefore " ++ show x
+    show (JumpIfTrueBefore x) =   "JumpIfTrueBefore "  ++ show x
     show (JumpIfFalseBefore x) =  "JumpIfFalseBefore " ++ show x
     show (JumpBefore x) =         "JumpBefore " ++ show x
     show (JumpRef x) =      "JumpRef " ++ show x
@@ -528,14 +547,11 @@ instance Show Bytecode where
     show Dup =              "Dup"
     show (Call x) =         "Call " ++ show x
     show Return =           "Return"
-    show (FunEntryPoint x) = "FunEntryPoint " ++ show x
+    show (FunEntryPoint x y) = "FunEntryPoint " ++ show x ++ " " ++ show y
     show (CallUserFun x) =  "CallUserFun " ++ show x
     show LoadPC =           "LoadPC"
     -- ? show PushFrame =        "PUSH_FRAME"
     -- ? show PopFrame =         "POP_FRAME"
-
     -- show (BuildList x) =    "BUILD_LIST " ++ show x
     -- show Index =            "INDEX"
-    -- show (Attribute x) =    "ATTRIBUTE " ++ x
-    -- show (CreateObject x) = "CREATE_OBJECT " ++ show x
 
