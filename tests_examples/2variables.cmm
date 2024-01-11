@@ -1,0 +1,8 @@
+fun main () : int
+{
+    int france🇫🇷 = 0;
+
+    france🇫🇷 += 5;
+
+    return france🇫🇷;
+}
