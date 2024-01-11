@@ -24,10 +24,11 @@ sizeOfHeader = 32 + 5 -- 32 for the header and 5 for the first jump
 -- JUMP_IF_TRUE    0x07
 -- JUMP_IF_FALSE   0x08
 -- JUMP            0x09
--- POP             0x0A
--- DUP             0x0B
--- CALL            0x0C
--- RETURN          0x0D
+-- JUMP_NEW_SCOPE  0x0A
+-- POP             0x0B
+-- DUP             0x0C
+-- CALL            0x0D
+-- RETURN          0x0E
 
 int8_ToBytes :: Int -> [Word8]
 int8_ToBytes x = [fromIntegral x]
@@ -334,3 +335,6 @@ bytecodeToBinary bytecode = do
 -- handle this case:
 --     j = 4;
 --     int j = 4;
+
+
+-- get several variables of functions arguments in good order

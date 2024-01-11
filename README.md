@@ -9,15 +9,15 @@ GLaDOS est un projet de création de langage de programmation.
 Ce projet est divisé en 2 parties :
 
 1. Un compilateur
-    1. Un Parser qui transforme un fichier de code en AST
-        1. Un lexer qui transforme un fichier de code en tokens
-        2. Un parser qui transforme les tokens en Sexpr
-        3. Un parser qui transforme les Sexpr en AST
-    2. Un compilateur qui transforme l'AST en bytecode puis en fichier binaire
-        1. Un compilateur qui transforme l'AST en bytecode
-        2. Un compilateur qui transforme le bytecode en fichier binaire
+   1. Un Parser qui transforme un fichier de code en AST
+      1. Un lexer qui transforme un fichier de code en tokens
+      2. Un parser qui transforme les tokens en Sexpr
+      3. Un parser qui transforme les Sexpr en AST
+   2. Un compilateur qui transforme l'AST en bytecode puis en fichier binaire
+      1. Un compilateur qui transforme l'AST en bytecode
+      2. Un compilateur qui transforme le bytecode en fichier binaire
 2. Une machine virtuelle
-    1. Un programme qui lit un fichier binaire et l'execute
+   1. Un programme qui lit un fichier binaire et l'execute
 
 ## Installation
 
@@ -42,20 +42,20 @@ Lancez `./glados <fichier>` pour compiler un fichier `.bin` puis `./eval <fichie
 ```py
 
 ; Opcode Definitions
-LOAD_CONST      0x01
-LOAD_VAR        0x02
-STORE_VAR       0x03
-BINARY_OP       0x04
-UNARY_OP        0x05
-COMPARE_OP      0x06
-JUMP_IF_TRUE    0x07
-JUMP_IF_FALSE   0x08
-JUMP            0x09
-JUMP_REF        (only used internally)
-POP             0x0A
-DUP             0x0B
-CALL            0x0C
-RETURN          0x0D
+- LOAD_CONST      0x01
+- LOAD_VAR        0x02
+- STORE_VAR       0x03
+- BINARY_OP       0x04
+- UNARY_OP        0x05
+- COMPARE_OP      0x06
+- JUMP_IF_TRUE    0x07
+- JUMP_IF_FALSE   0x08
+- JUMP            0x09
+- JUMP_NEW_SCOPE  0x0A
+- POP             0x0B
+- DUP             0x0C
+- CALL            0x0D
+- RETURN          0x0E
 ```
 
 1. **LOAD_CONST(index):** Load a constant value onto the stack. The `index` points to the position of the constant in a constant pool.
@@ -76,7 +76,7 @@ RETURN          0x0D
 
 9. **JUMP(target):** Unconditional jump to the specified `target` instruction.
 
-10. **JUMP_REF(target):** Internal instruction used to reference a jump target.
+10. **JUMP_NEW_SCOPE(target):** Unconditional jump to the specified `target` instruction, and create a new empty scope of variables.
 
 11. **POP:** Pop the top value from the stack.
 
@@ -89,10 +89,9 @@ RETURN          0x0D
 ### Exemple
 
 ```c
-if (2 == 0) {
-    return 1;
-} else {
-    return 2;
+fun main (int spain🇪🇸) : int
+{
+    return 0;
 }
 ```
 
@@ -100,77 +99,208 @@ Is converted to this AST:
 
 ```haskell
 -- AST
-AST [IfAST (EqualAST (AST [IntAST 2]) (AST [IntAST 0])) (AST [ReturnAST (AST [IntAST 1])]) (AST [ElseAST (AST [ReturnAST (AST [IntAST 2])])])]
+FunAST "main" (AST [IntTypeAST,SymbolAST "spain🇪🇸"]) (FunTypeAST (AST [IntTypeAST])) (ReturnAST (AST [IntAST 0]))
 
 
 -- AST (human readable)
-AST
-|   IfAST
-|   |   EqualAST
-|   |   |   AST
-|   |   |   |   IntAST 2
-|   |   |   AST
-|   |   |   |   IntAST 0
+FunAST main
+|   AST
+|   |   IntTypeAST
+|   |   SymbolAST "spain🇪🇸"
+|   FunTypeAST
 |   |   AST
-|   |   |   ReturnAST
-|   |   |   |   AST
-|   |   |   |   |   IntAST 1
+|   |   |   IntTypeAST
+|   ReturnAST
 |   |   AST
-|   |   |   ElseAST
-|   |   |   |   AST
-|   |   |   |   |   ReturnAST
-|   |   |   |   |   |   AST
-|   |   |   |   |   |   |   IntAST 2
+|   |   |   IntAST 0
 ```
 
 Which is converted to this bytecode:
 
-```python
-LOAD_CONST(2)
-LOAD_CONST(0)      # Push the constant 0 onto the stack
-COMPARE_OP("==")   # Compare the top two values for equality
-JUMP_IF_FALSE_BEFORE(1)   # Jump to JUMP_REF 1 if the comparison is false
-
-LOAD_CONST(1)      # Push the constant 1 onto the stack
-RETURN             # Return with the value 1
-JUMP_BEFORE(2)            # Jump to JUMP_REF 2 (useless here, but needed if not returning)
-
-JUMP_REF(1)        # reference for JUMP_IF_FALSE
-LOAD_CONST(2)      # Push the constant 2 onto the stack
-RETURN             # Return with the value 2
-JUMP_REF(2)        # reference for JUMP
+```py
+32 FunEntryPoint "main" IntType
+37 StoreVarBefore spain🇪🇸 IntType  # save the variable spain🇪🇸 in the scope
+43 LoadConst 0 IntType
+49 Return
+50 Return                          # double return in case of no main return
 ```
 
-The jump references are calculated
+Become:
 
-```python
-LOAD_CONST(2)
-LOAD_CONST(0)
-COMPARE_OP("==")
-JUMP_IF_FALSE(13)  # Jump to JUMP_REF 1, which is at index 13, if the comparison is false
-
-LOAD_CONST(1)
-RETURN
-JUMP(16)           # Jump to JUMP_REF 2, which is at index 16 (useless here, but needed if not returning)
-
-LOAD_CONST(2)
-RETURN
+```py
+32 Jump 37                          # jump to the main function, the 32 first bytes are for the header
+37 StoreVar 0 IntType
+43 LoadConst 0 IntType
+49 Return
+50 Return
 ```
 
 The final bytecode is:
 
 ```py
+# the magic number
+122,105,122,105,
+# the header: "This is the comment section\0"
+84,104,105,115,32,105,115,32,116,104,101,32,99,111,109,109,101,110,116,32,115,101,99,116,105,111,110,0,
 
-; Bytecode
-1,2    ; LOAD_CONST 2
-1,0    ; LOAD_CONST 0
-6,61   ; COMPARE_OP =
-8,13   ; JUMP_IF_FALSE 13
-1,1    ; LOAD_CONST 1
-13     ; RETURN
-9,16   ; JUMP 16
-1,2    ; LOAD_CONST 2
-13     ; RETURN
+9,37,0,0,0,  # Jump 37
+3,0,0,0,0,1, # StoreVar 0 IntType
+1,0,0,0,0,1, # LoadConst 0 IntType
+14,          # Return
+14           # Return
+```
+
+### Exemple 2
+
+```c
+fun add (int a, int b) : (int)
+{
+    return a + b;
+}
+
+fun main () : int
+{
+    int south_corea🇰🇷 = 7;
+    int north_corea🇰🇵 = 3;
+
+    int corea = add(south_corea🇰🇷, north_corea🇰🇵);
+
+    return corea;
+}
+```
+
+Is converted to this AST:
+
+```haskell
+
+AST
+|   FunAST add
+|   |   AST
+|   |   |   AST
+|   |   |   |   IntTypeAST
+|   |   |   |   SymbolAST a
+|   |   |   AST
+|   |   |   |   IntTypeAST
+|   |   |   |   SymbolAST b
+|   |   FunTypeAST
+|   |   |   AST
+|   |   |   |   AST
+|   |   |   |   |   IntTypeAST
+|   |   ReturnAST
+|   |   |   PlusAST
+|   |   |   |   AST
+|   |   |   |   |   SymbolAST a
+|   |   |   |   AST
+|   |   |   |   |   SymbolAST b
+|   FunAST main
+|   |   DeadLeafAST
+|   |   FunTypeAST
+|   |   |   AST
+|   |   |   |   IntTypeAST
+|   |   AST
+|   |   |   AssignAST
+|   |   |   |   AST
+|   |   |   |   |   IntTypeAST
+|   |   |   |   |   SymbolAST south_corea🇰🇷
+|   |   |   |   AST
+|   |   |   |   |   IntAST 7
+|   |   |   AssignAST
+|   |   |   |   AST
+|   |   |   |   |   IntTypeAST
+|   |   |   |   |   SymbolAST north_corea🇰🇵
+|   |   |   |   AST
+|   |   |   |   |   IntAST 3
+|   |   |   AssignAST
+|   |   |   |   AST
+|   |   |   |   |   IntTypeAST
+|   |   |   |   |   SymbolAST corea
+|   |   |   |   AST
+|   |   |   |   |   SymbolAST add
+|   |   |   |   |   AST
+|   |   |   |   |   |   AST
+|   |   |   |   |   |   |   SymbolAST south_corea🇰🇷
+|   |   |   |   |   |   AST
+|   |   |   |   |   |   |   SymbolAST north_corea🇰🇵
+|   |   |   ReturnAST
+|   |   |   |   AST
+|   |   |   |   |   SymbolAST corea
+```
+
+Which is converted to this bytecode:
+
+```py
+32 Jump 65
+# add
+37 StoreVar 0 IntType
+43 StoreVar 1 IntType
+49 LoadVar 0 IntType
+55 LoadVar 1 IntType
+61 BinaryOp +
+63 Return
+64 Return
+# main
+65 LoadConst 7 IntType
+71 StoreVar 0 IntType
+77 LoadConst 3 IntType
+83 StoreVar 1 IntType
+89 LoadVar 0 IntType
+95 LoadVar 1 IntType
+101 LoadPC
+102 JumpNewScope 37
+107 StoreVar 2 IntType
+113 LoadVar 2 IntType
+119 Return
+120 Return
+```
+
+As we can see, the variable are stored as id, and the function are stored as id too.
+
+Become:
+
+```py
+# the magic number
+122,105,122,105,
+# the header: "This is the comment section\0"
+84,104,105,115,32,105,115,32,116,104,101,32,99,111,109,109,101,110,116,32,115,101,99,116,105,111,110,0,
+
+9,65,0,0,0,  # Jump 65
+3,0,0,0,0,1, # StoreVar 0 IntType
+3,1,0,0,0,1, # StoreVar 1 IntType
+2,0,0,0,0,1, # LoadVar 0 IntType
+2,1,0,0,0,1, # LoadVar 1 IntType
+4,43,        # BinaryOp +
+14,          # Return
+14,          # Return
+1,7,0,0,0,1, # LoadConst 7 IntType
+3,0,0,0,0,1, # StoreVar 0 IntType
+1,3,0,0,0,1, # LoadConst 3 IntType
+3,1,0,0,0,1, # StoreVar 1 IntType
+2,0,0,0,0,1, # LoadVar 0 IntType
+2,1,0,0,0,1, # LoadVar 1 IntType
+15,          # LoadPC
+10,37,0,0,0, # JumpNewScope 37
+3,2,0,0,0,1, # StoreVar 2 IntType
+2,2,0,0,0,1, # LoadVar 2 IntType
+14,          # Return
+14           # Return
+```
+
+-- LOAD_CONST 0x01
+-- LOAD_VAR 0x02
+-- STORE_VAR 0x03
+
+As we can see, the instructions `LoadConst`, `LoadVar` and `StoreVar` work like this:
+
+```py
+
+First byte:
+0x01 # LOAD_CONST
+0x02 # LOAD_VAR
+0x03 # STORE_VAR
+
+4 next bytes are the id of the variable or, the value of the constant
+
+1 next byte is the type of the variable
 ```
 
 <!-- ## TODO
@@ -195,92 +325,8 @@ pour les return, on fait un jump au PC dans la stack
 lancer le programme :
 ./glados simple.c
 ./eval file.bin
--->
-
-### Exemple 3
-
-```c
-int a = 0;
-
-while (a < 10) {
-    b = b + 1;
-    if (b == 5) {
-        a = 5;
-    }
-    a = a + 1;
-}
-
-```
-
-```py
-
-# here 8
-| JUMP_REF 3
-LOAD_VAR a
-LOAD_CONST 10
-COMPARE_OP <
-| JUMP_IF_FALSE 2
-    LOAD_VAR b
-    LOAD_CONST 1
-    BINARY_OP +
-    STORE_VAR b
-    LOAD_VAR b
-    LOAD_CONST 5
-    COMPARE_OP ==
-    | JUMP_IF_FALSE 1
-        LOAD_CONST 5
-        STORE_VAR a
-    | JUMP_REF 1
-    LOAD_VAR a
-    LOAD_CONST 1
-    BINARY_OP +
-    STORE_VAR a
-    | JUMP 3
-| JUMP_REF 2
-
-## become
-
-# here 8
-LOAD_VAR a
-LOAD_CONST 10
-COMPARE_OP <
-| JUMP_IF_FALSE 46
-    LOAD_VAR b
-    LOAD_CONST 1
-    BINARY_OP +
-    STORE_VAR b
-    LOAD_VAR b
-    LOAD_CONST 5
-    COMPARE_OP == # 30
-    | JUMP_IF_FALSE 36
-        LOAD_CONST 5
-        STORE_VAR a # 36
-    LOAD_VAR a
-    LOAD_CONST 1
-    BINARY_OP +
-    STORE_VAR a
-| JUMP 8 # 46
-
-1,0,3,97, # int a = 0;
-1,0,3,98, # int b = 0;
-2,97,1,10,6,60,8,46, # while (a < 10), jmp_if_false 46
-    2,98,1,1,4,43,3,98, # b = b + 1;
-    2,98,1,5,6,61,8,36, # if (b == 5), jmp_if_false 36
-        1,5,3,97,2,97, # a = 5;
-    1,1,4,43,3,97,9, # a = a + 1;
-
-```
-
-```c
-all the syscalls
-
-// done
-exit (Syscall Number: 60): Terminate the process and return the exit status to the parent.
 
 read (Syscall Number: 0): Read data from a file descriptor (e.g., reading from stdin).
-
-// done only for stdout
-write (Syscall Number: 1): Write data to a file descriptor (e.g., printing to stdout).
 
 open (Syscall Number: 2): Open a file or device for reading, writing, or both.
 
@@ -305,6 +351,17 @@ getuid (Syscall Number: 102): Get the user ID.
 getgid (Syscall Number: 104): Get the group ID.
 
 socket (Syscall Number: -1): Create an endpoint for communication (varies between operating systems).
+-->
+
+```c
+all the syscalls
+
+// done
+exit (Syscall Number: 60): Terminate the process and return the exit status to the parent.
+
+// done only for stdout
+write (Syscall Number: 1): Write data to a file descriptor (e.g., printing to stdout).
+
 ```
 
 ## Auteurs
