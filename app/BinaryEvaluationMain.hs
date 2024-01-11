@@ -25,7 +25,7 @@ main = do
                     exitWith (ExitFailure 84)
                 else do
                     putStrLn ("Result: " ++ show (getLastIntFromStack stack))
-                    exitWith (ExitSuccess)
+                    exitWith (ExitFailure (getLastIntFromStack stack))
 
         _ -> putStrLn "No file given as an argument"
 
