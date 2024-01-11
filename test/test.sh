@@ -51,6 +51,8 @@ done
 
 if [ "$all_tests_passed" = true ]; then
     echo -e "${GREEN}All tests passed!${NC}"
+    exit 0
 else
     echo -e "${RED}Some tests failed!${NC}"
+    exit 1
 fi
