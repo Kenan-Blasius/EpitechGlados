@@ -1,5 +1,4 @@
-import System.Environment
-import System.Exit
+module BinaryEvaluation (evalEachValue, byteStringToWord8List, checkMagicNumber, headerSize, getLastIntFromStack) where
 
 import Debug.Trace
 
@@ -250,27 +249,3 @@ byteStringToWord8List = unpack
 checkMagicNumber :: [Word8] -> Bool
 checkMagicNumber [0x7a, 0x69, 0x7a, 0x69] = True
 checkMagicNumber _ = False
-
--- open file given in argument, and print it
-main :: IO ()
-main = do
-    args <- getArgs
-    case args of
-        [filename] -> do
-            contents <- BS.readFile filename  -- Read binary file
-            let bytecode = byteStringToWord8List contents  -- Convert to list of Word8
-            if checkMagicNumber (take 4 bytecode) == False then do
-                putStrLn "Magic number is incorrect"
-                exitWith (ExitFailure 84)
-            else do
-                let stack = evalEachValue bytecode (drop headerSize bytecode) [] headerSize [[]]
-                if length stack < 1 then do
-                    putStrLn ("Stack is empty")
-                    exitWith (ExitFailure 84)
-                else do
-                    putStrLn ("Result: " ++ show (getLastIntFromStack stack))
-                    exitWith (ExitSuccess)
-
-        _ -> putStrLn "No file given as an argument"
-
--- todo exit with the last int in the stack
