@@ -7,6 +7,7 @@ module AstToBytecode (
 
 import Types(Bytecode(..), AST(..), DataType(..))
 import Debug.Trace
+import Unsafe.Coerce (unsafeCoerce)
 
 -- | IfAST AST AST AST
 -- | ElseIfAST AST AST AST
@@ -140,7 +141,6 @@ astToBytecode' (AST [IntTypeAST, SymbolAST x]) jmp =     trace ("IntTypeAST: " +
 astToBytecode' (AST [CharTypeAST, SymbolAST x]) jmp =    trace ("CharTypeAST: " ++ show x) $    (AST [], [LoadVar x CharType], jmp)
 astToBytecode' (AST [StringTypeAST, SymbolAST x]) jmp =  trace ("StringTypeAST: " ++ show x) $  (AST [], [LoadVar x StringType], jmp)
 astToBytecode' (AST [FloatTypeAST, SymbolAST x]) jmp =   trace ("FloatTypeAST: " ++ show x) $   (AST [], [LoadVar x FloatType], jmp)
-astToBytecode' (AST [BoolTypeAST, SymbolAST x]) jmp =    trace ("BoolTypeAST: " ++ show x) $    (AST [], [LoadVar x BoolType], jmp)
 
 -- maybe check the type of SymbolAST (variable, function, string...)
 -- ! scary but we keep it for now
@@ -295,9 +295,8 @@ astToBytecode' (OrAST x y) jmp = trace ("OrAST: " ++ show x ++ " || " ++ show y)
 -- * Load operations
 astToBytecode' (SymbolAST x) jmp = trace ("SymbolAST: " ++ show x) $ (AST [], [LoadVar x UnknownType], jmp) -- we can't know the type of the variable
 astToBytecode' (IntAST x) jmp = trace ("IntAST: " ++ show x) $ (AST [], [LoadConst x IntType], jmp)
-astToBytecode' (FloatAST x) jmp = trace ("FloatAST: " ++ show x) $ (AST [], [LoadConst (fromEnum x) FloatType], jmp)
+astToBytecode' (FloatAST x) jmp = trace ("FloatAST: " ++ show x) $ (AST [], [LoadConst (floatToInt x) FloatType], jmp)
 astToBytecode' (CharAST x) jmp = trace ("CharAST: " ++ show x) $ (AST [], [LoadConst (fromEnum x) CharType], jmp)
-astToBytecode' (BoolAST x) jmp = trace ("BoolAST: " ++ show x) $ (AST [], [LoadConst (fromEnum x) BoolType], jmp)
 astToBytecode' (StringAST x) jmp = trace ("StringAST: " ++ show x) $ (AST [], [LoadConst (fromEnum (head x)) StringType], jmp) -- ! put here the address of the string
 astToBytecode' DeadLeafAST jmp = trace ("DeadLeafAST") $ (AST [], [], jmp)
 astToBytecode' a jmp = trace ("Unknown AST node bytecode: " ++ show a ++ " ") (a, [], jmp)
@@ -305,3 +304,6 @@ astToBytecode' a jmp = trace ("Unknown AST node bytecode: " ++ show a ++ " ") (a
 -- todo code variable on id, to handle more than 1 byte
 -- int a;
 -- we store empty, but store the type
+
+floatToInt :: Float -> Int
+floatToInt = unsafeCoerce

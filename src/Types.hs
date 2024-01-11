@@ -508,16 +508,20 @@ data Bytecode = LoadConst Int DataType
               | Dup
               | Call Int
               | Return
-              | FunEntryPoint String DataType-- todo put the return type here
+              | FunEntryPoint String DataType
               | CallUserFun String
               | LoadPC
+            --   | BuildList Int
+            --   | Index
+            --   | ListAppend            -- No additional values needed
+            --   | ListConcat            -- No additional values needed
+            --   | ListSlice Int Int     -- Requires two Int values (start and end indices)
+            --   | ListLength            -- No additional values needed
+            --   | ListPop Int           -- Requires an Int value (index from which to pop)
+            --   | ListInsert Int        -- Requires two values - an Int (index) and a value to insert
             --  ? | PushFrame
             --  ? | PopFrame
             -- * Unused, but could be useful in the future
-            --   | BuildList Int
-            --   | Index
-            --   | Attribute String
-            --   | CreateObject Int
               deriving Eq
 
 instance Show Bytecode where
@@ -544,9 +548,6 @@ instance Show Bytecode where
     show LoadPC =           "LoadPC"
     -- ? show PushFrame =        "PUSH_FRAME"
     -- ? show PopFrame =         "POP_FRAME"
-
     -- show (BuildList x) =    "BUILD_LIST " ++ show x
     -- show Index =            "INDEX"
-    -- show (Attribute x) =    "ATTRIBUTE " ++ x
-    -- show (CreateObject x) = "CREATE_OBJECT " ++ show x
 

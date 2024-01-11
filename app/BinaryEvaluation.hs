@@ -10,6 +10,7 @@ import Data.Bits
 import Data.List (genericTake)
 import Data.Char
 import Data.Int (Int32)
+import Unsafe.Coerce
 
 -- ; Opcode Definitions
 -- LOAD_CONST      0x01
@@ -56,6 +57,9 @@ type VariableTable = [VariableEntry]
 type StackEntry = (VariableType, VariableElement)
 type StackTable = [StackEntry]
 
+
+intToFloat :: Int -> Float
+intToFloat = unsafeCoerce
 
 word8ToInt :: Word8 -> Int
 word8ToInt = fromIntegral
@@ -185,7 +189,7 @@ loadConst :: [Word8] -> StackEntry
 loadConst (a:b:c:d:0x01:_) = trace ("LoadConst : Int " ++ show (bytesToInt [a, b, c, d])) (IntType, MyInt (bytesToInt [a, b, c, d]))
 -- loadConst (a:b:c:d:0x02:_) = trace ("LoadConst : " ++ ) (StringType, MyString (intToChar (bytesToInt [a, b, c, d])))
 -- loadConst (a:b:c:d:0x03:_) = trace ("LoadConst : " ++ ) (BoolType, MyBool     (bytesToInt                [a, b, c, d]))
-loadConst (a:b:c:d:0x04:_) = trace ("LoadConst : Float ") (FloatType, MyFloat   (fromIntegral  (bytesToInt [a, b, c, d])))
+loadConst (a:b:c:d:0x04:_) = trace ("LoadConst : Float ") (FloatType, MyFloat   (intToFloat (bytesToInt [a, b, c, d])))
 loadConst (a:b:c:d:0x05:_) = trace ("LoadConst : Address " ++ show (bytesToInt [a, b, c, d])) (AddressType, MyInt (bytesToInt [a, b, c, d]))
 loadConst (a:b:c:d:0x06:_) = trace ("LoadConst : Char " ++ show (bytesToInt [a, b, c, d])) (CharType, MyChar     (intToChar     (bytesToInt [a, b, c, d])))
 loadConst _ = trace "ERROR LOAD CONST" (IntType, MyInt 0)
