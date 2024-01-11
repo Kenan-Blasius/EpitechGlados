@@ -69,7 +69,7 @@ valueSimpleToBytecode (AST []) = []
 valueSimpleToBytecode (AST (x:_)) = trace ("valueSimpleToBytecode AST (x:xs): " ++ show x) $
     case x of
         IntAST y -> trace ("valueSimpleToBytecode IntAST: " ++ show y) [LoadConst y IntType]
-        SymbolAST y -> trace ("valueSimpleToBytecode SymbolAST: " ++ show y) [LoadVar y StringType]
+        SymbolAST y -> trace ("valueSimpleToBytecode SymbolAST: " ++ show y) [LoadVarBefore y StringType]
         y -> trace ("valueSimpleToBytecode NO AST SIMPLE NODE FOUND: " ++ show y) []
 valueSimpleToBytecode x = trace ("valueSimpleToBytecode NO AST SIMPLE NODE FOUND: " ++ show x) []
 
@@ -88,11 +88,11 @@ astConditionToBytecode x = trace ("astConditionToBytecode NO AST CONDITION NODE 
 
 
 astStoreValue :: AST -> [Bytecode]
-astStoreValue (AST [IntTypeAST, SymbolAST x]) = trace ("Get Value Int symbol " ++ show x) $ [StoreVar x IntType]
-astStoreValue (AST [StringTypeAST, SymbolAST x]) = trace ("Get Value String symbol " ++ show x) $ [StoreVar x StringType]
-astStoreValue (AST [CharTypeAST, SymbolAST x]) = trace ("Get Value Char symbol " ++ show x) $ [StoreVar x CharType]
-astStoreValue (AST [FloatTypeAST, SymbolAST x]) = trace ("Get Value Float symbol " ++ show x) $ [StoreVar x FloatType]
-astStoreValue (AST [SymbolAST x]) = trace ("Get Value Symbol " ++ show x) $ [StoreVar x UnknownType] -- ! really unknown type ?
+astStoreValue (AST [IntTypeAST, SymbolAST x]) = trace ("Get Value Int symbol " ++ show x) $ [StoreVarBefore x IntType]
+astStoreValue (AST [StringTypeAST, SymbolAST x]) = trace ("Get Value String symbol " ++ show x) $ [StoreVarBefore x StringType]
+astStoreValue (AST [CharTypeAST, SymbolAST x]) = trace ("Get Value Char symbol " ++ show x) $ [StoreVarBefore x CharType]
+astStoreValue (AST [FloatTypeAST, SymbolAST x]) = trace ("Get Value Float symbol " ++ show x) $ [StoreVarBefore x FloatType]
+astStoreValue (AST [SymbolAST x]) = trace ("Get Value Symbol " ++ show x) $ [StoreVarBefore x UnknownType] -- ! really unknown type ?
 astStoreValue x = trace ("astStoreValue NO AST STORE NODE FOUND" ++ show x) $ []
 
 astStoreArgs :: AST -> [Bytecode]
@@ -105,8 +105,8 @@ astStoreArgs x = astStoreValue x
 -- pushArgs :: AST -> [Bytecode]
 -- pushArgs DeadLeafAST = trace ("pushArgs empty") $ []
 -- pushArgs (AST []) = trace ("pushArgs End") $ []
--- pushArgs (AST [IntTypeAST, SymbolAST x]) = trace ("pushArgs Int symbol " ++ show x) $ [LoadVar x]
--- pushArgs (AST [SymbolAST x]) = trace ("pushArgs Symbol " ++ show x) $ [LoadVar x]
+-- pushArgs (AST [IntTypeAST, SymbolAST x]) = trace ("pushArgs Int symbol " ++ show x) $ [LoadVarBefore x]
+-- pushArgs (AST [SymbolAST x]) = trace ("pushArgs Symbol " ++ show x) $ [LoadVarBefore x]
 -- pushArgs (AST (x:xs)) = pushArgs x ++ pushArgs (AST xs)
 -- pushArgs x = trace ("pushArgs ERROR " ++ show x) $ []
 
@@ -137,10 +137,10 @@ astToBytecode' (AST [SymbolAST "exit", x]) jmp =
     in (xAST, xBytecode ++ [Call 60], jmp_1)
 
 
-astToBytecode' (AST [IntTypeAST, SymbolAST x]) jmp =     trace ("IntTypeAST: " ++ show x) $     (AST [], [LoadVar x IntType], jmp)
-astToBytecode' (AST [CharTypeAST, SymbolAST x]) jmp =    trace ("CharTypeAST: " ++ show x) $    (AST [], [LoadVar x CharType], jmp)
-astToBytecode' (AST [StringTypeAST, SymbolAST x]) jmp =  trace ("StringTypeAST: " ++ show x) $  (AST [], [LoadVar x StringType], jmp)
-astToBytecode' (AST [FloatTypeAST, SymbolAST x]) jmp =   trace ("FloatTypeAST: " ++ show x) $   (AST [], [LoadVar x FloatType], jmp)
+astToBytecode' (AST [IntTypeAST, SymbolAST x]) jmp =     trace ("IntTypeAST: " ++ show x) $     (AST [], [LoadVarBefore x IntType], jmp)
+astToBytecode' (AST [CharTypeAST, SymbolAST x]) jmp =    trace ("CharTypeAST: " ++ show x) $    (AST [], [LoadVarBefore x CharType], jmp)
+astToBytecode' (AST [StringTypeAST, SymbolAST x]) jmp =  trace ("StringTypeAST: " ++ show x) $  (AST [], [LoadVarBefore x StringType], jmp)
+astToBytecode' (AST [FloatTypeAST, SymbolAST x]) jmp =   trace ("FloatTypeAST: " ++ show x) $   (AST [], [LoadVarBefore x FloatType], jmp)
 
 -- maybe check the type of SymbolAST (variable, function, string...)
 -- ! scary but we keep it for now
@@ -293,7 +293,7 @@ astToBytecode' (OrAST x y) jmp = trace ("OrAST: " ++ show x ++ " || " ++ show y)
     in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "||"], jmp2)
 
 -- * Load operations
-astToBytecode' (SymbolAST x) jmp = trace ("SymbolAST: " ++ show x) $ (AST [], [LoadVar x UnknownType], jmp) -- we can't know the type of the variable
+astToBytecode' (SymbolAST x) jmp = trace ("SymbolAST: " ++ show x) $ (AST [], [LoadVarBefore x UnknownType], jmp) -- we can't know the type of the variable
 astToBytecode' (IntAST x) jmp = trace ("IntAST: " ++ show x) $ (AST [], [LoadConst x IntType], jmp)
 astToBytecode' (FloatAST x) jmp = trace ("FloatAST: " ++ show x) $ (AST [], [LoadConst (floatToInt x) FloatType], jmp)
 astToBytecode' (CharAST x) jmp = trace ("CharAST: " ++ show x) $ (AST [], [LoadConst (fromEnum x) CharType], jmp)

@@ -1,15 +1,21 @@
-fun funk (int a, string b) : int
+fun function(int atom) : (int)
 {
-    return a + 1;
+    int banana = atom * 2;
+    int cocaina = banana + 10;
+    int drawer = cocaina / 5;
+    int eval = drawer - 3;
+    int fight = eval % 2;
+
+    int galapagos = atom + banana - cocaina * drawer / eval + fight;
+
+    return galapagos;
 }
 
-
-fun main (int a) : int
+fun main () : int
 {
     char o = '😂';
+    int in🧠dian = 15;
+    int journey = function(in🧠dian);
 
-    print(o);
-    o = funk(o);
-
-    return 0;
+    return journey;
 }

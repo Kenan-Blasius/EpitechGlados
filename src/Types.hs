@@ -491,8 +491,10 @@ data DataType =  IntType
                 deriving (Show, Eq)
 
 data Bytecode = LoadConst Int DataType
-              | LoadVar String DataType
-              | StoreVar String DataType
+              | LoadVarBefore String DataType
+              | StoreVarBefore String DataType
+              | LoadVar Int DataType
+              | StoreVar Int DataType
               | BinaryOp String -- ? DataType
               | UnaryOp String -- ? DataType
               | CompareOp String -- ? DataType
@@ -526,16 +528,18 @@ data Bytecode = LoadConst Int DataType
 
 instance Show Bytecode where
     show (LoadConst x y) =    "LoadConst " ++ show x ++ " " ++ show y
-    show (LoadVar x y) =      "LoadVar " ++ x ++ " " ++ show y
-    show (StoreVar x y) =     "StoreVar " ++ x ++ " " ++ show y
-    show (BinaryOp x) =     "BinaryOp " ++ x
-    show (UnaryOp x) =      "UnaryOp " ++ x
+    show (LoadVarBefore x y) =  "LoadVarBefore "  ++ x ++ " " ++ show y
+    show (StoreVarBefore x y) = "StoreVarBefore " ++ x ++ " " ++ show y
+    show (LoadVar x y) =      "LoadVar "  ++ show x ++ " " ++ show y
+    show (StoreVar x y) =     "StoreVar " ++ show x ++ " " ++ show y
+    show (BinaryOp x) =     "BinaryOp "  ++ x
+    show (UnaryOp x) =      "UnaryOp "   ++ x
     show (CompareOp x) =    "CompareOp " ++ x
-    show (JumpIfTrue x) =   "JumpIfTrue " ++ show x
+    show (JumpIfTrue x) =   "JumpIfTrue "  ++ show x
     show (JumpIfFalse x) =  "JumpIfFalse " ++ show x
     show (Jump x) =         "Jump " ++ show x
     show (JumpNewScope x) = "JumpNewScope " ++ show x ++ " "
-    show (JumpIfTrueBefore x) =   "JumpIfTrueBefore " ++ show x
+    show (JumpIfTrueBefore x) =   "JumpIfTrueBefore "  ++ show x
     show (JumpIfFalseBefore x) =  "JumpIfFalseBefore " ++ show x
     show (JumpBefore x) =         "JumpBefore " ++ show x
     show (JumpRef x) =      "JumpRef " ++ show x

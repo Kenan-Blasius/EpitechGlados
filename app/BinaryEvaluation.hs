@@ -45,12 +45,12 @@ import Unsafe.Coerce
 headerSize :: Int
 headerSize = 32
 
-type VariableName = String
+type VariableId = Int
 data VariableType = IntType | StringType | BoolType | CharType | FloatType | AddressType deriving (Show)
 
 data VariableElement = MyInt Int | MyString String | MyChar Char | MyBool Bool | MyFloat Float deriving (Show)
 
-type VariableEntry = (VariableName, VariableType, VariableElement)
+type VariableEntry = (VariableId, VariableType, VariableElement)
 type VariableTable = [VariableEntry]
 
 
@@ -97,8 +97,8 @@ compareOpCall x stack = trace ("ERROR COMPARE OP : " ++ show x ++ " | stack : " 
 
 lenOp :: Word8 -> Int
 lenOp 0x01 = 6 -- LOAD_CONST     (int 4, type 1)
-lenOp 0x02 = 3 -- LOAD_VAR       (int 1, type 1)
-lenOp 0x03 = 3 -- STORE_VAR      (int 1, type 1)
+lenOp 0x02 = 6 -- LOAD_VAR       (int 4, type 1)
+lenOp 0x03 = 6 -- STORE_VAR      (int 4, type 1)
 lenOp 0x04 = 2 -- BINARY_OP      (int 1)
 lenOp 0x05 = 2 -- UNARY_OP       (int 1)
 lenOp 0x06 = 2 -- COMPARE_OP     (int 1)
@@ -116,18 +116,18 @@ lenOp _ = 0
 
 -- * ---------------------------------------------- VARIABLE ----------------------------------------------
 
-getFromVariable :: VariableName -> VariableTable -> VariableElement
-getFromVariable name ((n, _, e):xs)
-    | name == n = e
-    | otherwise = getFromVariable name xs
+getFromVariable :: VariableId -> VariableTable -> VariableElement
+getFromVariable varId ((n, _, e):xs)
+    | varId == n = e
+    | otherwise = getFromVariable varId xs
 getFromVariable _ _ = trace "ERROR GET FROM VARIABLE" (MyInt 0)
 
 -- Function to update the value of an existing variable in the table
-updateVariable :: VariableName -> VariableType -> VariableElement -> VariableTable -> VariableTable
-updateVariable name varType element [] = [(name, varType, element)]
-updateVariable name varType element ((n, t, e):xs)
-    | name == n = (name, varType, element) : xs
-    | otherwise = (n, t, e) : updateVariable name varType element xs
+updateVariable :: VariableId -> VariableType -> VariableElement -> VariableTable -> VariableTable
+updateVariable varId varType element [] = [(varId, varType, element)]
+updateVariable varId varType element ((n, t, e):xs)
+    | varId == n = (varId, varType, element) : xs
+    | otherwise = (n, t, e) : updateVariable varId varType element xs
 
 
 -- * ---------------------------------------------- STACK ----------------------------------------------
@@ -233,10 +233,9 @@ getVariableElementTypeFromStack _ _ = MyInt 0
 evalValue :: Word8 -> [Word8] -> StackTable -> Int -> VariableTable -> (StackTable, Int, VariableTable)
 evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToInt values))        (loadConst values : stack, pc + lenOp 0x01, table)
 -- evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (word8ToInt (head values))) ((IntType, (MyInt (getIntFromVariable [intToChar (word8ToInt (head values))] table))) : stack, pc + lenOp 0x02, table)
-evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (word8ToInt (head values)) ++ " type: " ++ show (getTypeFromValue (getNthValue 1 values)))
-                                                                                                   (((getTypeFromValue (getNthValue 1 values)), (getFromVariable [intToChar (word8ToInt (head values))] table)) : stack, pc + lenOp 0x02, table)
-evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (word8ToInt (head values))) (deleteLastIntFromStack stack, pc + lenOp 0x03, updateVariable [intToChar (word8ToInt (head values))] (getTypeFromValue (getNthValue 1 values)) (getVariableElementTypeFromStack (getNthValue 1 values) stack) table)
--- TODO && || !
+evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (bytesToInt values) ++ " type: " ++ show (getTypeFromValue (getNthValue 4 values)))
+                                                                                                   (((getTypeFromValue (getNthValue 4 values)), (getFromVariable (bytesToInt values) table)) : stack, pc + lenOp 0x02, table)
+evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (bytesToInt values)) (deleteLastIntFromStack stack, pc + lenOp 0x03, updateVariable (bytesToInt values) (getTypeFromValue (getNthValue 4 values)) (getVariableElementTypeFromStack (getNthValue 4 values) stack) table)
 evalValue 0x04 values stack pc table = trace ("BINARY_OP "     ++ show (word8ToInt (head values))) (binaryOpCall (head values) stack, pc + lenOp 0x04, table)
 -- TODO
 evalValue 0x05 values stack pc table = trace ("UNARY_OP "      ++ show (word8ToInt (head values))) (((IntType, (MyInt (word8ToInt (head values)))) : stack), pc + lenOp 0x05, table)
@@ -244,17 +243,14 @@ evalValue 0x06 values stack pc table = trace ("COMPARE_OP "    ++ show (word8ToI
 evalValue 0x07 values stack pc table = trace ("JUMP_IF_TRUE "  ++ show (bytesToInt values))        (if (getLastIntFromStack stack) /= 0 then (deleteLastIntFromStack stack, (bytesToInt values), table) else (deleteLastIntFromStack stack, pc + lenOp 0x07, table))
 evalValue 0x08 values stack pc table = trace ("JUMP_IF_FALSE " ++ show (bytesToInt values))        (if (getLastIntFromStack stack) == 0 then (deleteLastIntFromStack stack, (bytesToInt values), table) else (deleteLastIntFromStack stack, pc + lenOp 0x08, table))
 evalValue 0x09 values stack _ table = trace ("JUMP "          ++ show (bytesToInt values))         (stack, bytesToInt values, table)
--- TODO new table frame + (take last x values from stack)
--- ! CREATE A NEW VARIABLE TABLE
 evalValue 0x0A values stack _ table = trace  ("JUMP_NEW_SCOPE " ++ show (bytesToInt values))       (stack, bytesToInt values, table)
 evalValue 0x0B _ stack pc table = trace  "POP "                                                    (tail stack, pc + lenOp 0x0B, table)
 evalValue 0x0C _ (s:stack) pc table = trace  "DUP "                                                (s : s : stack, pc + lenOp 0x0C, table)
 -- * x == 1, print -- x == 60, exit
 evalValue 0x0D (1:_) (x:xs) pc table = trace ("CALL 1: " ++ printValueInStack x)                   (xs, pc + lenOp 0x0D, table)
 evalValue 0x0D (60:_) _ _ _ = trace "EXIT"                                                         ([], -1, [])
--- ! TAKE THE LAST VARIABLE TABLE
 evalValue 0x0E _ stack _ table = trace  "RETURN "                                                  (deleteUntilAddressExceptOne stack 0, getLastAddressFromStack stack, table)
-evalValue 0x0F _ stack pc table = trace "LOAD_PC "                                                 (((AddressType, (MyInt (pc + 1 + 5))) : stack), pc + lenOp 0x0F, table) -- ! pc + 5 because LOAD_PC + JUMP_
+evalValue 0x0F _ stack pc table = trace "LOAD_PC "                                                 (((AddressType, (MyInt (pc + lenOp 0x0F + lenOp 0x0A))) : stack), pc + lenOp 0x0F, table) -- pc + LOAD_PC + JUMP_NEW_SCOPE
 evalValue a b c d e = trace ("Unknown opcode: " ++ show a ++ " | values: " ++ show b ++ " | stack: " ++ show c ++ " | pc: " ++ show d ++ " | table: " ++ show e) ([], -1, [])
 
 -- ? we have two bytecodes lists because if we move forward in the list, we can't go back
@@ -288,8 +284,8 @@ main = do
     args <- getArgs
     case args of
         [filename] -> do
-            contents <- BS.readFile filename  -- Lire le fichier binaire
-            let bytecode = byteStringToWord8List contents  -- Convertir en liste de Word8
+            contents <- BS.readFile filename  -- Read binary file
+            let bytecode = byteStringToWord8List contents  -- Convert to list of Word8
             if checkMagicNumber (take 4 bytecode) == False then do
                 putStrLn "Magic number is incorrect"
                 exitWith (ExitFailure 84)
@@ -303,3 +299,5 @@ main = do
                     exitWith (ExitSuccess)
 
         _ -> putStrLn "No file given as an argument"
+
+-- todo exit with the last int in the stack
