@@ -43,11 +43,11 @@ cleanFile (File (x:xs)) inComment = do
     where
         cleanLine :: String -> Bool -> (Bool, String)
         cleanLine [] isInComment = (isInComment, [])
-        cleanLine (y:ys) isInComment | isInComment == False && y == '/' && head ys == '/' = (isInComment, [])
-                                    | isInComment == False && y == '/' && head ys == '*' = (True, (snd (cleanLine (tail ys) True)))
-                                    | isInComment == True && y == '*' && head ys == '/' = (False, " " ++ (snd (cleanLine (tail ys) False)))
-                                    | isInComment == True = (isInComment, (snd (cleanLine ys isInComment)))
-                                    | otherwise = (isInComment, [y] ++ (snd (cleanLine ys isInComment)))
+        cleanLine (y:ys) isInComment | isInComment == False && (length ys) > 0 && y == '/' && head ys == '/' = (isInComment, [])
+                                     | isInComment == False && (length ys) > 0 && y == '/' && head ys == '*' = (True, (snd (cleanLine (tail ys) True)))
+                                     | isInComment == True  && (length ys) > 0 && y == '*' && head ys == '/' = (False, " " ++ (snd (cleanLine (tail ys) False)))
+                                     | isInComment == True                                                   = (isInComment, (snd (cleanLine ys isInComment)))
+                                     | otherwise                                                             = (isInComment, [y] ++ (snd (cleanLine ys isInComment)))
         getFileArray :: File -> [String]
         getFileArray (File y) = y
 
@@ -211,7 +211,7 @@ mergeSymbols [] _ = return []
 -- -- Once we found a InlineCommentStart we ignore all the rest of the line
 -- mergeSymbols (InlineCommentStart : _) _ = return []
 -- include a file
-mergeSymbols (IncludeToken : xs) filenames | head (filter (/= SpaceToken) xs) == StringToken str = do
+mergeSymbols (IncludeToken : xs) filenames | (length (filter (/= SpaceToken) xs)) > 0 && head (filter (/= SpaceToken) xs) == StringToken str = do
     filename <- getAbsolutePath str
     rest <- mergeSymbols (tail (dropWhile (/= StringToken str) xs)) (filename : filenames)
     if filename `elem` filenames then do
@@ -251,7 +251,8 @@ mergeSymbols (ReturnToken : SymbolToken x : xs) filenames = mergeSymbols (Symbol
 mergeSymbols (IntToken x : SymbolToken y : xs) filenames = mergeSymbols (SymbolToken (show x ++ y) : xs) filenames
 
 -- merge else if to elif
-mergeSymbols (ElseToken : xs) filenames | (head (filter (/= SpaceToken) xs)) == IfToken = mergeSymbols (ElseIfToken : (tail (dropWhile (/= IfToken) xs))) filenames
+mergeSymbols (ElseToken : xs) filenames | (length (filter (/= SpaceToken) xs)) > 0 && (head (filter (/= SpaceToken) xs)) == IfToken = do
+    mergeSymbols (ElseIfToken : (tail (dropWhile (/= IfToken) xs))) filenames
 -- merge negative numbers (ex: - 123 -> -123)
 mergeSymbols (MinusToken : IntToken x : xs) filenames = mergeSymbols (IntToken (-x) : xs) filenames
 mergeSymbols (MinusToken : FloatToken x : xs) filenames = mergeSymbols (FloatToken (-x) : xs) filenames

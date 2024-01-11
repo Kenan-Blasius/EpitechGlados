@@ -22,7 +22,7 @@ for file in *.cmm; do
         binary_file="file.bin"
 
         # Execute the './glados' command for each file
-        "$GLADOS_PATH" "$file" > /dev/null 2>&1
+        "$GLADOS_PATH" "$file" "-o" "file" > /dev/null 2>&1
         echo -e "Test ${BLUE}$file${NC}"
 
         # Read the first line of the file and extract the value after "//"
