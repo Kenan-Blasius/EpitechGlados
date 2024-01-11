@@ -279,16 +279,16 @@ bytecodeToBinary :: [Bytecode] -> IO ()
 bytecodeToBinary bytecode = do
     let nmp_jmp = getNmbrOfJumps bytecode
 
-    putStrLn "--------------------------------"
+    putStrLn "-- * ---------------------------- * --"
     dispAllBytecode bytecode sizeOfHeader
-    putStrLn "--------------remplaceAllJump------------------"
+    putStrLn "-- * ---------------------------- * --"
     let bytecode2 = remplaceAllJump bytecode 1 nmp_jmp -- 1 because the first jump is at 1
-    putStrLn "--------------------------------"
-    dispAllBytecode bytecode2 sizeOfHeader
+    -- putStrLn "-- * ---------------------------- * --"
+    -- dispAllBytecode bytecode2 sizeOfHeader
     -- putStrLn "--------------getScopesVariables------------------"
     let (scopes_variables, _) = getScopesVariables bytecode2 0 -- 0 because the variable id start at 0
-    -- print ("scopes_variables")
-    -- print (scopes_variables)
+    print ("scopes_variables")
+    print (scopes_variables)
     -- exitWith ExitSuccess
     -- putStrLn "--------------fillTypesInFunctions------------------"
     let bytecode2_0 = fillTypesInFunctions bytecode2 scopes_variables
@@ -300,7 +300,7 @@ bytecodeToBinary bytecode = do
 
     -- dispAllBytecode bytecode2_2 sizeOfHeader
 
-    putStrLn "--------------------------------"
+    putStrLn "-- * ---------------------------- * --"
     let bytecode3 = filter (\x -> case x of JumpRef _ -> False; _ -> True) bytecode2_2
     -- print ("bytecode3")
     -- print (bytecode3)
@@ -317,6 +317,7 @@ bytecodeToBinary bytecode = do
     dispAllBytecode bytecode5 (sizeOfHeader - 5)
 
     let binary = getHeader ++ (bytecodeToBytes bytecode5)
+    putStrLn "-- * ---------------------------- * --"
     print ("binary")
     print (binary)
     writeBytesToFile "file.bin" binary
@@ -335,6 +336,3 @@ bytecodeToBinary bytecode = do
 -- handle this case:
 --     j = 4;
 --     int j = 4;
-
-
--- get several variables of functions arguments in good order
