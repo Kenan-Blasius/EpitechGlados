@@ -275,8 +275,8 @@ fillLastTypes (x : xs) scopes = x : fillLastTypes xs scopes
 
 -- * ------------------------------------------ MAIN ---------------------------------------------- * --
 
-bytecodeToBinary :: [Bytecode] -> IO ()
-bytecodeToBinary bytecode = do
+bytecodeToBinary :: [Bytecode] -> String -> IO ()
+bytecodeToBinary bytecode filename = do
     let nmp_jmp = getNmbrOfJumps bytecode
 
     putStrLn "--------------------------------"
@@ -319,7 +319,7 @@ bytecodeToBinary bytecode = do
     let binary = getHeader ++ (bytecodeToBytes bytecode5)
     print ("binary")
     print (binary)
-    writeBytesToFile "file.bin" binary
+    writeBytesToFile (filename ++ ".bin") binary
 
 
 -- ? store the strings at the end of the binary file
