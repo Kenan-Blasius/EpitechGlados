@@ -3,8 +3,16 @@
 # Navigate to the 'tests' directory
 cd tests_examples || exit
 
+# Color codes
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
 # Define the path to the 'glados' executable at the root
 GLADOS_PATH="../glados"
+
+all_tests_passed=true
 
 # Iterate over each file in the directory
 for file in *.cmm; do
@@ -15,7 +23,7 @@ for file in *.cmm; do
 
         # Execute the './glados' command for each file
         "$GLADOS_PATH" "$file" > /dev/null 2>&1
-        echo "Test $file"
+        echo -e "Test ${BLUE}$file${NC}"
 
         # Read the first line of the file and extract the value after "//"
         expected_value=$( head -n 1 "$file" | awk -F'//' '{print $2}' | tr -d '[:space:]' )
@@ -29,9 +37,10 @@ for file in *.cmm; do
 
             # Compare the expected and actual values
             if [ "$eval_result" = "$expected_value" ]; then
-                echo "- Test passed! (returned value $eval_result)"
+                echo -e "${GREEN}Test passed! (returned value $eval_result)${NC}"
             else
-                echo "- Test failed! for file: $file, Expected: $expected_value, Actual: $eval_result|"
+                echo -e "${RED}Test failed! for file: $file, Expected: $expected_value, Actual: $eval_result|${NC}"
+                all_tests_passed=false
             fi
             echo ""
         else
@@ -39,3 +48,9 @@ for file in *.cmm; do
         fi
     fi
 done
+
+if [ "$all_tests_passed" = true ]; then
+    echo -e "${GREEN}All tests passed!${NC}"
+else
+    echo -e "${RED}Some tests failed!${NC}"
+fi
