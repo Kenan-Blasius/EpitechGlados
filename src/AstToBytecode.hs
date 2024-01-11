@@ -9,60 +9,7 @@ import Types(Bytecode(..), AST(..), DataType(..))
 import Debug.Trace
 import Unsafe.Coerce (unsafeCoerce)
 
--- | IfAST AST AST AST
--- | ElseIfAST AST AST AST
--- | ElseAST AST
--- | DefineAST String AST
-
--- | ForAST AST AST AST AST
--- | WhileAST AST AST
-
--- | FunAST String AST AST AST
--- | LambdaClosure [String] AST Environment
-
--- | AssignAST AST AST
--- | FunTypeAST AST
--- | IntTypeAST
--- | CharTypeAST
--- | StringTypeAST
-
--- | IntAST Int
--- | SymbolAST String
--- | StringAST String
--- | CharAST Char
-
--- | EqualAST AST AST
--- | LessThanAST AST AST
--- | GreaterThanAST AST AST
--- | LessThanEqualAST AST AST
--- | GreaterThanEqualAST AST AST
--- | NotEqualAST AST AST
-
--- | PlusAST AST AST
--- | MinusAST AST AST
--- | TimesAST AST AST
--- | DivideAST AST AST
--- | ModuloAST AST AST
-
--- | AndAST AST AST
--- | OrAST AST AST
-
--- | PlusEqualAST AST AST
--- | MinusEqualAST AST AST
--- | TimesEqualAST AST AST
--- | DivideEqualAST AST AST
--- | ModuloEqualAST AST AST
--- | NotAST AST
--- | IncrementAST AST
--- | DecrementAST AST
--- | DeadLeafAST
-
-
-
--- TODO && ||
--- TODO += -= *= /= %=
--- TODO ++ --
--- TODO !
+-- TODO !var
 
 valueSimpleToBytecode :: AST -> [Bytecode]
 valueSimpleToBytecode (AST []) = []
@@ -101,19 +48,6 @@ astStoreArgs (AST []) = trace ("astStoreArgs End") $ []
 astStoreArgs (AST ((AST x) :xs)) = trace ("astStoreArgs AST " ++ show x) $ astStoreArgs (AST x) ++ astStoreArgs (AST xs)
 astStoreArgs x = astStoreValue x
 
--- maybe usefull for scary function
--- pushArgs :: AST -> [Bytecode]
--- pushArgs DeadLeafAST = trace ("pushArgs empty") $ []
--- pushArgs (AST []) = trace ("pushArgs End") $ []
--- pushArgs (AST [IntTypeAST, SymbolAST x]) = trace ("pushArgs Int symbol " ++ show x) $ [LoadVarBefore x]
--- pushArgs (AST [SymbolAST x]) = trace ("pushArgs Symbol " ++ show x) $ [LoadVarBefore x]
--- pushArgs (AST (x:xs)) = pushArgs x ++ pushArgs (AST xs)
--- pushArgs x = trace ("pushArgs ERROR " ++ show x) $ []
-
--- INFO: This function takes an AST and returns a list of Bytecode instructions
---       that can be executed by the VM.
-
-
 getTypes :: AST -> DataType
 getTypes (AST []) = error "ERROR getTypes empty"
 getTypes (IntTypeAST) = IntType
@@ -123,6 +57,9 @@ getTypes (FloatTypeAST) = FloatType
 getTypes (AST (x:_)) = getTypes x
 getTypes x = error ("ERROR getTypes " ++ show x)
 
+
+-- INFO: This function takes an AST and returns a list of Bytecode instructions
+--       that can be executed by the VM.
 
 --             AST      id_jmp -> (AST bytecode id_jmp)
 astToBytecode' :: AST -> Int -> (AST, [Bytecode], Int)
@@ -142,17 +79,10 @@ astToBytecode' (AST [CharTypeAST, SymbolAST x]) jmp =    trace ("CharTypeAST: " 
 astToBytecode' (AST [StringTypeAST, SymbolAST x]) jmp =  trace ("StringTypeAST: " ++ show x) $  (AST [], [LoadVarBefore x StringType], jmp)
 astToBytecode' (AST [FloatTypeAST, SymbolAST x]) jmp =   trace ("FloatTypeAST: " ++ show x) $   (AST [], [LoadVarBefore x FloatType], jmp)
 
--- maybe check the type of SymbolAST (variable, function, string...)
--- ! scary but we keep it for now
 astToBytecode' (AST (SymbolAST x : y : xs)) jmp = do
     let (_, aBytecode, _) = astToBytecode' y jmp
     let (yAST, yBytecode, jmp_2) = trace ("call function " ++ show x ++ " args " ++ show y ++ " xs " ++ show xs) $ astToBytecode' (AST xs) jmp
     trace ("call function " ++ show x ++ " args " ++ show y) $ (yAST, (aBytecode ++ [LoadPC, CallUserFun x] ++ yBytecode), jmp_2)
-
--- ! old version
--- astToBytecode' (AST (SymbolAST x : (AST y) : xs)) bytecode jmp = do
---     let (yAST, yBytecode, jmp_2) = astToBytecode' (AST xs) bytecode jmp
---     trace ("call function " ++ show x ++ " args " ++ show y) $ (yAST, bytecode ++ (pushArgs (AST y) ++ [LoadPC, CallUserFun x (nmbArgs (AST y))] ++ yBytecode), jmp_2)
 
 -- * (AST (x:xs))
 astToBytecode' (AST (x:xs)) jmp = trace ("Processing AST node: " ++ show x) $
@@ -300,10 +230,6 @@ astToBytecode' (CharAST x) jmp = trace ("CharAST: " ++ show x) $ (AST [], [LoadC
 astToBytecode' (StringAST x) jmp = trace ("StringAST: " ++ show x) $ (AST [], [LoadConst (fromEnum (head x)) StringType], jmp) -- ! put here the address of the string
 astToBytecode' DeadLeafAST jmp = trace ("DeadLeafAST") $ (AST [], [], jmp)
 astToBytecode' a jmp = trace ("Unknown AST node bytecode: " ++ show a ++ " ") (a, [], jmp)
-
--- todo code variable on id, to handle more than 1 byte
--- int a;
--- we store empty, but store the type
 
 floatToInt :: Float -> Int
 floatToInt = unsafeCoerce

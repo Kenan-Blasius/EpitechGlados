@@ -28,20 +28,6 @@ import Unsafe.Coerce
 -- CALL            0x0D
 -- RETURN          0x0E
 
--- (LoadConst x) -- 5
--- (LoadVar x) -- 2
--- (StoreVar x) -- 2
--- (BinaryOp x) -- 2
--- (UnaryOp x) -- 2
--- (CompareOp x) -- 2
--- (JumpIfTrue x) -- 5
--- (JumpIfFalse x) -- 5
--- (Jump x) -- 5
--- Pop -- 1
--- Dup -- 1
--- (Call x) -- 2
--- Return -- 1
-
 headerSize :: Int
 headerSize = 32
 
@@ -91,8 +77,8 @@ compareOpCall 33 ((_, MyInt y) : (_, MyInt x) : xs) =
     trace ("stack : top = " ++ show y ++ " != x = " ++ show x) ((if x /= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
 compareOpCall x stack = trace ("ERROR COMPARE OP : " ++ show x ++ " | stack : " ++ show stack) stack
 
--- binary side
--- >= <= != !
+-- todo binary side
+-- todo >= <= != !
 
 
 lenOp :: Word8 -> Int
@@ -173,22 +159,11 @@ bytesToInt bytes =
   where
     byte n = genericTake (4 :: Int) bytes !! n
 
-
--- dataTypeToByte :: DataType -> Word8
--- dataTypeToByte IntType = 0x01
--- dataTypeToByte StringType = 0x02
--- dataTypeToByte BoolType = 0x03
--- dataTypeToByte FloatType = 0x04
--- dataTypeToByte VoidType = 0x05
--- dataTypeToByte CharType = 0x06
--- dataTypeToByte FunType = 0x07
-
 -- * ---------------------------------------------- STACK ----------------------------------------------
 
 loadConst :: [Word8] -> StackEntry
 loadConst (a:b:c:d:0x01:_) = trace ("LoadConst : Int " ++ show (bytesToInt [a, b, c, d])) (IntType, MyInt (bytesToInt [a, b, c, d]))
 -- loadConst (a:b:c:d:0x02:_) = trace ("LoadConst : " ++ ) (StringType, MyString (intToChar (bytesToInt [a, b, c, d])))
--- loadConst (a:b:c:d:0x03:_) = trace ("LoadConst : " ++ ) (BoolType, MyBool     (bytesToInt                [a, b, c, d]))
 loadConst (a:b:c:d:0x04:_) = trace ("LoadConst : Float ") (FloatType, MyFloat   (intToFloat (bytesToInt [a, b, c, d])))
 loadConst (a:b:c:d:0x05:_) = trace ("LoadConst : Address " ++ show (bytesToInt [a, b, c, d])) (AddressType, MyInt (bytesToInt [a, b, c, d]))
 loadConst (a:b:c:d:0x06:_) = trace ("LoadConst : Char " ++ show (bytesToInt [a, b, c, d])) (CharType, MyChar     (intToChar     (bytesToInt [a, b, c, d])))
@@ -232,9 +207,7 @@ getVariableElementTypeFromStack _ _ = MyInt 0
 --           opcode   values    stack     PC    VariableTable    (new_stack, new_pc, new_VariableTable)
 evalValue :: Word8 -> [Word8] -> StackTable -> Int -> VariableTable -> (StackTable, Int, VariableTable)
 evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToInt values))        (loadConst values : stack, pc + lenOp 0x01, table)
--- evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (word8ToInt (head values))) ((IntType, (MyInt (getIntFromVariable [intToChar (word8ToInt (head values))] table))) : stack, pc + lenOp 0x02, table)
-evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (bytesToInt values) ++ " type: " ++ show (getTypeFromValue (getNthValue 4 values)))
-                                                                                                   (((getTypeFromValue (getNthValue 4 values)), (getFromVariable (bytesToInt values) table)) : stack, pc + lenOp 0x02, table)
+evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (bytesToInt values) ++ " type: " ++ show (getTypeFromValue (getNthValue 4 values))) (((getTypeFromValue (getNthValue 4 values)), (getFromVariable (bytesToInt values) table)) : stack, pc + lenOp 0x02, table)
 evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (bytesToInt values)) (deleteLastIntFromStack stack, pc + lenOp 0x03, updateVariable (bytesToInt values) (getTypeFromValue (getNthValue 4 values)) (getVariableElementTypeFromStack (getNthValue 4 values) stack) table)
 evalValue 0x04 values stack pc table = trace ("BINARY_OP "     ++ show (word8ToInt (head values))) (binaryOpCall (head values) stack, pc + lenOp 0x04, table)
 -- TODO
@@ -273,7 +246,7 @@ evalEachValue bytecodes (x:xs) stack pc tables = do
 
 byteStringToWord8List :: BS.ByteString -> [Word8]
 byteStringToWord8List = unpack
---[0x7a, 0x69, 0x7a, 0x69]
+
 checkMagicNumber :: [Word8] -> Bool
 checkMagicNumber [0x7a, 0x69, 0x7a, 0x69] = True
 checkMagicNumber _ = False
