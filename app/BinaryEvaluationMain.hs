@@ -23,8 +23,11 @@ main = do
                 if length stack < 1 then do
                     putStrLn ("Stack is empty")
                     exitWith (ExitFailure 84)
+                else if (getLastIntFromStack stack) == 0 then do
+                    putStrLn ("Exit with 0")
+                    exitWith (ExitSuccess)
                 else do
-                    putStrLn ("Result: " ++ show (getLastIntFromStack stack))
+                    putStrLn ("Exit with " ++ show (getLastIntFromStack stack))
                     exitWith (ExitFailure (getLastIntFromStack stack))
 
         _ -> putStrLn "No file given as an argument"

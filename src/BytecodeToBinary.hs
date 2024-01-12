@@ -50,8 +50,8 @@ getLengthOfOperation :: Bytecode -> Int
 getLengthOfOperation (LoadConst _ _) = 6 -- 1 for the opcode and 4 for the   (int)  and 1 for the type
 getLengthOfOperation (LoadVar _ _) = 6   -- 1 for the opcode and 4 for the (var id) and 1 for the type
 getLengthOfOperation (StoreVar _ _) = 6  -- 1 for the opcode and 4 for the (var id) and 1 for the type
-getLengthOfOperation (LoadVarBefore _ _) = 6  -- it's a reference, it's removed from the bytecode
-getLengthOfOperation (StoreVarBefore _ _) = 6 -- it's a reference, it's removed from the bytecode
+getLengthOfOperation (LoadVarBefore _ _) = 6  -- it's still with the name of the variable, it's an id in the bytecode
+getLengthOfOperation (StoreVarBefore _ _) = 6 -- it's still with the name of the variable, it's an id in the bytecode
 getLengthOfOperation (BinaryOp _) = 2
 getLengthOfOperation (UnaryOp _) = 2
 getLengthOfOperation (CompareOp _) = 2
@@ -70,6 +70,7 @@ getLengthOfOperation Return = 1
 getLengthOfOperation (FunEntryPoint _ _) = 0 -- because it's a reference, it's removed from the bytecode
 getLengthOfOperation (CallUserFun _) = 5 -- because will be remplace by a (JumpNewScope)
 getLengthOfOperation LoadPC = 1
+getLengthOfOperation (StringToSave _) = 0 -- because it exist only in the compiler, to save the string in the binary file
 
 dataTypeToByte :: DataType -> Word8
 dataTypeToByte IntType = 0x01
@@ -163,7 +164,7 @@ toHexaInstruction Return =          [0x0E]
 toHexaInstruction (FunEntryPoint _ _) =     error "Error: toHexaInstruction: FunEntryPoint" -- it's a reference, it's removed from the bytecode
 toHexaInstruction (CallUserFun _) =         error "Error: toHexaInstruction: CallUserFun" -- it's a reference, it's removed from the bytecode
 toHexaInstruction LoadPC =          [0x0F]
-toHexaInstruction x = trace ("Error: toHexaInstruction: Unknown instruction" ++ show x) []
+toHexaInstruction x = error ("Error: toHexaInstruction: Unknown instruction: " ++ show x)
 
 -- * ------------------------------------------ HEADER -------------------------------------------- * --
 
@@ -273,6 +274,25 @@ fillLastTypes [] _ = []
 fillLastTypes (FunEntryPoint x t : xs) scopes = (FunEntryPoint x t) : (fillLastTypes (removeBeforeVariables xs (findWhichFunction x scopes)) scopes)
 fillLastTypes (x : xs) scopes = x : fillLastTypes xs scopes
 
+-- * ------------------------------------------ STRING -------------------------------------------- * --
+
+getSizeOfBytecode :: [Bytecode] -> Int
+getSizeOfBytecode [] = 0
+getSizeOfBytecode (x : xs) = getLengthOfOperation x + getSizeOfBytecode xs
+
+stringToBytes :: String -> [Word8]
+stringToBytes [] = [0x00, 0x00, 0x00, 0x00]
+stringToBytes (x:xs) = (int32_ToBytes (fromEnum x)) ++ stringToBytes xs
+
+saveStringAtTheEnd :: [Bytecode] -> Int -> ([Bytecode], [Word8])
+saveStringAtTheEnd [] _ = ([], [])
+saveStringAtTheEnd (LoadConst _ StringType : StringToSave str : xs) size =
+    let (bytecode, bytes) = saveStringAtTheEnd xs (size + 4 * ((length str) + 1)) in
+    (LoadConst size StringType : bytecode,  stringToBytes str ++ bytes)
+saveStringAtTheEnd (x : xs) size =
+    let (bytecode, bytes) = saveStringAtTheEnd xs size in
+    (x : bytecode, bytes)
+
 -- * ------------------------------------------ MAIN ---------------------------------------------- * --
 
 bytecodeToBinary :: [Bytecode] -> String -> IO ()
@@ -282,45 +302,54 @@ bytecodeToBinary bytecode filename = do
     putStrLn "-- * ---------------------------- * --"
     dispAllBytecode bytecode sizeOfHeader
     putStrLn "-- * ---------------------------- * --"
+
+    -- remplace all JumpRef by Jump
     let bytecode2 = remplaceAllJump bytecode 1 nmp_jmp -- 1 because the first jump is at 1
-    -- putStrLn "-- * ---------------------------- * --"
-    -- dispAllBytecode bytecode2 sizeOfHeader
-    -- putStrLn "--------------getScopesVariables------------------"
     let (scopes_variables, _) = getScopesVariables bytecode2 0 -- 0 because the variable id start at 0
     print ("scopes_variables")
     print (scopes_variables)
-    -- exitWith ExitSuccess
-    -- putStrLn "--------------fillTypesInFunctions------------------"
-    let bytecode2_0 = fillTypesInFunctions bytecode2 scopes_variables
-    -- putStrLn "----------------fillTypesUserFunction----------------"
-    -- print ("bytecode_try")
-    let bytecode2_1 = fillTypesUserFunction bytecode2_0 "" scopes_variables
 
+    -- fill types in functions
+    let bytecode2_0 = fillTypesInFunctions bytecode2 scopes_variables
+    -- fill types in user functions
+    let bytecode2_1 = fillTypesUserFunction bytecode2_0 "" scopes_variables
+    -- variables to theire real id
     let bytecode2_2 = fillLastTypes bytecode2_1 scopes_variables
 
-    -- dispAllBytecode bytecode2_2 sizeOfHeader
-
     putStrLn "-- * ---------------------------- * --"
+    -- remove all JumpRef
     let bytecode3 = filter (\x -> case x of JumpRef _ -> False; _ -> True) bytecode2_2
-    -- print ("bytecode3")
-    -- print (bytecode3)
     let funct_data = getFunctData bytecode3 sizeOfHeader
-    -- print ("funct_data")
-    -- print (funct_data)
+
+    -- remplace all CallUserFun by JumpNewScope
     let bytecode4 = (remplaceAllFun bytecode3 funct_data)
-    -- print ("bytecode4")
-    -- print (bytecode4)
     let posMain = findPosMain bytecode4 sizeOfHeader
-    let bytecode5 = [(Jump posMain)] ++ filter (\x -> case x of FunEntryPoint _ _ -> False; _ -> True) bytecode4
 
-    print ("bytecode:")
-    dispAllBytecode bytecode5 (sizeOfHeader - 5)
+    -- save all string at the end of the binary file
+    let (bytecode4_1, bytes) = saveStringAtTheEnd bytecode4 ((getSizeOfBytecode bytecode4) + sizeOfHeader)
 
-    let binary = getHeader ++ (bytecodeToBytes bytecode5)
-    putStrLn "-- * ---------------------------- * --"
-    print ("binary")
-    print (binary)
-    writeBytesToFile (filename ++ ".bin") binary
+    if posMain == 0
+    then
+        error "Error: No main function found"
+    else do
+        -- add the first jump to the main function
+        let bytecode5 = [(Jump posMain)] ++ filter (\x -> case x of FunEntryPoint _ _ -> False; _ -> True) bytecode4_1
+
+        print ("bytecode:")
+        dispAllBytecode bytecode5 (sizeOfHeader - 5)
+        putStrLn "-- * ---------------------------- * --"
+
+        print ("bytes:")
+        print (bytes)
+
+        let binary = getHeader ++ (bytecodeToBytes bytecode5) ++ bytes
+        putStrLn "-- * ---------------------------- * --"
+        print ("bytecode:")
+        dispAllBytecode bytecode5 (sizeOfHeader - 5)
+        putStrLn "-- * ---------------------------- * --"
+        print ("binary")
+        print (binary)
+        writeBytesToFile (filename ++ ".bin") binary
 
 
 -- ? store the strings at the end of the binary file

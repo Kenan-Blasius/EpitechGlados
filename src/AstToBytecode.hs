@@ -228,7 +228,7 @@ astToBytecode' (SymbolAST x) jmp =   (AST [], [LoadVarBefore x UnknownType], jmp
 astToBytecode' (IntAST x) jmp =      (AST [], [LoadConst x IntType], jmp)
 astToBytecode' (FloatAST x) jmp =    (AST [], [LoadConst (floatToInt x) FloatType], jmp)
 astToBytecode' (CharAST x) jmp =     (AST [], [LoadConst (fromEnum x) CharType], jmp)
-astToBytecode' (StringAST x) jmp =   (AST [], [LoadConst (fromEnum (head x)) StringType], jmp) -- ! put here the address of the string
+astToBytecode' (StringAST x) jmp =   (AST [], [LoadConst 0 StringType, StringToSave x], jmp)
 astToBytecode' DeadLeafAST jmp =     (AST [], [], jmp)
 astToBytecode' a jmp = (a, [], jmp)
 

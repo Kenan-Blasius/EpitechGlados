@@ -513,6 +513,7 @@ data Bytecode = LoadConst Int DataType
               | FunEntryPoint String DataType
               | CallUserFun String
               | LoadPC
+              | StringToSave String
             --   | BuildList Int
             --   | Index
             --   | ListAppend            -- No additional values needed
@@ -550,6 +551,7 @@ instance Show Bytecode where
     show (FunEntryPoint x y) = "FunEntryPoint " ++ show x ++ " " ++ show y
     show (CallUserFun x) =  "CallUserFun " ++ show x
     show LoadPC =           "LoadPC"
+    show (StringToSave x) = "StringToSave " ++ show x
     -- ? show PushFrame =        "PUSH_FRAME"
     -- ? show PopFrame =         "POP_FRAME"
     -- show (BuildList x) =    "BUILD_LIST " ++ show x
