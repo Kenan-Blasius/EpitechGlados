@@ -84,7 +84,7 @@ binaryOpCall 94 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intToC
 binaryOpCall 43 ((_, MyString y) : (_, MyString x) : xs) = (StringType, MyString (x ++ y)) : xs
 
 binaryOpCall 45 ((_, MyInt y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x - intToFloat y)) : xs
-binaryOpCall 45 ((_, MyInt y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (x - ord y))) : xs -- todo
+-- binaryOpCall 45 ((_, MyInt y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (x - ord y))) : xs -- todo
 
 binaryOpCall 45 ((_, MyFloat y) : (_, MyInt x) : xs) = (FloatType, MyFloat (intToFloat x - y)) : xs
 binaryOpCall 45 ((_, MyFloat y) : (_, MyChar x) : xs) = (FloatType, MyFloat (intToFloat (ord x) - y)) : xs
