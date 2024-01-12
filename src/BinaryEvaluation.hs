@@ -122,10 +122,13 @@ getLastIntFromStack [] = 0
 getLastIntFromStack ((IntType, MyInt x):_) = x
 getLastIntFromStack ((_, _):xs) = trace "Not an int, go next in stack" $ getLastIntFromStack xs
 
-deleteLastIntFromStack :: StackTable -> StackTable
-deleteLastIntFromStack [] = []
-deleteLastIntFromStack ((IntType, _):xs) = xs
-deleteLastIntFromStack (x:xs) = x : deleteLastIntFromStack xs
+deleteLastValueFromStack :: StackTable -> StackTable
+deleteLastValueFromStack [] = []
+deleteLastValueFromStack ((IntType, _):xs) = xs
+deleteLastValueFromStack ((FloatType, _):xs) = xs
+deleteLastValueFromStack ((CharType, _):xs) = xs
+deleteLastValueFromStack ((StringType, _):xs) = xs
+deleteLastValueFromStack (x:xs) = x : deleteLastValueFromStack xs
 
 getLastAddressFromStack :: StackTable -> Int
 getLastAddressFromStack [] = -1
@@ -167,16 +170,16 @@ toStringFromHere (a:b:c:d:xs) = intToChar (bytesToInt [a, b, c, d]) : toStringFr
 toStringFromHere _ = trace "ERROR TO STRING FROM HERE" []
 
 word8withAdresstoString :: [Word8] -> Int -> String
-word8withAdresstoString [] _ = trace "end of STRING" []
-word8withAdresstoString (x:xs) 0 = trace ("word8withAdresstoString string found : " ++ show (toStringFromHere (x:xs))) $ toStringFromHere (x:xs)
-word8withAdresstoString (_:xs) n = trace ("word8withAdresstoString look for string : " ++ show n) word8withAdresstoString xs (n - 1)
+word8withAdresstoString [] _ = trace "EARLY END OF STRING" []
+word8withAdresstoString (x:xs) 0 = toStringFromHere (x:xs)
+word8withAdresstoString (_:xs) n = word8withAdresstoString xs (n - 1)
 
 loadConst :: [Word8] -> Int -> StackEntry
-loadConst (a:b:c:d:0x01:_) _ = trace ("LoadConst : Int " ++ show (bytesToInt [a, b, c, d])) (IntType, MyInt (bytesToInt [a, b, c, d]))
-loadConst (a:b:c:d:0x02:xs) pc = trace ("LoadConst : String adress = " ++ show (bytesToInt [a, b, c, d])) (StringType, MyString (word8withAdresstoString xs ((bytesToInt [a, b, c, d]) - pc)))
-loadConst (a:b:c:d:0x04:_) _ = trace ("LoadConst : Float ") (FloatType, MyFloat   (intToFloat (bytesToInt [a, b, c, d])))
-loadConst (a:b:c:d:0x05:_) _ = trace ("LoadConst : Address " ++ show (bytesToInt [a, b, c, d])) (AddressType, MyInt (bytesToInt [a, b, c, d]))
-loadConst (a:b:c:d:0x06:_) _ = trace ("LoadConst : Char " ++ show (bytesToInt [a, b, c, d])) (CharType, MyChar     (intToChar     (bytesToInt [a, b, c, d])))
+loadConst (a:b:c:d:0x01:_) _ = (IntType, MyInt (bytesToInt [a, b, c, d]))
+loadConst (a:b:c:d:0x02:xs) pc = (StringType, MyString (word8withAdresstoString xs ((bytesToInt [a, b, c, d]) - pc)))
+loadConst (a:b:c:d:0x04:_) _ = (FloatType, MyFloat   (intToFloat (bytesToInt [a, b, c, d])))
+loadConst (a:b:c:d:0x05:_) _ = (AddressType, MyInt (bytesToInt [a, b, c, d]))
+loadConst (a:b:c:d:0x06:_) _ = (CharType, MyChar     (intToChar     (bytesToInt [a, b, c, d])))
 loadConst _ _ = trace "ERROR LOAD CONST" (IntType, MyInt 0)
 
 
@@ -218,13 +221,13 @@ getVariableElementTypeFromStack _ _ = MyInt 0
 evalValue :: Word8 -> [Word8] -> StackTable -> Int -> VariableTable -> (StackTable, Int, VariableTable)
 evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToInt values))        (loadConst values (pc + lenOp 0x01) : stack, pc + lenOp 0x01, table)
 evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (bytesToInt values) ++ " type: " ++ show (getTypeFromValue (getNthValue 4 values))) (((getTypeFromValue (getNthValue 4 values)), (getFromVariable (bytesToInt values) table)) : stack, pc + lenOp 0x02, table)
-evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (bytesToInt values)) (deleteLastIntFromStack stack, pc + lenOp 0x03, updateVariable (bytesToInt values) (getTypeFromValue (getNthValue 4 values)) (getVariableElementTypeFromStack (getNthValue 4 values) stack) table)
+evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (bytesToInt values)) (deleteLastValueFromStack stack, pc + lenOp 0x03, updateVariable (bytesToInt values) (getTypeFromValue (getNthValue 4 values)) (getVariableElementTypeFromStack (getNthValue 4 values) stack) table)
 evalValue 0x04 values stack pc table = trace ("BINARY_OP "     ++ show (word8ToInt (head values))) (binaryOpCall (head values) stack, pc + lenOp 0x04, table)
 -- TODO
 evalValue 0x05 values stack pc table = trace ("UNARY_OP "      ++ show (word8ToInt (head values))) (((IntType, (MyInt (word8ToInt (head values)))) : stack), pc + lenOp 0x05, table)
 evalValue 0x06 values stack pc table = trace ("COMPARE_OP "    ++ show (word8ToInt (head values))) (compareOpCall (head values) stack, pc + lenOp 0x06, table)
-evalValue 0x07 values stack pc table = trace ("JUMP_IF_TRUE "  ++ show (bytesToInt values))        (if (getLastIntFromStack stack) /= 0 then (deleteLastIntFromStack stack, (bytesToInt values), table) else (deleteLastIntFromStack stack, pc + lenOp 0x07, table))
-evalValue 0x08 values stack pc table = trace ("JUMP_IF_FALSE " ++ show (bytesToInt values))        (if (getLastIntFromStack stack) == 0 then (deleteLastIntFromStack stack, (bytesToInt values), table) else (deleteLastIntFromStack stack, pc + lenOp 0x08, table))
+evalValue 0x07 values stack pc table = trace ("JUMP_IF_TRUE "  ++ show (bytesToInt values))        (if (getLastIntFromStack stack) /= 0 then (deleteLastValueFromStack stack, (bytesToInt values), table) else (deleteLastValueFromStack stack, pc + lenOp 0x07, table))
+evalValue 0x08 values stack pc table = trace ("JUMP_IF_FALSE " ++ show (bytesToInt values))        (if (getLastIntFromStack stack) == 0 then (deleteLastValueFromStack stack, (bytesToInt values), table) else (deleteLastValueFromStack stack, pc + lenOp 0x08, table))
 evalValue 0x09 values stack _ table = trace ("JUMP "          ++ show (bytesToInt values))         (stack, bytesToInt values, table)
 evalValue 0x0A values stack _ table = trace  ("JUMP_NEW_SCOPE " ++ show (bytesToInt values))       (stack, bytesToInt values, table)
 evalValue 0x0B _ stack pc table = trace  "POP "                                                    (tail stack, pc + lenOp 0x0B, table)
