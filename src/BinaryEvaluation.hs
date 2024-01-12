@@ -62,6 +62,36 @@ binaryOpCall 37 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x `mod` y)
 binaryOpCall 38 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x .&. y)) : xs
 binaryOpCall 124 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x .|. y)) : xs
 binaryOpCall 94 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x `xor` y)) : xs
+
+binaryOpCall 43 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x + y)) : xs
+binaryOpCall 45 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x - y)) : xs
+binaryOpCall 42 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x * y)) : xs
+binaryOpCall 47 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x / y)) : xs
+-- binaryOpCall 37 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x `mod'` y)) : xs -- no mod for float
+-- binaryOpCall 38 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x .&. y)) : xs
+-- binaryOpCall 124 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x .|. y)) : xs
+-- binaryOpCall 94 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x `xor` y)) : xs
+
+binaryOpCall 43 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (ord x + ord y))) : xs
+binaryOpCall 45 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (ord x - ord y))) : xs
+binaryOpCall 42 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (ord x * ord y))) : xs
+binaryOpCall 47 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (ord x `div` ord y))) : xs
+binaryOpCall 37 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (ord x `mod` ord y))) : xs
+binaryOpCall 38 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (ord x .&. ord y))) : xs
+binaryOpCall 124 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (ord x .|. ord y))) : xs
+binaryOpCall 94 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (ord x `xor` ord y))) : xs
+
+binaryOpCall 43 ((_, MyString y) : (_, MyString x) : xs) = (StringType, MyString (x ++ y)) : xs
+
+binaryOpCall 45 ((_, MyInt y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x - intToFloat y)) : xs
+binaryOpCall 45 ((_, MyInt y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (x - ord y))) : xs -- todo
+
+binaryOpCall 45 ((_, MyFloat y) : (_, MyInt x) : xs) = (FloatType, MyFloat (intToFloat x - y)) : xs
+binaryOpCall 45 ((_, MyFloat y) : (_, MyChar x) : xs) = (FloatType, MyFloat (intToFloat (ord x) - y)) : xs
+
+binaryOpCall 45 ((_, MyChar y) : (_, MyInt x) : xs) = (CharType, MyChar (intToChar (ord y - x))) : xs
+binaryOpCall 45 ((_, MyChar y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x - intToFloat (ord y))) : xs
+
 binaryOpCall _ stack = stack  -- Default case, no operation for other Word8 values
 -- maybe & or | ?
 
