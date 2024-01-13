@@ -95,19 +95,56 @@ binaryOpCall 45 ((_, MyChar y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x -
 binaryOpCall _ stack = stack  -- Default case, no operation for other Word8 values
 -- maybe & or | ?
 
+-- 60 <
+-- 62 >
+-- 61 ==
+-- 97 <=
+-- 98 >=
+-- 33 !=
 compareOpCall :: Word8 -> StackTable -> StackTable
+-- * Int
 compareOpCall 60 ((_, MyInt y) : (_, MyInt x) : xs) =
     trace ("stack : top = " ++ show y ++ " > x = " ++ show x) ((if x < y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
 compareOpCall 62 ((_, MyInt y) : (_, MyInt x) : xs) =
     trace ("stack : top = " ++ show y ++ " < x = " ++ show x) ((if x > y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
 compareOpCall 61 ((_, MyInt y) : (_, MyInt x) : xs) =
     trace ("stack : top = " ++ show y ++ " == x = " ++ show x) ((if x == y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 97 ((_, MyInt y) : (_, MyInt x) : xs) =
+    trace ("stack : top = " ++ show y ++ " <= x = " ++ show x) ((if x <= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 98 ((_, MyInt y) : (_, MyInt x) : xs) =
+    trace ("stack : top = " ++ show y ++ " >= x = " ++ show x) ((if x >= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
 compareOpCall 33 ((_, MyInt y) : (_, MyInt x) : xs) =
     trace ("stack : top = " ++ show y ++ " != x = " ++ show x) ((if x /= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+-- * Float
+compareOpCall 60 ((_, MyFloat y) : (_, MyFloat x) : xs) =
+    trace ("stack : top = " ++ show y ++ " > x = " ++ show x) ((if x < y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 62 ((_, MyFloat y) : (_, MyFloat x) : xs) =
+    trace ("stack : top = " ++ show y ++ " < x = " ++ show x) ((if x > y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 61 ((_, MyFloat y) : (_, MyFloat x) : xs) =
+    trace ("stack : top = " ++ show y ++ " == x = " ++ show x) ((if x == y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 97 ((_, MyFloat y) : (_, MyFloat x) : xs) =
+    trace ("stack : top = " ++ show y ++ " <= x = " ++ show x) ((if x <= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 98 ((_, MyFloat y) : (_, MyFloat x) : xs) =
+    trace ("stack : top = " ++ show y ++ " >= x = " ++ show x) ((if x >= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 33 ((_, MyFloat y) : (_, MyFloat x) : xs) =
+    trace ("stack : top = " ++ show y ++ " != x = " ++ show x) ((if x /= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+-- * Char
+compareOpCall 60 ((_, MyChar y) : (_, MyChar x) : xs) =
+    trace ("stack : top = " ++ show y ++ " > x = " ++ show x) ((if x < y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 62 ((_, MyChar y) : (_, MyChar x) : xs) =
+    trace ("stack : top = " ++ show y ++ " < x = " ++ show x) ((if x > y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 61 ((_, MyChar y) : (_, MyChar x) : xs) =
+    trace ("stack : top = " ++ show y ++ " == x = " ++ show x) ((if x == y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 97 ((_, MyChar y) : (_, MyChar x) : xs) =
+    trace ("stack : top = " ++ show y ++ " <= x = " ++ show x) ((if x <= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 98 ((_, MyChar y) : (_, MyChar x) : xs) =
+    trace ("stack : top = " ++ show y ++ " >= x = " ++ show x) ((if x >= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 33 ((_, MyChar y) : (_, MyChar x) : xs) =
+    trace ("stack : top = " ++ show y ++ " != x = " ++ show x) ((if x /= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+
 compareOpCall x stack = trace ("ERROR COMPARE OP : " ++ show x ++ " | stack : " ++ show stack) stack
 
--- todo binary side
--- todo >= <= != !
+-- todo !var
 
 
 lenOp :: Word8 -> Int
@@ -273,7 +310,7 @@ getVariableElementTypeFromStack ((_, MyString x):_) = MyString x
 getVariableElementTypeFromStack ((_, MyBool x):_) = MyBool x -- didn't exist
 getVariableElementTypeFromStack ((_, MyFloat x):_) = MyFloat x
 getVariableElementTypeFromStack ((_, MyChar x):_) = MyChar x
-getVariableElementTypeFromStack _ = error "ERROR GET VARIABLE ELEMENT TYPE FROM STACK"
+getVariableElementTypeFromStack _ = trace "Not a variable element, go next in stack" (MyInt 0)
 
 -- * ---------------------------------------------- EVAL ----------------------------------------------
 
