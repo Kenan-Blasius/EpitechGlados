@@ -1,5 +1,7 @@
 #!/bin/bash
 
+make
+
 # Navigate to the 'tests' directory
 cd tests_examples || exit
 
