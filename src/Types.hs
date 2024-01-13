@@ -535,13 +535,13 @@ data Bytecode = LoadConst Int DataType
 
 instance Show Bytecode where
     show (LoadConst x y) =    "LoadConst " ++ show x ++ " " ++ show y
-    show (LoadVarBefore x y) =  "LoadVarBefore "  ++ x ++ " " ++ show y
-    show (StoreVarBefore x y) = "StoreVarBefore " ++ x ++ " " ++ show y
+    show (LoadVarBefore x y) =  "LoadVarBefore \""  ++ x ++ "\" " ++ show y
+    show (StoreVarBefore x y) = "StoreVarBefore \"" ++ x ++ "\" " ++ show y
     show (LoadVar x y) =      "LoadVar "  ++ show x ++ " " ++ show y
     show (StoreVar x y) =     "StoreVar " ++ show x ++ " " ++ show y
-    show (BinaryOp x) =     "BinaryOp "  ++ x
-    show (UnaryOp x) =      "UnaryOp "   ++ x
-    show (CompareOp x) =    "CompareOp " ++ x
+    show (BinaryOp x) =     "BinaryOp \""  ++ x ++ "\""
+    show (UnaryOp x) =      "UnaryOp \""   ++ x ++ "\""
+    show (CompareOp x) =    "CompareOp \"" ++ x ++ "\""
     show (JumpIfTrue x) =   "JumpIfTrue "  ++ show x
     show (JumpIfFalse x) =  "JumpIfFalse " ++ show x
     show (Jump x) =         "Jump " ++ show x
@@ -555,9 +555,9 @@ instance Show Bytecode where
     show (Call x) =         "Call " ++ show x
     show Return =           "Return"
     show (FunEntryPoint x y) = "FunEntryPoint " ++ show x ++ " " ++ show y
-    show (CallUserFun x) =  "CallUserFun " ++ show x
+    show (CallUserFun x) =  "CallUserFun \"" ++ show x ++ "\""
     show LoadPC =           "LoadPC"
-    show (StringToSave x) = "StringToSave " ++ show x
+    show (StringToSave x) = "StringToSave \"" ++ show x ++ "\""
     -- ? show PushFrame =        "PUSH_FRAME"
     -- ? show PopFrame =         "POP_FRAME"
     -- show (BuildList x) =    "BUILD_LIST " ++ show x
