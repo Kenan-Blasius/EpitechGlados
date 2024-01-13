@@ -3,7 +3,6 @@ module UnitTestEvaluation (
 ) where
 
 import Test.HUnit
--- import TypesEvaluation
 import BinaryEvaluation
 
 
