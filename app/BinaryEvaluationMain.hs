@@ -31,5 +31,3 @@ main = do
                     exitWith (ExitFailure (getLastIntFromStack stack))
 
         _ -> putStrLn "No file given as an argument"
-
--- todo exit with the last int in the stack

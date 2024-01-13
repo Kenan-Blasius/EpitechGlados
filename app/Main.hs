@@ -21,7 +21,7 @@ main = do
                 file <- return $ File (lines contents)
                 ast <- parser file filename
                 putStrLn $ show ast
-                let (_, bytecode, _) = astToBytecode' ast 0
+                let (_, bytecode, _) = astToBytecode' ast 0 (getListOfFunctions ast)
                 -- absoluteFilename <- getAbsolutePath filename
                 bytecodeToBinary bytecode name
 
@@ -36,7 +36,7 @@ main = do
                 file <- return $ File (lines contents)
                 ast <- parser file filename
                 putStrLn $ show ast
-                let (_, bytecode, _) = astToBytecode' ast 0
+                let (_, bytecode, _) = astToBytecode' ast 0 (getListOfFunctions ast)
                 absoluteFilename <- getAbsolutePath filename
                 bytecodeToBinary bytecode absoluteFilename
 
