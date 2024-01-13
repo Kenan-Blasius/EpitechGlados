@@ -1,0 +1,20 @@
+// 1
+fun isPrime(int n) : (int)
+{
+    if (n <= 1) {
+        return 0; // Not prime
+    }
+    for (int i = 2; i <= n / 2; i++) {
+        if (n % i == 0) {
+            return 0; // Not prime
+        }
+    }
+    return 1; // Prime
+}
+
+fun main () : int
+{
+    int japon🇯🇵 = isPrime(5);
+
+    return japon🇯🇵;
+}
