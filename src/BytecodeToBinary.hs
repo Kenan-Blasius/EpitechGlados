@@ -360,7 +360,6 @@ bytecodeToBinary bytecode filename = do
 -- todo deadleaf * or /  or % -> 1
 
 
--- todo fload & char manipulation
 -- handle functions without arguments
 
 

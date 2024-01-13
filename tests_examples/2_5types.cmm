@@ -1,0 +1,12 @@
+// 10
+
+fun main () : int
+{
+    float brazil🇧🇷 = 7.2;
+
+    brazil🇧🇷 += 2.8;
+
+    int a = brazil🇧🇷;
+
+    return a;
+}

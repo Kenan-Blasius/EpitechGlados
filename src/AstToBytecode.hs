@@ -1,6 +1,5 @@
 module AstToBytecode (
     astToBytecode',
-    astConditionToBytecode,
     valueSimpleToBytecode,
     astStoreValue,
 ) where
@@ -19,20 +18,6 @@ valueSimpleToBytecode (AST (x:_)) =
         SymbolAST y -> [LoadVarBefore y StringType]
         _ -> []
 valueSimpleToBytecode _ = []
-
-
-astConditionToBytecode :: AST -> [Bytecode]
-astConditionToBytecode (AST []) = []
-astConditionToBytecode (EqualAST            cond1 cond2) = (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "=="]
-astConditionToBytecode (LessThanAST         cond1 cond2) = (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "<"]
-astConditionToBytecode (GreaterThanAST      cond1 cond2) = (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp ">"]
-astConditionToBytecode (LessThanEqualAST    cond1 cond2) = (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "<="]
-astConditionToBytecode (GreaterThanEqualAST cond1 cond2) = (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp ">="]
-astConditionToBytecode (NotEqualAST         cond1 cond2) = (valueSimpleToBytecode cond1) ++ (valueSimpleToBytecode cond2) ++ [CompareOp "!="]
-astConditionToBytecode (AndAST cond1 cond2) = astConditionToBytecode cond1 ++ astConditionToBytecode cond2 ++ [BinaryOp "&&"]
-astConditionToBytecode (OrAST cond1 cond2) = astConditionToBytecode cond1 ++ astConditionToBytecode cond2 ++ [BinaryOp "||"]
-astConditionToBytecode x = trace ("astConditionToBytecode NO AST CONDITION NODE FOUND: " ++ show x) []
-
 
 astStoreValue :: AST -> [Bytecode]
 astStoreValue (AST [IntTypeAST, SymbolAST x]) = [StoreVarBefore x IntType]
@@ -56,6 +41,13 @@ getTypes (StringTypeAST) = StringType
 getTypes (FloatTypeAST) = FloatType
 getTypes (AST (x:_)) = getTypes x
 getTypes x = error ("ERROR getTypes " ++ show x)
+
+
+getNextJmp :: [Int] -> Int
+getNextJmp [] = 0
+getNextJmp (x:[]) = x
+getNextJmp (x:y:xs) | x > y = getNextJmp (x:xs)
+                    | otherwise = getNextJmp (y:xs)
 
 
 -- INFO: This function takes an AST and returns a list of Bytecode instructions
@@ -92,6 +84,48 @@ astToBytecode' (AST (x:xs)) jmp =
         (xsAST, xsBytecode, jmp_2) = astToBytecode' (AST xs) jmp_1
     in (xsAST, xBytecode ++ xsBytecode, jmp_2)
 
+-- * Condition operations
+
+astToBytecode' (EqualAST x y) jmp =
+    let (_, xBytecode, jmp_1) = astToBytecode' x jmp
+        (_, yBytecode, jmp_2) = astToBytecode' y jmp_1
+    in (AST [], xBytecode ++ yBytecode ++ [CompareOp "="], jmp_2)
+
+astToBytecode' (LessThanAST x y) jmp =
+    let (_, xBytecode, jmp_1) = astToBytecode' x jmp
+        (_, yBytecode, jmp_2) = astToBytecode' y jmp_1
+    in (AST [], xBytecode ++ yBytecode ++ [CompareOp "<"], jmp_2)
+
+astToBytecode' (GreaterThanAST x y) jmp =
+    let (_, xBytecode, jmp_1) = astToBytecode' x jmp
+        (_, yBytecode, jmp_2) = astToBytecode' y jmp_1
+    in (AST [], xBytecode ++ yBytecode ++ [CompareOp ">"], jmp_2)
+
+astToBytecode' (LessThanEqualAST x y) jmp =
+    let (_, xBytecode, jmp_1) = astToBytecode' x jmp
+        (_, yBytecode, jmp_2) = astToBytecode' y jmp_1
+    in (AST [], xBytecode ++ yBytecode ++ [CompareOp "a"], jmp_2)
+
+astToBytecode' (GreaterThanEqualAST x y) jmp =
+    let (_, xBytecode, jmp_1) = astToBytecode' x jmp
+        (_, yBytecode, jmp_2) = astToBytecode' y jmp_1
+    in (AST [], xBytecode ++ yBytecode ++ [CompareOp "b"], jmp_2)
+
+astToBytecode' (NotEqualAST x y) jmp =
+    let (_, xBytecode, jmp_1) = astToBytecode' x jmp
+        (_, yBytecode, jmp_2) = astToBytecode' y jmp_1
+    in (AST [], xBytecode ++ yBytecode ++ [CompareOp "!"], jmp_2)
+
+astToBytecode' (AndAST x y) jmp =
+    let (_, xBytecode, jmp_1) = astToBytecode' x jmp
+        (_, yBytecode, jmp_2) = astToBytecode' y jmp_1
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "&"], jmp_2)
+
+astToBytecode' (OrAST x y) jmp =
+    let (_, xBytecode, jmp_1) = astToBytecode' x jmp
+        (_, yBytecode, jmp_2) = astToBytecode' y jmp_1
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "|"], jmp_2)
+
 -- FunTypeAST return_type
 astToBytecode' (FunAST name args (FunTypeAST return_type) scope) jmp = do
     let (_, scopeBytecode, jmp_2) = astToBytecode' scope jmp
@@ -99,43 +133,46 @@ astToBytecode' (FunAST name args (FunTypeAST return_type) scope) jmp = do
 
 -- * IF / ELSE IF / ELSE
 astToBytecode' (IfAST cond expr1 elseIfExpr1) jmp = do
-    let condBytecode = astConditionToBytecode cond
+    let (_, condBytecode, jmp3) = astToBytecode' cond jmp
     let (_, expr1Bytecode, jmp1) = astToBytecode' expr1 jmp
     let (_, elseIfExpr1Bytecode, jmp2) = astToBytecode' elseIfExpr1 jmp1
-    let new_jmp = (jmp + (jmp1 - jmp) + (jmp2 - jmp) + 1)
-    if elseIfExpr1 == DeadLeafAST then
-        (AST [], condBytecode ++ [JumpIfFalseBefore new_jmp] ++ expr1Bytecode ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode, new_jmp)
-    else
-        (AST [], condBytecode ++ [JumpIfFalseBefore new_jmp] ++ expr1Bytecode ++ [JumpBefore (new_jmp + 1)] ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode ++ [JumpRef (new_jmp + 1)], new_jmp + 1)
+    let new_jmp = (getNextJmp [jmp, jmp1, jmp2, jmp3]) + 1
+    trace ("IfAST: jmp = " ++ show jmp ++ " jmp1 = " ++ show jmp1 ++ " jmp2 = " ++ show jmp2 ++ " jmp3 = " ++ show jmp3 ++ " new_jmp = " ++ show new_jmp) $
+        if elseIfExpr1 == DeadLeafAST then
+            (AST [], condBytecode ++ [JumpIfFalseBefore new_jmp] ++ expr1Bytecode ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode, new_jmp)
+        else
+            (AST [], condBytecode ++ [JumpIfFalseBefore new_jmp] ++ expr1Bytecode ++ [JumpBefore (new_jmp + 1)] ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode ++ [JumpRef (new_jmp + 1)], new_jmp + 1)
 
 astToBytecode' (ElseIfAST cond expr1 elseIfExpr1) jmp = do
-    let condBytecode = astConditionToBytecode cond
+    let (_, condBytecode, jmp3) = astToBytecode' cond jmp
     let (_, expr1Bytecode, jmp1) = astToBytecode' expr1 jmp
     let (_, elseIfExpr1Bytecode, jmp2) = astToBytecode' elseIfExpr1 jmp1
-    let new_jmp = (jmp + (jmp1 - jmp) + (jmp2 - jmp) + 1)
-    if elseIfExpr1 == DeadLeafAST then
-        (AST [], condBytecode ++ [JumpIfFalseBefore new_jmp] ++ expr1Bytecode ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode, new_jmp)
-    else
-        (AST [], condBytecode ++ [JumpIfFalseBefore new_jmp] ++ expr1Bytecode ++ [JumpBefore (new_jmp + 1)] ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode ++ [JumpRef (new_jmp + 1)], new_jmp + 1)
+    let new_jmp = (getNextJmp [jmp, jmp1, jmp2, jmp3]) + 1
+    trace ("ElseIfAST: jmp1 = " ++ show jmp1 ++ " jmp2 = " ++ show jmp2 ++ " jmp3 = " ++ show jmp3 ++ " new_jmp = " ++ show new_jmp) $
+        if elseIfExpr1 == DeadLeafAST then
+            (AST [], condBytecode ++ [JumpIfFalseBefore new_jmp] ++ expr1Bytecode ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode, new_jmp)
+        else
+            (AST [], condBytecode ++ [JumpIfFalseBefore new_jmp] ++ expr1Bytecode ++ [JumpBefore (new_jmp + 1)] ++ [JumpRef new_jmp] ++ elseIfExpr1Bytecode ++ [JumpRef (new_jmp + 1)], new_jmp + 1)
 
 astToBytecode' (ElseAST expr1) jmp = do
     let (_, expr1Bytecode, jmp_1) = astToBytecode' expr1 jmp
-    (AST [], expr1Bytecode, jmp_1)
+    trace ("ElseAST: jmp = " ++ show jmp ++ " jmp_1 = " ++ show jmp_1) $
+        (AST [], expr1Bytecode, jmp_1)
 
 -- * WHILE
 astToBytecode' (WhileAST cond expr1) jmp = do
-    let condBytecode = astConditionToBytecode cond
+    let (_, condBytecode, jmp2) = astToBytecode' cond jmp
     let (_, expr1Bytecode, jmp1) = astToBytecode' expr1 jmp
-    let new_jmp = (jmp + (jmp1 - jmp) + 1)
+    let new_jmp = (getNextJmp [jmp, jmp1, jmp2]) + 1
     (AST [], [JumpRef (new_jmp + 1)] ++ condBytecode ++ [JumpIfFalseBefore new_jmp] ++ expr1Bytecode ++ [JumpBefore (new_jmp + 1)] ++ [JumpRef new_jmp], new_jmp + 1)
 
 -- * FOR
 astToBytecode' (ForAST initi cond increment scope) jmp = do
     let (_, initiBytecode, jmp1) = astToBytecode' initi jmp
-    let condBytecode = astConditionToBytecode cond
+    let (_, condBytecode, jmp4) = astToBytecode' cond jmp
     let (_, incrementBytecode, jmp2) = astToBytecode' increment jmp1
     let (_, scopeBytecode, jmp3) = astToBytecode' scope jmp2
-    let new_jmp = jmp + (jmp1 - jmp) + (jmp2 - jmp1) + (jmp3 - jmp2) + 1
+    let new_jmp = (getNextJmp [jmp, jmp1, jmp2, jmp3, jmp4]) + 1
     (AST [], initiBytecode ++ [JumpRef (new_jmp + 1)] ++ condBytecode ++ [JumpIfFalseBefore new_jmp] ++ scopeBytecode ++ incrementBytecode ++ [JumpBefore (new_jmp + 1)] ++ [JumpRef new_jmp], new_jmp + 1)
 
 -- * RETURN
@@ -174,6 +211,10 @@ astToBytecode' (ModuloAST x y) jmp =
         (_, yBytecode, jmp2) = astToBytecode' (AST [y]) jmp1
     in (AST [], concat [xBytecode, yBytecode, [BinaryOp "%"]], jmp2)
 
+astToBytecode' (NotAST x) jmp =
+    let (_, xBytecode, jmp1) = astToBytecode' x jmp
+    in (AST [], xBytecode ++ [UnaryOp "!"], jmp1)
+
 -- * Incrementation and decrementation
 astToBytecode' (IncrementAST x) jmp =
     let (_, xBytecode, jmp1) = astToBytecode' x jmp
@@ -211,17 +252,6 @@ astToBytecode' (DivideEqualAST x y) jmp =
         (_, yBytecode, jmp2) = astToBytecode' y jmp1
         storeCode = astStoreValue x
     in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "/"] ++ storeCode, jmp2)
-
--- * && and ||
-astToBytecode' (AndAST x y) jmp =
-    let (_, xBytecode, jmp1) = astToBytecode' x jmp
-        (_, yBytecode, jmp2) = astToBytecode' y jmp1
-    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "&&"], jmp2)
-
-astToBytecode' (OrAST x y) jmp =
-    let (_, xBytecode, jmp1) = astToBytecode' x jmp
-        (_, yBytecode, jmp2) = astToBytecode' y jmp1
-    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "||"], jmp2)
 
 -- * Load operations
 astToBytecode' (SymbolAST x) jmp =   (AST [], [LoadVarBefore x UnknownType], jmp) -- we can't know the type of the variable

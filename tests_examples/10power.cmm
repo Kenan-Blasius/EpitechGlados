@@ -1,0 +1,16 @@
+// 16
+fun power(int base, int exponent) : (int)
+{
+    if (exponent == 0) {
+        return 1;
+    } else {
+        return base * power(base, exponent - 1);
+    }
+}
+
+fun main () : int
+{
+    int equador🇪🇨 = power(2, 4);
+
+    return equador🇪🇨;
+}
