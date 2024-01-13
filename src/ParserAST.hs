@@ -323,6 +323,8 @@ sexprToAst' (CharTypeToken : xs) = do
     AST [CharTypeAST] <> sexprToAst' xs
 sexprToAst' (StringTypeToken : xs) = do
     AST [StringTypeAST] <> sexprToAst' xs
+sexprToAst' (VoidTypeToken : xs) = do
+    AST [VoidTypeAST] <> sexprToAst' xs
 -- ! Int token
 sexprToAst' (IntToken x : xs) = do
     AST [IntAST x] <> sexprToAst' xs
@@ -436,6 +438,8 @@ applyDefine (AST (x : xs)) defineList = do
             AST [CharTypeAST] <> ast2
         StringTypeAST -> do
             AST [StringTypeAST] <> ast2
+        VoidTypeAST -> do
+            AST [VoidTypeAST] <> ast2
 
         _ -> do
             x <> ast2

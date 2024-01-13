@@ -124,6 +124,7 @@ parseToken =
     <|> (parseKeyword "float" FloatTypeToken)
     <|> (parseKeyword "char" CharTypeToken)
     <|> (parseKeyword "string" StringTypeToken)
+    <|> (parseKeyword "void" VoidTypeToken)
     -- -- Comments
     -- <|> (parseKeyword "/*" CommentStart)
     -- <|> (parseKeyword "*/" CommentEnd)
@@ -230,6 +231,7 @@ mergeSymbols (SymbolToken x : IntTypeToken : xs) filenames = mergeSymbols (Symbo
 mergeSymbols (SymbolToken x : FloatTypeToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "float") : xs) filenames
 mergeSymbols (SymbolToken x : CharTypeToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "char") : xs) filenames
 mergeSymbols (SymbolToken x : StringTypeToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "string") : xs) filenames
+mergeSymbols (SymbolToken x : VoidTypeToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "void") : xs) filenames
 mergeSymbols (SymbolToken x : IfToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "if") : xs) filenames
 mergeSymbols (SymbolToken x : ElseToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "else") : xs) filenames
 mergeSymbols (SymbolToken x : FunToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "fun") : xs) filenames
@@ -242,6 +244,7 @@ mergeSymbols (IntTypeToken : SymbolToken x : xs) filenames = mergeSymbols (Symbo
 mergeSymbols (FloatTypeToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("float" ++ x) : xs) filenames
 mergeSymbols (CharTypeToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("char" ++ x) : xs) filenames
 mergeSymbols (StringTypeToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("string" ++ x) : xs) filenames
+mergeSymbols (VoidTypeToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("void" ++ x) : xs) filenames
 mergeSymbols (IfToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("if" ++ x) : xs) filenames
 mergeSymbols (ElseToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("else" ++ x) : xs) filenames
 mergeSymbols (FunToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("fun" ++ x) : xs) filenames

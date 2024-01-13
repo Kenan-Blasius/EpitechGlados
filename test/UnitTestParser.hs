@@ -287,6 +287,7 @@ showTokenTest =
         TestCase (assertEqual "showToken" "FLOAT" (show (FloatTypeToken))),
         TestCase (assertEqual "showToken" "CHAR" (show (CharTypeToken))),
         TestCase (assertEqual "showToken" "STRING" (show (StringTypeToken))),
+        TestCase (assertEqual "showToken" "VOID" (show (VoidTypeToken))),
         TestCase (assertEqual "showToken" "OpenBRACKET" (show (OpenBracket))),
         TestCase (assertEqual "showToken" "CloseBRACKET" (show (CloseBracket))),
         TestCase (assertEqual "showToken" "OpenBRACES" (show (OpenBraces))),
@@ -348,6 +349,7 @@ equalsTokenTest =
         TestCase (assertEqual "equalsToken" True (FloatTypeToken == FloatTypeToken)),
         TestCase (assertEqual "equalsToken" True (CharTypeToken == CharTypeToken)),
         TestCase (assertEqual "equalsToken" True (StringTypeToken == StringTypeToken)),
+        TestCase (assertEqual "equalsToken" True (VoidTypeToken == VoidTypeToken)),
         TestCase (assertEqual "equalsToken" True (OpenBracket == OpenBracket)),
         TestCase (assertEqual "equalsToken" True (CloseBracket == CloseBracket)),
         TestCase (assertEqual "equalsToken" True (OpenBraces == OpenBraces)),
@@ -403,6 +405,7 @@ equalsASTTest =
         TestCase (assertEqual "equalsAST" True (AST [WhileAST (AST [SymbolAST "i",SymbolAST "<",IntAST 10]) (AST [AST [SymbolAST "a",SymbolAST "=",SymbolAST "a",SymbolAST "+",IntAST 1]])] == AST [WhileAST (AST [SymbolAST "i",SymbolAST "<",IntAST 10]) (AST [AST [SymbolAST "a",SymbolAST "=",SymbolAST "a",SymbolAST "+",IntAST 1]])])),
         TestCase (assertEqual "equalsAST" True (AST [FunAST "main" (AST [AST [IntTypeAST,SymbolAST "n"],AST [CharTypeAST,SymbolAST "c"]]) (AST [IntTypeAST]) (AST [AST [SymbolAST "return",IntAST 0]])] == AST [FunAST "main" (AST [AST [IntTypeAST,SymbolAST "n"],AST [CharTypeAST,SymbolAST "c"]]) (AST [IntTypeAST]) (AST [AST [SymbolAST "return",IntAST 0]])])),
         TestCase (assertEqual "equalsAST" True (StringAST "Hello World" == StringAST "Hello World")),
+        TestCase (assertEqual "equalsAST" True (VoidTypeAST == VoidTypeAST)),
         TestCase (assertEqual "equalsAST" True (StringTypeAST == StringTypeAST))
     ]
 
@@ -494,6 +497,7 @@ parseTokenTest =
         TestCase (assertEqual "parseToken" (Just (FloatTypeToken, " (1 2)")) (runParser parseToken "float (1 2)")),
         TestCase (assertEqual "parseToken" (Just (CharTypeToken, " (1 2)")) (runParser parseToken "char (1 2)")),
         TestCase (assertEqual "parseToken" (Just (StringTypeToken, " (1 2)")) (runParser parseToken "string (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (VoidTypeToken, " (1 2)")) (runParser parseToken "void (1 2)")),
         -- TestCase (assertEqual "parseToken" (Just (CommentStart, " (1 2)")) (runParser parseToken "/* (1 2)")),
         -- TestCase (assertEqual "parseToken" (Just (CommentEnd, " (1 2)")) (runParser parseToken "*/ (1 2)")),
         -- TestCase (assertEqual "parseToken" (Just (InlineCommentStart, " (1 2)")) (runParser parseToken "// (1 2)")),
@@ -617,6 +621,12 @@ parseFileTest =
             let cleanedFile = cleanFile originalFile False
             result <- parseFile cleanedFile 0 [""] originalFile
             assertEqual "parseFile" ([StringTypeToken, SymbolToken "string_my_string", AssignToken, StringToken "Hello World"]) (result)
+        ),
+        TestCase (do
+            let originalFile = (File ["void void_my_void"])
+            let cleanedFile = cleanFile originalFile False
+            result <- parseFile cleanedFile 0 [""] originalFile
+            assertEqual "parseFile" ([VoidTypeToken, SymbolToken "void_my_void"]) (result)
         ),
         TestCase (do
             let originalFile = (File ["int if_my_if = 42"])
@@ -1248,6 +1258,13 @@ sexprToAstTest :: Test
 sexprToAstTest =
     TestList
     [
+        TestCase (do
+            let originalFile = (File ["fun my_function() : void { return; }"])
+            let cleanedFile = cleanFile originalFile False
+            tokenList <- parseFile cleanedFile 0 [""] originalFile
+            let result = sexprToAst $ tokenListToSexpr $ tokenList
+            let expected = (FunAST "my_function" DeadLeafAST (FunTypeAST (AST [VoidTypeAST])) (ReturnAST (DeadLeafAST)))
+            assertEqual "sexprToAst" (expected) (result)),
         TestCase (do
             let originalFile = (File ["if (i == 1) { a = 42; }"])
             let cleanedFile = cleanFile originalFile False

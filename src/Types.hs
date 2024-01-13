@@ -45,6 +45,7 @@ data Token = OpenParenthesis
             | FloatTypeToken
             | CharTypeToken
             | StringTypeToken
+            | VoidTypeToken
             | OpenBracket
             | CloseBracket
             | OpenBraces
@@ -104,6 +105,7 @@ instance Show Token where
     show FloatTypeToken = "FLOAT"
     show CharTypeToken = "CHAR"
     show StringTypeToken = "STRING"
+    show VoidTypeToken = "VOID"
     show OpenBracket = "OpenBRACKET"
     show CloseBracket = "CloseBRACKET"
     show OpenBraces = "OpenBRACES"
@@ -162,6 +164,7 @@ instance Eq Token where
     FloatTypeToken == FloatTypeToken = True
     CharTypeToken == CharTypeToken = True
     StringTypeToken == StringTypeToken = True
+    VoidTypeToken == VoidTypeToken = True
     OpenBracket == OpenBracket = True
     CloseBracket == CloseBracket = True
     OpenBraces == OpenBraces = True
@@ -222,6 +225,7 @@ data AST = AST [AST] -- list of AST
          | FloatTypeAST -- type
          | CharTypeAST -- type
          | StringTypeAST -- type
+         | VoidTypeAST -- type
          | LambdaClosure [String] AST Environment
          | IntAST Int -- value
          | FloatAST Float -- value
@@ -292,6 +296,7 @@ instance Eq AST where
     FloatTypeAST == FloatTypeAST = True
     CharTypeAST == CharTypeAST = True
     StringTypeAST == StringTypeAST = True
+    VoidTypeAST == VoidTypeAST = True
     LambdaClosure args1 body1 env1 == LambdaClosure args2 body2 env2 = args1 == args2 && body1 == body2 && env1 == env2
     IntAST x == IntAST y = x == y
     FloatAST x == FloatAST y = x == y
@@ -364,6 +369,7 @@ printAST = printASTIndented 0
         printASTIndented depth FloatTypeAST = indent depth ++ "FloatTypeAST\n"
         printASTIndented depth CharTypeAST = indent depth ++ "CharTypeAST\n"
         printASTIndented depth StringTypeAST = indent depth ++ "StringTypeAST\n"
+        printASTIndented depth VoidTypeAST = indent depth ++ "VoidTypeAST\n"
         printASTIndented depth (StringAST value) = indent depth ++ "StringAST " ++ value ++ "\n"
         printASTIndented depth (CharAST value) = indent depth ++ "CharAST '" ++ [value] ++ "'\n"
         printASTIndented depth (ForAST initer cond incr expr) =
