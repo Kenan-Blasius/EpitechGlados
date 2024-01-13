@@ -53,6 +53,7 @@ getTypes (IntTypeAST) = IntType
 getTypes (CharTypeAST) = CharType
 getTypes (StringTypeAST) = StringType
 getTypes (FloatTypeAST) = FloatType
+getTypes (VoidTypeAST) = VoidType
 getTypes (AST (x:_)) = getTypes x
 getTypes x = error ("ERROR getTypes " ++ show x)
 

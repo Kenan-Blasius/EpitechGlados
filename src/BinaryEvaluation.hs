@@ -345,12 +345,15 @@ evalValue a b c d e = trace ("Unknown opcode: " ++ show a ++ " | values: " ++ sh
 
 -- * ---------------------------------------------- EVAL EACH ----------------------------------------------
 
+
+
 -- ? we have two bytecodes lists because if we move forward in the list, we can't go back
 --              bytecodes  bytecodes  stack      PC   VariableTable    -> stack
 evalEachValue :: [Word8] -> [Word8] -> StackTable -> Int -> [VariableTable] -> StackTable
 evalEachValue _ [] stack _ _ = trace ("-- End of bytecodes Stack: " ++ show stack) stack
 evalEachValue bytecodes (x:xs) stack pc tables = do
-    let (new_stack, new_pc, new_table) = evalValue x xs stack pc (head tables) -- ? head or tail ?
+    let (new_stack, new_pc, new_table) | null tables = evalValue x xs stack pc []
+                                       | otherwise = evalValue x xs stack pc (head tables)
     let debugInfo = "pc = " ++ show pc ++ " | stack = " ++ show new_stack ++ " | next pc = " ++ show new_pc ++ " | table = " ++ show new_table
     if new_pc == -1 then
         stack
