@@ -138,11 +138,43 @@ getFromVariable varId ((n, _, e):xs)
 getFromVariable _ _ = trace "ERROR GET FROM VARIABLE" (MyInt 0)
 
 -- Function to update the value of an existing variable in the table
+
+toNewVariable :: VariableId -> VariableType -> VariableType -> VariableElement -> VariableEntry
+-- * same type
+toNewVariable varId IntType IntType (MyInt x) = trace ("int to int " ++ show x) $ (varId, IntType, MyInt x)
+toNewVariable varId StringType StringType (MyString x) = trace ("string to string " ++ show x) $ (varId, StringType, MyString x)
+toNewVariable varId CharType CharType (MyChar x) = trace ("char to char " ++ show x) $ (varId, CharType, MyChar x)
+toNewVariable varId FloatType FloatType (MyFloat x) = trace ("float to float " ++ show x) $ (varId, FloatType, MyFloat x)
+-- * convert
+toNewVariable varId IntType FloatType (MyFloat x) = trace ("int to float " ++ show x) $ (varId, IntType, MyInt (round x))
+toNewVariable varId FloatType IntType (MyInt x) = trace ("float to int " ++ show x) $ (varId, FloatType, MyFloat (intToFloat x))
+toNewVariable varId IntType CharType (MyChar x) = trace ("int to char " ++ show x) $ (varId, IntType, MyInt (ord x))
+toNewVariable varId CharType IntType (MyInt x) = trace ("char to int " ++ show x) $ (varId, CharType, MyChar (intToChar x))
+toNewVariable varId FloatType CharType (MyChar x) = trace ("float to char " ++ show x) $ (varId, FloatType, MyFloat (intToFloat (ord x)))
+toNewVariable varId CharType FloatType (MyFloat x) = trace ("char to float " ++ show x) $ (varId, CharType, MyChar (intToChar (round x)))
+toNewVariable a b c d = error ("ERROR TO NEW VARIABLE " ++ show a ++ " | " ++ show b ++ " | " ++ show c ++ " | " ++ show d)
+
+
+new_VariableTable :: VariableId -> VariableType -> VariableElement -> VariableTable
+new_VariableTable varId IntType (MyInt x) = [(varId, IntType, MyInt x)]
+new_VariableTable varId StringType (MyString x) = [(varId, StringType, MyString x)]
+new_VariableTable varId CharType (MyChar x) = [(varId, CharType, MyChar x)]
+new_VariableTable varId FloatType (MyFloat x) = [(varId, FloatType, MyFloat x)]
+new_VariableTable varId IntType (MyFloat x) = [(varId, IntType, MyInt (round x))]
+new_VariableTable varId FloatType (MyInt x) = [(varId, FloatType, MyFloat (intToFloat x))]
+new_VariableTable varId IntType (MyChar x) = [(varId, IntType, MyInt (ord x))]
+new_VariableTable varId CharType (MyInt x) = [(varId, CharType, MyChar (intToChar x))]
+new_VariableTable varId FloatType (MyChar x) = [(varId, FloatType, MyFloat (intToFloat (ord x)))]
+new_VariableTable varId CharType (MyFloat x) = [(varId, CharType, MyChar (intToChar (round x)))]
+new_VariableTable a b c = error ("ERROR NEW VARIABLE TABLE " ++ show a ++ " | " ++ show b ++ " | " ++ show c)
+
+
+--                  id          type expected   new value               table    -> new table
 updateVariable :: VariableId -> VariableType -> VariableElement -> VariableTable -> VariableTable
-updateVariable varId varType element [] = [(varId, varType, element)]
+updateVariable varId varType element [] = new_VariableTable varId varType element
 updateVariable varId varType element ((n, t, e):xs)
-    | varId == n = (varId, varType, element) : xs
-    | otherwise = (n, t, e) : updateVariable varId varType element xs
+    | varId == n = toNewVariable varId varType t element : xs
+    | otherwise = trace ("n = " ++ show n ++ " | t = " ++ show t ++ " | e = " ++ show e) $ (n, t, e) : updateVariable varId varType element xs
 
 
 -- * ---------------------------------------------- STACK ----------------------------------------------
@@ -228,21 +260,20 @@ getNthValue _ _ = trace "ERROR GET NTH VALUE" 0
 getTypeFromValue :: Word8 -> VariableType
 getTypeFromValue 0x01 = IntType
 getTypeFromValue 0x02 = StringType
-getTypeFromValue 0x03 = BoolType
+getTypeFromValue 0x03 = BoolType -- didn't exist
 getTypeFromValue 0x04 = FloatType
 getTypeFromValue 0x05 = AddressType
 getTypeFromValue 0x06 = CharType
 getTypeFromValue _ = trace "ERROR GET TYPE FROM VALUE" IntType
 
-getVariableElementTypeFromStack :: Word8 -> StackTable -> VariableElement
-getVariableElementTypeFromStack w ((AddressType, _):xs) = getVariableElementTypeFromStack w xs
-getVariableElementTypeFromStack 0x01 ((_, MyInt x):_) = MyInt x
-getVariableElementTypeFromStack 0x02 ((_, MyString x):_) = MyString x
-getVariableElementTypeFromStack 0x03 ((_, MyBool x):_) = MyBool x
-getVariableElementTypeFromStack 0x04 ((_, MyFloat x):_) = MyFloat x
-getVariableElementTypeFromStack 0x05 ((_, MyInt x):_) = MyInt x
-getVariableElementTypeFromStack 0x06 ((_, MyChar x):_) = MyChar x
-getVariableElementTypeFromStack _ _ = MyInt 0
+getVariableElementTypeFromStack :: StackTable -> VariableElement
+getVariableElementTypeFromStack ((AddressType, _):xs) = getVariableElementTypeFromStack xs
+getVariableElementTypeFromStack ((_, MyInt x):_) = MyInt x
+getVariableElementTypeFromStack ((_, MyString x):_) = MyString x
+getVariableElementTypeFromStack ((_, MyBool x):_) = MyBool x -- didn't exist
+getVariableElementTypeFromStack ((_, MyFloat x):_) = MyFloat x
+getVariableElementTypeFromStack ((_, MyChar x):_) = MyChar x
+getVariableElementTypeFromStack _ = error "ERROR GET VARIABLE ELEMENT TYPE FROM STACK"
 
 -- * ---------------------------------------------- EVAL ----------------------------------------------
 
@@ -251,7 +282,7 @@ getVariableElementTypeFromStack _ _ = MyInt 0
 evalValue :: Word8 -> [Word8] -> StackTable -> Int -> VariableTable -> (StackTable, Int, VariableTable)
 evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToInt values))        (loadConst values (pc + lenOp 0x01) : stack, pc + lenOp 0x01, table)
 evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (bytesToInt values) ++ " type: " ++ show (getTypeFromValue (getNthValue 4 values))) (((getTypeFromValue (getNthValue 4 values)), (getFromVariable (bytesToInt values) table)) : stack, pc + lenOp 0x02, table)
-evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (bytesToInt values)) (deleteLastValueFromStack stack, pc + lenOp 0x03, updateVariable (bytesToInt values) (getTypeFromValue (getNthValue 4 values)) (getVariableElementTypeFromStack (getNthValue 4 values) stack) table)
+evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (bytesToInt values)) (deleteLastValueFromStack stack, pc + lenOp 0x03, updateVariable (bytesToInt values) (getTypeFromValue (getNthValue 4 values)) (getVariableElementTypeFromStack stack) table)
 evalValue 0x04 values stack pc table = trace ("BINARY_OP "     ++ show (word8ToInt (head values))) (binaryOpCall (head values) stack, pc + lenOp 0x04, table)
 -- TODO
 evalValue 0x05 values stack pc table = trace ("UNARY_OP "      ++ show (word8ToInt (head values))) (((IntType, (MyInt (word8ToInt (head values)))) : stack), pc + lenOp 0x05, table)
