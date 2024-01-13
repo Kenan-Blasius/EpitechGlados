@@ -12,24 +12,25 @@ fun sub(int a, int b) : int
 
 fun main () : int
 {
-    int a = 0;
-    int b = 4;
+    int vatican🇻🇦 = 3 == 2;
+    int monaco🇲🇨 = 4;
+
     if (
-        add(1) == sub(a, b) // if 2 == -4
+        add(1) == sub(vatican🇻🇦, monaco🇲🇨) // if 2 == -4
     ) {
-        a = 42;
+        vatican🇻🇦 = 42;
     } else if (
-        add(a) == add(0) // if 1 == 1
+        add(vatican🇻🇦) == add(0) // if 1 == 1
     ) {
-        a = sub(a, b); // a = -4
-        while (b < 10) {
-            a = add(a); // a = -3, -2, -1, 0, 1, 2
-            b++;
+        vatican🇻🇦 = sub(vatican🇻🇦, monaco🇲🇨); // vatican🇻🇦 = -4
+        while (monaco🇲🇨 < 10) {
+            vatican🇻🇦 = add(vatican🇻🇦); // vatican🇻🇦 = -3, -2, -1, 0, 1, 2
+            monaco🇲🇨++;
         }
     } else {
-        a = 1;
+        vatican🇻🇦 = 1;
     }
 
 
-    return a;
+    return vatican🇻🇦;
 }
