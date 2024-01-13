@@ -11,29 +11,10 @@ import Data.Char
 import Data.Int (Int32)
 import Unsafe.Coerce
 
--- ; Opcode Definitions
--- LOAD_CONST      0x01
--- LOAD_VAR        0x02
--- STORE_VAR       0x03
--- BINARY_OP       0x04
--- UNARY_OP        0x05
--- COMPARE_OP      0x06
--- JUMP_IF_TRUE    0x07
--- JUMP_IF_FALSE   0x08
--- JUMP            0x09
--- JUMP_NEW_SCOPE  0x0A
--- POP             0x0B
--- DUP             0x0C
--- CALL            0x0D
--- RETURN          0x0E
-
-headerSize :: Int
-headerSize = 32
-
 type VariableId = Int
 data VariableType = IntType | StringType | BoolType | CharType | FloatType | AddressType deriving (Show)
-
 data VariableElement = MyInt Int | MyString String | MyChar Char | MyBool Bool | MyFloat Float deriving (Show)
+
 
 type VariableEntry = (VariableId, VariableType, VariableElement)
 type VariableTable = [VariableEntry]
@@ -42,6 +23,8 @@ type VariableTable = [VariableEntry]
 type StackEntry = (VariableType, VariableElement)
 type StackTable = [StackEntry]
 
+headerSize :: Int
+headerSize = 32
 
 intToFloat :: Int -> Float
 intToFloat = unsafeCoerce
@@ -51,6 +34,26 @@ word8ToInt = fromIntegral
 
 intToChar :: Int -> Char
 intToChar = chr
+
+lenOp :: Word8 -> Int
+lenOp 0x01 = 6 -- LOAD_CONST     (int 4, type 1)
+lenOp 0x02 = 6 -- LOAD_VAR       (int 4, type 1)
+lenOp 0x03 = 6 -- STORE_VAR      (int 4, type 1)
+lenOp 0x04 = 2 -- BINARY_OP      (int 1)
+lenOp 0x05 = 2 -- UNARY_OP       (int 1)
+lenOp 0x06 = 2 -- COMPARE_OP     (int 1)
+lenOp 0x07 = 5 -- JUMP_IF_TRUE   (int 4)
+lenOp 0x08 = 5 -- JUMP_IF_FALSE  (int 4)
+lenOp 0x09 = 5 -- JUMP           (int 4)
+lenOp 0x0A = 5 -- JUMP_NEW_SCOPE (int 4)
+lenOp 0x0B = 1 -- POP            ()
+lenOp 0x0C = 1 -- DUP            ()
+lenOp 0x0D = 2 -- CALL           (int 1)
+lenOp 0x0E = 1 -- RETURN         ()
+lenOp 0x0F = 1 -- LOAD_PC        ()
+lenOp _ = 0
+
+-- * ---------------------------------------------- BINARY ----------------------------------------------
 
 --             ope      stack   new_stack
 binaryOpCall :: Word8 -> StackTable -> StackTable
@@ -67,6 +70,7 @@ binaryOpCall 43 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x 
 binaryOpCall 45 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x - y)) : xs
 binaryOpCall 42 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x * y)) : xs
 binaryOpCall 47 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x / y)) : xs
+-- todo
 -- binaryOpCall 37 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x `mod'` y)) : xs -- no mod for float
 -- binaryOpCall 38 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x .&. y)) : xs
 -- binaryOpCall 124 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x .|. y)) : xs
@@ -94,6 +98,23 @@ binaryOpCall 45 ((_, MyChar y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x -
 
 binaryOpCall _ stack = stack  -- Default case, no operation for other Word8 values
 -- maybe & or | ?
+
+
+-- * ---------------------------------------------- UNARY ----------------------------------------------
+
+
+unaryOpCall :: Word8 -> StackTable -> StackTable
+-- "-"
+unaryOpCall 45 ((_, MyInt x) : xs) = (IntType, MyInt (-x)) : xs
+unaryOpCall 45 ((_, MyFloat x) : xs) = (FloatType, MyFloat (-x)) : xs
+unaryOpCall 45 ((_, MyChar x) : xs) = (CharType, MyChar (intToChar (-ord x))) : xs
+-- "!"
+unaryOpCall 33 ((_, MyInt x) : xs) = (IntType, MyInt (if x == 0 then 1 else 0)) : xs
+unaryOpCall 33 ((_, MyFloat x) : xs) = (IntType, MyInt (if x == 0 then 1 else 0)) : xs
+unaryOpCall 33 ((_, MyChar x) : xs) = (IntType, MyInt (if x == '\0' then 1 else 0)) : xs
+unaryOpCall _ stack = stack  -- Default case, no operation for other Word8 values
+
+-- * ---------------------------------------------- COMPARE ----------------------------------------------
 
 -- 60 <
 -- 62 >
@@ -144,27 +165,6 @@ compareOpCall 33 ((_, MyChar y) : (_, MyChar x) : xs) =
 
 compareOpCall x stack = trace ("ERROR COMPARE OP : " ++ show x ++ " | stack : " ++ show stack) stack
 
--- todo !var
-
-
-lenOp :: Word8 -> Int
-lenOp 0x01 = 6 -- LOAD_CONST     (int 4, type 1)
-lenOp 0x02 = 6 -- LOAD_VAR       (int 4, type 1)
-lenOp 0x03 = 6 -- STORE_VAR      (int 4, type 1)
-lenOp 0x04 = 2 -- BINARY_OP      (int 1)
-lenOp 0x05 = 2 -- UNARY_OP       (int 1)
-lenOp 0x06 = 2 -- COMPARE_OP     (int 1)
-lenOp 0x07 = 5 -- JUMP_IF_TRUE   (int 4)
-lenOp 0x08 = 5 -- JUMP_IF_FALSE  (int 4)
-lenOp 0x09 = 5 -- JUMP           (int 4)
-lenOp 0x0A = 5 -- JUMP_NEW_SCOPE (int 4)
-lenOp 0x0B = 1 -- POP            ()
-lenOp 0x0C = 1 -- DUP            ()
-lenOp 0x0D = 2 -- CALL           (int 1)
-lenOp 0x0E = 1 -- RETURN         ()
-lenOp 0x0F = 1 -- LOAD_PC        ()
-lenOp _ = 0
-
 
 -- * ---------------------------------------------- VARIABLE ----------------------------------------------
 
@@ -174,7 +174,6 @@ getFromVariable varId ((n, _, e):xs)
     | otherwise = getFromVariable varId xs
 getFromVariable _ _ = trace "ERROR GET FROM VARIABLE" (MyInt 0)
 
--- Function to update the value of an existing variable in the table
 
 toNewVariable :: VariableId -> VariableType -> VariableType -> VariableElement -> VariableEntry
 -- * same type
@@ -282,12 +281,17 @@ loadConst (a:b:c:d:0x06:_) _ = (CharType, MyChar     (intToChar     (bytesToInt 
 loadConst _ _ = trace "ERROR LOAD CONST" (IntType, MyInt 0)
 
 
+-- * ---------------------------------------------- PRINT ----------------------------------------------
+
 printValueInStack :: StackEntry -> String
 printValueInStack (IntType, MyInt x) = show x
 printValueInStack (FloatType, MyFloat x) = show x
 printValueInStack (CharType, MyChar x) = show x
 printValueInStack (AddressType, MyInt x) = show x
 printValueInStack x = show x
+
+
+-- * ---------------------------------------------- GET ----------------------------------------------
 
 getNthValue :: Int -> [Word8] -> Word8
 getNthValue 0 (x:_) = x
@@ -321,8 +325,9 @@ evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToI
 evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (bytesToInt values) ++ " type: " ++ show (getTypeFromValue (getNthValue 4 values))) (((getTypeFromValue (getNthValue 4 values)), (getFromVariable (bytesToInt values) table)) : stack, pc + lenOp 0x02, table)
 evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (bytesToInt values)) (deleteLastValueFromStack stack, pc + lenOp 0x03, updateVariable (bytesToInt values) (getTypeFromValue (getNthValue 4 values)) (getVariableElementTypeFromStack stack) table)
 evalValue 0x04 values stack pc table = trace ("BINARY_OP "     ++ show (word8ToInt (head values))) (binaryOpCall (head values) stack, pc + lenOp 0x04, table)
--- TODO
-evalValue 0x05 values stack pc table = trace ("UNARY_OP "      ++ show (word8ToInt (head values))) (((IntType, (MyInt (word8ToInt (head values)))) : stack), pc + lenOp 0x05, table)
+
+evalValue 0x05 values stack pc table = trace ("UNARY_OP "      ++ show (word8ToInt (head values))) (unaryOpCall (head values) stack, pc + lenOp 0x05, table)
+
 evalValue 0x06 values stack pc table = trace ("COMPARE_OP "    ++ show (word8ToInt (head values))) (compareOpCall (head values) stack, pc + lenOp 0x06, table)
 evalValue 0x07 values stack pc table = trace ("JUMP_IF_TRUE "  ++ show (bytesToInt values))        (if (getLastIntFromStack stack) /= 0 then (deleteLastValueFromStack stack, (bytesToInt values), table) else (deleteLastValueFromStack stack, pc + lenOp 0x07, table))
 evalValue 0x08 values stack pc table = trace ("JUMP_IF_FALSE " ++ show (bytesToInt values))        (if (getLastIntFromStack stack) == 0 then (deleteLastValueFromStack stack, (bytesToInt values), table) else (deleteLastValueFromStack stack, pc + lenOp 0x08, table))
@@ -336,6 +341,9 @@ evalValue 0x0D (60:_) _ _ _ = trace "EXIT"                                      
 evalValue 0x0E _ stack _ table = trace  "RETURN "                                                  (deleteUntilAddressExceptOne stack 0, getLastAddressFromStack stack, table)
 evalValue 0x0F _ stack pc table = trace "LOAD_PC "                                                 (((AddressType, (MyInt (pc + lenOp 0x0F + lenOp 0x0A))) : stack), pc + lenOp 0x0F, table) -- pc + LOAD_PC + JUMP_NEW_SCOPE
 evalValue a b c d e = trace ("Unknown opcode: " ++ show a ++ " | values: " ++ show b ++ " | stack: " ++ show c ++ " | pc: " ++ show d ++ " | table: " ++ show e) ([], -1, [])
+
+
+-- * ---------------------------------------------- EVAL EACH ----------------------------------------------
 
 -- ? we have two bytecodes lists because if we move forward in the list, we can't go back
 --              bytecodes  bytecodes  stack      PC   VariableTable    -> stack
