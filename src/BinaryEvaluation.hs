@@ -1,4 +1,7 @@
-module BinaryEvaluation (evalEachValue, byteStringToWord8List, checkMagicNumber, headerSize, getLastIntFromStack) where
+module BinaryEvaluation (evalEachValue, byteStringToWord8List, checkMagicNumber, headerSize, getLastIntFromStack,
+    VariableId, VariableType (..), VariableElement (..), VariableEntry, VariableTable, StackEntry, StackTable,
+    intToFloat, word8ToInt, intToChar, lenOp, binaryOpCall, unaryOpCall,
+    ) where
 
 import Debug.Trace
 
@@ -12,8 +15,8 @@ import Data.Int (Int32)
 import Unsafe.Coerce
 
 type VariableId = Int
-data VariableType = IntType | StringType | BoolType | CharType | FloatType | AddressType deriving (Show)
-data VariableElement = MyInt Int | MyString String | MyChar Char | MyBool Bool | MyFloat Float deriving (Show)
+data VariableType = IntType | StringType | BoolType | CharType | FloatType | AddressType deriving (Show, Eq)
+data VariableElement = MyInt Int | MyString String | MyChar Char | MyBool Bool | MyFloat Float deriving (Show, Eq)
 
 
 type VariableEntry = (VariableId, VariableType, VariableElement)
