@@ -33,8 +33,8 @@ for file in *.cmm; do
         # Check if './glados' command was successful
         if [ $? -eq 0 ]; then
             # If successful, execute the './eval' command on the generated binary file
-            eval_result=$(../eval "$binary_file" 2>/dev/null | tr -cd '[:digit:]')
-
+            ../eval "$binary_file" > /dev/null 2>&1
+            eval_result=$?
             # Display the result of the './eval' command
 
             # Compare the expected and actual values

@@ -339,7 +339,7 @@ evalValue 0x0B _ stack pc table = trace  "POP "                                 
 evalValue 0x0C _ (s:stack) pc table = trace  "DUP "                                                return(s : s : stack, pc + lenOp 0x0C, table)
 -- * x == 1, print -- x == 60, exit
 evalValue 0x0D (1:_) (x:xs) pc table = do
-    putStrLn (printValueInStack x)
+    putStr (printValueInStack x)
     return (xs, pc + lenOp 0x0D, table)
 evalValue 0x0D (60:_) _ _ _ = trace "EXIT"                                                         return ([], -1, [])
 evalValue 0x0E _ stack _ table = trace  "RETURN "                                                  return (deleteUntilAddressExceptOne stack 0, getLastAddressFromStack stack, table)
