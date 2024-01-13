@@ -19,7 +19,7 @@ main = do
                 putStrLn "Magic number is incorrect"
                 exitWith (ExitFailure 84)
             else do
-                let stack = evalEachValue bytecode (drop headerSize bytecode) [] headerSize [[]]
+                stack <- evalEachValue bytecode (drop headerSize bytecode) [] headerSize [[]]
                 if length stack < 1 then do
                     putStrLn ("Stack is empty")
                     exitWith (ExitFailure 84)

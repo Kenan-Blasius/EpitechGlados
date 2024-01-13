@@ -291,6 +291,7 @@ printValueInStack (IntType, MyInt x) = show x
 printValueInStack (FloatType, MyFloat x) = show x
 printValueInStack (CharType, MyChar x) = show x
 printValueInStack (AddressType, MyInt x) = show x
+printValueInStack (StringType, MyString x) = trace ("string : " ++ show x) x
 printValueInStack x = show x
 
 
@@ -323,27 +324,27 @@ getVariableElementTypeFromStack _ = trace "Not a variable element, go next in st
 
 -- ? stack is global, JUMP_NEW_SCOPE is useless ?
 --           opcode   values    stack     PC    VariableTable    (new_stack, new_pc, new_VariableTable)
-evalValue :: Word8 -> [Word8] -> StackTable -> Int -> VariableTable -> (StackTable, Int, VariableTable)
-evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToInt values))        (loadConst values (pc + lenOp 0x01) : stack, pc + lenOp 0x01, table)
-evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (bytesToInt values) ++ " type: " ++ show (getTypeFromValue (getNthValue 4 values))) (((getTypeFromValue (getNthValue 4 values)), (getFromVariable (bytesToInt values) table)) : stack, pc + lenOp 0x02, table)
-evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (bytesToInt values)) (deleteLastValueFromStack stack, pc + lenOp 0x03, updateVariable (bytesToInt values) (getTypeFromValue (getNthValue 4 values)) (getVariableElementTypeFromStack stack) table)
-evalValue 0x04 values stack pc table = trace ("BINARY_OP "     ++ show (word8ToInt (head values))) (binaryOpCall (head values) stack, pc + lenOp 0x04, table)
-
-evalValue 0x05 values stack pc table = trace ("UNARY_OP "      ++ show (word8ToInt (head values))) (unaryOpCall (head values) stack, pc + lenOp 0x05, table)
-
-evalValue 0x06 values stack pc table = trace ("COMPARE_OP "    ++ show (word8ToInt (head values))) (compareOpCall (head values) stack, pc + lenOp 0x06, table)
-evalValue 0x07 values stack pc table = trace ("JUMP_IF_TRUE "  ++ show (bytesToInt values))        (if (getLastIntFromStack stack) /= 0 then (deleteLastValueFromStack stack, (bytesToInt values), table) else (deleteLastValueFromStack stack, pc + lenOp 0x07, table))
-evalValue 0x08 values stack pc table = trace ("JUMP_IF_FALSE " ++ show (bytesToInt values))        (if (getLastIntFromStack stack) == 0 then (deleteLastValueFromStack stack, (bytesToInt values), table) else (deleteLastValueFromStack stack, pc + lenOp 0x08, table))
-evalValue 0x09 values stack _ table = trace ("JUMP "          ++ show (bytesToInt values))         (stack, bytesToInt values, table)
-evalValue 0x0A values stack _ table = trace  ("JUMP_NEW_SCOPE " ++ show (bytesToInt values))       (stack, bytesToInt values, table)
-evalValue 0x0B _ stack pc table = trace  "POP "                                                    (tail stack, pc + lenOp 0x0B, table)
-evalValue 0x0C _ (s:stack) pc table = trace  "DUP "                                                (s : s : stack, pc + lenOp 0x0C, table)
+evalValue :: Word8 -> [Word8] -> StackTable -> Int -> VariableTable -> IO (StackTable, Int, VariableTable)
+evalValue 0x01 values stack pc table = trace ("LOAD_CONST "    ++ show (bytesToInt values))        return (loadConst values (pc + lenOp 0x01) : stack, pc + lenOp 0x01, table)
+evalValue 0x02 values stack pc table = trace ("LOAD_VAR "      ++ show (bytesToInt values) ++ " type: " ++ show (getTypeFromValue (getNthValue 4 values))) return (((getTypeFromValue (getNthValue 4 values)), (getFromVariable (bytesToInt values) table)) : stack, pc + lenOp 0x02, table)
+evalValue 0x03 values stack pc table = trace ("STORE_VAR "     ++ show (bytesToInt values))        return (deleteLastValueFromStack stack, pc + lenOp 0x03, updateVariable (bytesToInt values) (getTypeFromValue (getNthValue 4 values)) (getVariableElementTypeFromStack stack) table)
+evalValue 0x04 values stack pc table = trace ("BINARY_OP "     ++ show (word8ToInt (head values))) return (binaryOpCall (head values) stack, pc + lenOp 0x04, table)
+evalValue 0x05 values stack pc table = trace ("UNARY_OP "      ++ show (word8ToInt (head values))) return (unaryOpCall (head values) stack, pc + lenOp 0x05, table)
+evalValue 0x06 values stack pc table = trace ("COMPARE_OP "    ++ show (word8ToInt (head values))) return (compareOpCall (head values) stack, pc + lenOp 0x06, table)
+evalValue 0x07 values stack pc table = trace ("JUMP_IF_TRUE "  ++ show (bytesToInt values))        (if (getLastIntFromStack stack) /= 0 then return(deleteLastValueFromStack stack, (bytesToInt values), table) else return(deleteLastValueFromStack stack, pc + lenOp 0x07, table))
+evalValue 0x08 values stack pc table = trace ("JUMP_IF_FALSE " ++ show (bytesToInt values))        (if (getLastIntFromStack stack) == 0 then return(deleteLastValueFromStack stack, (bytesToInt values), table) else return(deleteLastValueFromStack stack, pc + lenOp 0x08, table))
+evalValue 0x09 values stack _ table = trace ("JUMP "          ++ show (bytesToInt values))         return(stack, bytesToInt values, table)
+evalValue 0x0A values stack _ table = trace  ("JUMP_NEW_SCOPE " ++ show (bytesToInt values))       return(stack, bytesToInt values, table)
+evalValue 0x0B _ stack pc table = trace  "POP "                                                    return(tail stack, pc + lenOp 0x0B, table)
+evalValue 0x0C _ (s:stack) pc table = trace  "DUP "                                                return(s : s : stack, pc + lenOp 0x0C, table)
 -- * x == 1, print -- x == 60, exit
-evalValue 0x0D (1:_) (x:xs) pc table = trace ("CALL 1: " ++ printValueInStack x)                   (xs, pc + lenOp 0x0D, table)
-evalValue 0x0D (60:_) _ _ _ = trace "EXIT"                                                         ([], -1, [])
-evalValue 0x0E _ stack _ table = trace  "RETURN "                                                  (deleteUntilAddressExceptOne stack 0, getLastAddressFromStack stack, table)
-evalValue 0x0F _ stack pc table = trace "LOAD_PC "                                                 (((AddressType, (MyInt (pc + lenOp 0x0F + lenOp 0x0A))) : stack), pc + lenOp 0x0F, table) -- pc + LOAD_PC + JUMP_NEW_SCOPE
-evalValue a b c d e = trace ("Unknown opcode: " ++ show a ++ " | values: " ++ show b ++ " | stack: " ++ show c ++ " | pc: " ++ show d ++ " | table: " ++ show e) ([], -1, [])
+evalValue 0x0D (1:_) (x:xs) pc table = do
+    putStrLn (printValueInStack x)
+    return (xs, pc + lenOp 0x0D, table)
+evalValue 0x0D (60:_) _ _ _ = trace "EXIT"                                                         return ([], -1, [])
+evalValue 0x0E _ stack _ table = trace  "RETURN "                                                  return (deleteUntilAddressExceptOne stack 0, getLastAddressFromStack stack, table)
+evalValue 0x0F _ stack pc table = trace "LOAD_PC "                                                 return (((AddressType, (MyInt (pc + lenOp 0x0F + lenOp 0x0A))) : stack), pc + lenOp 0x0F, table) -- pc + LOAD_PC + JUMP_NEW_SCOPE
+evalValue a b c d e = trace ("Unknown opcode: " ++ show a ++ " | values: " ++ show b ++ " | stack: " ++ show c ++ " | pc: " ++ show d ++ " | table: " ++ show e) return ([], -1, [])
 
 
 -- * ---------------------------------------------- EVAL EACH ----------------------------------------------
@@ -352,14 +353,16 @@ evalValue a b c d e = trace ("Unknown opcode: " ++ show a ++ " | values: " ++ sh
 
 -- ? we have two bytecodes lists because if we move forward in the list, we can't go back
 --              bytecodes  bytecodes  stack      PC   VariableTable    -> stack
-evalEachValue :: [Word8] -> [Word8] -> StackTable -> Int -> [VariableTable] -> StackTable
-evalEachValue _ [] stack _ _ = trace ("-- End of bytecodes Stack: " ++ show stack) stack
+evalEachValue :: [Word8] -> [Word8] -> StackTable -> Int -> [VariableTable] -> IO StackTable
+evalEachValue _ [] stack _ _ = return stack
 evalEachValue bytecodes (x:xs) stack pc tables = do
-    let (new_stack, new_pc, new_table) | null tables = evalValue x xs stack pc []
-                                       | otherwise = evalValue x xs stack pc (head tables)
+    result <- if null tables
+              then evalValue x xs stack pc []
+              else evalValue x xs stack pc (head tables)
+    let (new_stack, new_pc, new_table) = result
     let debugInfo = "pc = " ++ show pc ++ " | stack = " ++ show new_stack ++ " | next pc = " ++ show new_pc ++ " | table = " ++ show new_table
     if new_pc == -1 then
-        stack
+        return stack
     else
         if x == 0x0A then
             trace debugInfo $ evalEachValue bytecodes (drop new_pc bytecodes) new_stack new_pc ([] : new_table : (tail tables))
