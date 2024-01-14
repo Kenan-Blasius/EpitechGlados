@@ -2,6 +2,13 @@ import os
 import subprocess
 import sys
 
+BEGIN_OF_SCRIPT = "test"
+BEGIN_OF_SCRIPT2 = "AST :: Test\ntest"
+BEGIN_OF_SCRIPT3 = "AST =\n\tTestList\n\t\t[\n\t\t\tlet ast = "
+MIDDLE_OF_SCRIPT = "\n\t\t\tin let (_, bytecode, _) = astToBytecode' ast 0 (getListOfFunctions ast)\n\t\t\tin TestCase (assertEqual \"compile, "
+MIDDLE_OF_SCRIPT2 = "\" (bytecode) ("
+END_OF_SCRIPT = "))\n\t\t]\n"
+
 def execute_command(file_path):
     # Construct the command
     command = f"./glados {file_path}"
@@ -10,15 +17,42 @@ def execute_command(file_path):
         # Execute the command and capture the output
         result = subprocess.run(command, shell=True, capture_output=True, text=True, check=True)
 
-        # Write the output to a file
-        output_file_path = f"{file_path}_output.txt"
-        with open(output_file_path, 'w') as output_file:
-            output_file.write(result.stdout)
+        # Parse the output and find lines following "AST:" and "Bytecode:"
+        output_lines = result.stdout.splitlines()
 
-        print(f"Command executed successfully for {file_path}. Output written to {output_file_path}")
+        ast_index = output_lines.index("AST:") if "AST:" in output_lines else -1
+        bytecode_index = output_lines.index("Bytecode:") if "Bytecode:" in output_lines else -1
+
+        # Write the next line after "AST:" to a file
+        if ast_index != -1 and ast_index + 1 < len(output_lines):
+            ast_output = output_lines[ast_index + 1]
+
+        # Write the next line after "Bytecode:" to a file
+        if bytecode_index != -1 and bytecode_index + 1 < len(output_lines):
+            bytecode_output = output_lines[bytecode_index + 1]
+
+        output_file_path = f"output.txt"
+
+        name_test = file_path.split("/")[-1].split(".")[0]
+
+        with open(output_file_path, 'a') as output_file_path:
+            output_file_path.write(BEGIN_OF_SCRIPT)
+            output_file_path.write(name_test)
+            output_file_path.write(BEGIN_OF_SCRIPT2)
+            output_file_path.write(name_test)
+            output_file_path.write(BEGIN_OF_SCRIPT3)
+            output_file_path.write(ast_output)
+            output_file_path.write(MIDDLE_OF_SCRIPT)
+            output_file_path.write(name_test)
+            output_file_path.write(MIDDLE_OF_SCRIPT2)
+            output_file_path.write(bytecode_output)
+            output_file_path.write(END_OF_SCRIPT)
+
+        print(f"Command executed successfully for {file_path}")
 
     except subprocess.CalledProcessError as e:
         print(f"Error executing command for {file_path}. Error: {e}")
+
 
 
 def process_files(directory):

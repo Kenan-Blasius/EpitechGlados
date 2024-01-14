@@ -555,7 +555,7 @@ instance Show Bytecode where
     show (Call x) =         "Call " ++ show x
     show Return =           "Return"
     show (FunEntryPoint x y) = "FunEntryPoint " ++ show x ++ " " ++ show y
-    show (CallUserFun x) =  "CallUserFun \"" ++ show x ++ "\""
+    show (CallUserFun x) =  "CallUserFun " ++ show x
     show LoadPC =           "LoadPC"
     show (StringToSave x) = "StringToSave \"" ++ show x ++ "\""
     -- ? show PushFrame =        "PUSH_FRAME"
