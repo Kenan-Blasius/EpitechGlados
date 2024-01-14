@@ -62,6 +62,18 @@ lenOp _ = 0
 
 -- * ---------------------------------------------- BINARY ----------------------------------------------
 
+
+-- + 43
+-- - 45
+-- * 42
+-- / 47
+-- % 37
+-- & 38 (&&)
+-- | 124 (||)
+-- ^ 94
+-- a 97 (&)
+-- b 98 (|)
+-- c 99 (^)
 --             ope      stack   new_stack
 binaryOpCall :: Word8 -> StackTable -> StackTable
 binaryOpCall 43 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x + y)) : xs
@@ -72,6 +84,7 @@ binaryOpCall 37 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x `mod` y)
 binaryOpCall 38 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x .&. y)) : xs
 binaryOpCall 124 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x .|. y)) : xs
 binaryOpCall 94 ((_, MyInt y) : (_, MyInt x) : xs) = (IntType, MyInt (x `xor` y)) : xs
+
 
 binaryOpCall 43 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x + y)) : xs
 binaryOpCall 45 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x - y)) : xs
@@ -177,6 +190,20 @@ compareOpCall 98 ((_, MyChar y) : (_, MyChar x) : xs) =
     trace ("stack : top = " ++ show y ++ " >= x = " ++ show x) ((if x >= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
 compareOpCall 33 ((_, MyChar y) : (_, MyChar x) : xs) =
     trace ("stack : top = " ++ show y ++ " != x = " ++ show x) ((if x /= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+
+compareOpCall 60 ((_, MyString y) : (_, MyString x) : xs) =
+    trace ("stack : top = " ++ show y ++ " > x = " ++ show x) ((if x < y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 62 ((_, MyString y) : (_, MyString x) : xs) =
+    trace ("stack : top = " ++ show y ++ " < x = " ++ show x) ((if x > y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 61 ((_, MyString y) : (_, MyString x) : xs) =
+    trace ("stack : top = " ++ show y ++ " == x = " ++ show x) ((if x == y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 97 ((_, MyString y) : (_, MyString x) : xs) =
+    trace ("stack : top = " ++ show y ++ " <= x = " ++ show x) ((if x <= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 98 ((_, MyString y) : (_, MyString x) : xs) =
+    trace ("stack : top = " ++ show y ++ " >= x = " ++ show x) ((if x >= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+compareOpCall 33 ((_, MyString y) : (_, MyString x) : xs) =
+    trace ("stack : top = " ++ show y ++ " != x = " ++ show x) ((if x /= y then (IntType, MyInt 1) else (IntType, MyInt 0)) : xs)
+
 
 compareOpCall x stack = trace ("ERROR COMPARE OP : " ++ show x ++ " | stack : " ++ show stack) stack
 
