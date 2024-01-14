@@ -322,6 +322,9 @@ showTokenTest =
         TestCase (assertEqual "showToken" "Modulo" (show (ModuloToken))),
         TestCase (assertEqual "showToken" "And" (show (AndToken))),
         TestCase (assertEqual "showToken" "Or" (show (OrToken))),
+        TestCase (assertEqual "showToken" "BitAnd" (show (BitAndToken))),
+        TestCase (assertEqual "showToken" "BitOr" (show (BitOrToken))),
+        TestCase (assertEqual "showToken" "BitXor" (show (BitXorToken))),
         TestCase (assertEqual "showToken" "Not" (show (NotToken))),
         TestCase (assertEqual "showToken" "Equal" (show (EqualToken))),
         TestCase (assertEqual "showToken" "NotEqual" (show (NotEqualToken))),
@@ -516,6 +519,9 @@ parseTokenTest =
         TestCase (assertEqual "parseToken" (Just (ModuloToken, " (1 2)")) (runParser parseToken "% (1 2)")),
         TestCase (assertEqual "parseToken" (Just (AndToken, " (1 2)")) (runParser parseToken "&& (1 2)")),
         TestCase (assertEqual "parseToken" (Just (OrToken, " (1 2)")) (runParser parseToken "|| (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (BitAndToken, " (1 2)")) (runParser parseToken "& (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (BitOrToken, " (1 2)")) (runParser parseToken "| (1 2)")),
+        TestCase (assertEqual "parseToken" (Just (BitXorToken, " (1 2)")) (runParser parseToken "^ (1 2)")),
         TestCase (assertEqual "parseToken" (Just (NotToken, " (1 2)")) (runParser parseToken "! (1 2)")),
         TestCase (assertEqual "parseToken" (Just (PlusEqualToken, " (1 2)")) (runParser parseToken "+= (1 2)")),
         TestCase (assertEqual "parseToken" (Just (MinusEqualToken, " (1 2)")) (runParser parseToken "-= (1 2)")),
@@ -954,6 +960,39 @@ pemdasTreeTest =
             let sexpr = tokenListToSexpr $ tokenList
             let result = pemdasTree sexpr
             let expected = (DeadLeafAST)
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            let originalFile = (File ["1 & 2"])
+            let cleanedFile = cleanFile originalFile False
+            tokenList <- parseFile cleanedFile 0 [""] originalFile
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (BitAndAST
+                        (AST [IntAST 1])
+                        (AST [IntAST 2]))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            let originalFile = (File ["1 | 2"])
+            let cleanedFile = cleanFile originalFile False
+            tokenList <- parseFile cleanedFile 0 [""] originalFile
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (BitOrAST
+                        (AST [IntAST 1])
+                        (AST [IntAST 2]))
+            assertEqual "pemdasTree" (expected) (result)),
+        TestCase (do
+            let originalFile = (File ["1 ^ 2"])
+            let cleanedFile = cleanFile originalFile False
+            tokenList <- parseFile cleanedFile 0 [""] originalFile
+            let sexpr = tokenListToSexpr $ tokenList
+            let result = pemdasTree sexpr
+            let expected =
+                    (BitXorAST
+                        (AST [IntAST 1])
+                        (AST [IntAST 2]))
             assertEqual "pemdasTree" (expected) (result)),
         TestCase (do
             let originalFile = (File ["1 + 2"])
@@ -1409,7 +1448,10 @@ sexprToAstTest =
                     "my_int e = 1 / 1;",
                     "my_int f = 1 % 1;",
                     "my_int g = 1++;",
-                    "my_int h = 1--;"])
+                    "my_int h = 1--;",
+                    "my_int i = 5 & 1;",
+                    "my_int j = 5 | 1;",
+                    "my_int k = 5 ^ 1;"])
             let cleanedFile = cleanFile originalFile False
             tokenList <- parseFile cleanedFile 0 [""] originalFile
             let sexpr = tokenListToSexpr $ tokenList
@@ -1423,7 +1465,10 @@ sexprToAstTest =
                         AssignAST (AST [AST [IntTypeAST], SymbolAST "e"]) (DivideAST (AST [IntAST 1]) (AST [IntAST 1])),
                         AssignAST (AST [AST [IntTypeAST], SymbolAST "f"]) (ModuloAST (AST [IntAST 1]) (AST [IntAST 1])),
                         AssignAST (AST [AST [IntTypeAST], SymbolAST "g"]) (IncrementAST (AST [IntAST 1])),
-                        AssignAST (AST [AST [IntTypeAST], SymbolAST "h"]) (DecrementAST (AST [IntAST 1]))
+                        AssignAST (AST [AST [IntTypeAST], SymbolAST "h"]) (DecrementAST (AST [IntAST 1])),
+                        AssignAST (AST [AST [IntTypeAST], SymbolAST "i"]) (BitAndAST (AST [IntAST 5]) (AST [IntAST 1])),
+                        AssignAST (AST [AST [IntTypeAST], SymbolAST "j"]) (BitOrAST (AST [IntAST 5]) (AST [IntAST 1])),
+                        AssignAST (AST [AST [IntTypeAST], SymbolAST "k"]) (BitXorAST (AST [IntAST 5]) (AST [IntAST 1]))
                     ])
             assertEqual "sexprToAst" (expected) (result)),
         TestCase (do

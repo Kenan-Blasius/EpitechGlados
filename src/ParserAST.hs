@@ -306,6 +306,10 @@ sexprToAst' x | listOperatorsASTCheck [DecrementToken] x =         operatorsBefo
 sexprToAst' x | listOperatorsASTCheck [AndToken] x =               binaryOperatorsAST AndToken AndAST x
 sexprToAst' x | listOperatorsASTCheck [OrToken] x =                binaryOperatorsAST OrToken OrAST x
 
+sexprToAst' x | listOperatorsASTCheck [BitAndToken] x =            binaryOperatorsAST BitAndToken BitAndAST x
+sexprToAst' x | listOperatorsASTCheck [BitOrToken] x =             binaryOperatorsAST BitOrToken BitOrAST x
+sexprToAst' x | listOperatorsASTCheck [BitXorToken] x =            binaryOperatorsAST BitXorToken BitXorAST x
+
 sexprToAst' x | listOperatorsASTCheck [NotToken] x =               operatorsAfterAST NotToken NotAST x
 
 sexprToAst' x | listOperatorsASTCheck [EqualToken] x =             binaryOperatorsAST EqualToken EqualAST x
@@ -395,6 +399,12 @@ applyDefine (AST (x : xs)) defineList = do
             AndAST (applyDefine to defineList) (applyDefine from defineList) <> ast2
         OrAST to from -> do
             OrAST (applyDefine to defineList) (applyDefine from defineList) <> ast2
+        BitAndAST to from -> do
+            BitAndAST (applyDefine to defineList) (applyDefine from defineList) <> ast2
+        BitOrAST to from -> do
+            BitOrAST (applyDefine to defineList) (applyDefine from defineList) <> ast2
+        BitXorAST to from -> do
+            BitXorAST (applyDefine to defineList) (applyDefine from defineList) <> ast2
         PlusEqualAST to from -> do
             PlusEqualAST (applyDefine to defineList) (applyDefine from defineList) <> ast2
         MinusEqualAST to from -> do

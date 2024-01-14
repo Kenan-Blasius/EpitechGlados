@@ -79,6 +79,9 @@ data Token = OpenParenthesis
             | ModuloToken
             | AndToken
             | OrToken
+            | BitAndToken
+            | BitOrToken
+            | BitXorToken
             | NotToken
             | EqualToken
             | NotEqualToken
@@ -139,6 +142,9 @@ instance Show Token where
     show ModuloToken = "Modulo"
     show AndToken = "And"
     show OrToken = "Or"
+    show BitAndToken = "BitAnd"
+    show BitOrToken = "BitOr"
+    show BitXorToken = "BitXor"
     show NotToken = "Not"
     show EqualToken = "Equal"
     show NotEqualToken = "NotEqual"
@@ -198,6 +204,9 @@ instance Eq Token where
     ModuloToken == ModuloToken = True
     AndToken == AndToken = True
     OrToken == OrToken = True
+    BitAndToken == BitAndToken = True
+    BitOrToken == BitOrToken = True
+    BitXorToken == BitXorToken = True
     NotToken == NotToken = True
     EqualToken == EqualToken = True
     NotEqualToken == NotEqualToken = True
@@ -261,6 +270,12 @@ data AST = AST [AST] -- list of AST
          | AndAST AST AST -- left right
             -- ||
          | OrAST AST AST -- left right
+            -- &
+         | BitAndAST AST AST -- left right
+            -- |
+         | BitOrAST AST AST -- left right
+            -- ^
+         | BitXorAST AST AST -- left right
             -- +=
          | PlusEqualAST AST AST -- left right
             -- -=
@@ -318,6 +333,9 @@ instance Eq AST where
     ModuloAST left1 right1 == ModuloAST left2 right2 = left1 == left2 && right1 == right2
     AndAST left1 right1 == AndAST left2 right2 = left1 == left2 && right1 == right2
     OrAST left1 right1 == OrAST left2 right2 = left1 == left2 && right1 == right2
+    BitAndAST left1 right1 == BitAndAST left2 right2 = left1 == left2 && right1 == right2
+    BitOrAST left1 right1 == BitOrAST left2 right2 = left1 == left2 && right1 == right2
+    BitXorAST left1 right1 == BitXorAST left2 right2 = left1 == left2 && right1 == right2
     PlusEqualAST left1 right1 == PlusEqualAST left2 right2 = left1 == left2 && right1 == right2
     MinusEqualAST left1 right1 == MinusEqualAST left2 right2 = left1 == left2 && right1 == right2
     TimesEqualAST left1 right1 == TimesEqualAST left2 right2 = left1 == left2 && right1 == right2
@@ -444,6 +462,18 @@ printAST = printASTIndented 0
                 printASTIndented (depth + 1) right
         printASTIndented depth (OrAST left right) =
             indent depth ++ "OrAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (BitAndAST left right) =
+            indent depth ++ "BitAndAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (BitOrAST left right) =
+            indent depth ++ "BitOrAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (BitXorAST left right) =
+            indent depth ++ "BitXorAST\n" ++
                 printASTIndented (depth + 1) left ++
                 printASTIndented (depth + 1) right
         printASTIndented depth (PlusEqualAST left right) =
