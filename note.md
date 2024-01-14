@@ -166,3 +166,60 @@ int a = -1;
     return a;
 
 }
+
+Optimisation:
+Remarque de grande lanteur sur la fonction substringSearch.
+Après recherches, cela vient de l'utilisation à chaque boucles de str_last_n_char.
+
+Pensée: Aouter la possibilité de faire (string + int) pour decaler le string de int caractères
+
+Avant:
+
+```c
+fun substringSearch(string mainString, string subString) : (int)
+{
+    int mainLength = strlen(mainString);
+    int subLength = strlen(subString);
+
+    for (int i = 0; i <= (mainLength - subLength); i++) {
+        string last = str_last_n_char(mainString, mainLength - i);
+        if (strncmp(mainString, subString, subLength)) {
+            return i; // Substring found
+        }
+    }
+    return -1; // Substring not found
+}
+```
+
+```sh
+➜  B-FUN-500-MAR-5-2-glados-niels.ouvrard git:(develop) ✗ time ./eval file.bin 2>> stderr.txt
+Found at index: 36
+./eval file.bin 2>> stderr.txt  3.27s user 1.89s system 119% cpu 4.305 total
+```
+
+Après l'optimisation:
+
+```c
+fun substringSearch(string mainString, string subString) : (int)
+{
+    int mainLength = strlen(mainString);
+    int subLength = strlen(subString);
+
+    for (int i = 0; i <= (mainLength - subLength); i++) {
+        if (strncmp(mainString + i, subString, subLength)) {
+            return i; // Substring found
+        }
+    }
+    return -1; // Substring not found
+}
+
+```
+
+```sh
+➜  B-FUN-500-MAR-5-2-glados-niels.ouvrard git:(develop) ✗ time ./eval file.bin 2>> stderr.txt
+Found at index: 36
+./eval file.bin 2>> stderr.txt  0.06s user 0.05s system 50% cpu 0.222 total
+```
+
+On obtient un gain de temps de 4.305s à 0.222s
+Ce gain est exponentiellement plus grand lorsque la taille des strings augmente.
