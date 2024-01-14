@@ -36,6 +36,9 @@ astStoreValue (AST [FloatTypeAST, SymbolAST x])  funct | existsInList x funct = 
                                                        | otherwise = [StoreVarBefore x FloatType]
 astStoreValue (AST [SymbolAST x])                funct | existsInList x funct = [LoadPC, CallUserFun x]
                                                        | otherwise = [StoreVarBefore x UnknownType]
+astStoreValue (AST [SymbolAST x, AST [y]])       funct | existsInList x funct = [LoadPC, CallUserFun x] -- ! SaveAt, only for assignation
+                                                       | otherwise = let (_, yBytecode, _) = astToBytecode' (AST [y]) 0 funct
+                                                                     in yBytecode ++ [LoadVarBefore x UnknownType] ++ [SaveAt] ++ [StoreVarBefore x UnknownType]
 astStoreValue x _ = trace ("astStoreValue NO AST STORE NODE FOUND" ++ show x) $ []
 
 astStoreArgs :: AST -> [String] -> [Bytecode]

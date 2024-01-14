@@ -521,6 +521,7 @@ data Bytecode = LoadConst Int DataType
               | LoadPC
               | StringToSave String
               | Index
+              | SaveAt
             --   | BuildList Int
             --   | ListAppend            -- No additional values needed
             --   | ListConcat            -- No additional values needed
@@ -559,6 +560,7 @@ instance Show Bytecode where
     show LoadPC =           "LoadPC"
     show (StringToSave x) = "StringToSave \"" ++ show x ++ "\""
     show Index =            "INDEX"
+    show SaveAt =           "SAVE_AT"
     -- ? show PushFrame =        "PUSH_FRAME"
     -- ? show PopFrame =         "POP_FRAME"
     -- show (BuildList x) =    "BUILD_LIST " ++ show x

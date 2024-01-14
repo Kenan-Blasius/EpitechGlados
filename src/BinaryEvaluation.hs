@@ -57,6 +57,7 @@ lenOp 0x0D = 2 -- CALL           (int 1)
 lenOp 0x0E = 1 -- RETURN         ()
 lenOp 0x0F = 1 -- LOAD_PC        ()
 lenOp 0x10 = 1 -- INDEX          ()
+lenOp 0X11 = 1 -- SaveAt         ()
 lenOp _ = 0
 
 -- * ---------------------------------------------- BINARY ----------------------------------------------
@@ -347,6 +348,17 @@ getIndex :: StackTable -> StackTable
 getIndex ((IntType, MyInt x) : (StringType, MyString y) : xs) = (CharType, MyChar (getCharIfOutOfBound x y)) : xs
 getIndex x = trace "ERROR GET INDEX" x
 
+
+modifyIndexOfString :: String -> Int -> Char -> String
+modifyIndexOfString str index newChar
+  | index < 0 || index >= length str = str  -- No modification if index is out of bounds
+  | otherwise = let (before, after) = splitAt index str
+                in before ++ [newChar] ++ tail after
+
+saveAtThisIndex :: StackTable -> StackTable
+saveAtThisIndex ((StringType, MyString x) : (IntType, MyInt index) : (CharType, MyChar c) : xs) = (StringType, MyString (modifyindexOfString x index c)) : xs
+saveAtThisIndex x = trace "ERROR SAVE AT THIS INDEX" x
+
 -- * ---------------------------------------------- EVAL ----------------------------------------------
 
 -- ? stack is global, JUMP_NEW_SCOPE is useless ?
@@ -372,6 +384,7 @@ evalValue 0x0D (60:_) _ _ _ = trace "EXIT"                                      
 evalValue 0x0E _ stack _ table = trace  "RETURN "                                                  return (deleteUntilAddressExceptOne stack 0, getLastAddressFromStack stack, table)
 evalValue 0x0F _ stack pc table = trace "LOAD_PC "                                                 return (((AddressType, (MyInt (pc + lenOp 0x0F + lenOp 0x0A))) : stack), pc + lenOp 0x0F, table) -- pc + LOAD_PC + JUMP_NEW_SCOPE
 evalValue 0x10 _ stack pc table = trace "INDEX "                                                   return (getIndex stack, pc + lenOp 0x10, table)
+evalValue 0x11 _ stack pc table = trace "SaveAt "                                                  return (saveAtThisIndex stack, pc + lenOp 0x11, table)
 evalValue a b c d e = trace ("Unknown opcode: " ++ show a ++ " | values: " ++ show b ++ " | stack: " ++ show c ++ " | pc: " ++ show d ++ " | table: " ++ show e) return ([], -1, [])
 
 
