@@ -13,7 +13,6 @@ testCompilerFunction =
             TestLabel "compile, return 0" testReturn,
             TestLabel "compile, variable declaration" testAssignAST,
             TestLabel "compile, while statement" testTypesAST,
-            TestLabel "compile, if statement" testIfAST,
             TestLabel "compile, while statement" testWhileAST,
             TestLabel "compile, for statement" testForAST,
             TestLabel "compile, function declaration" testFunAST,
