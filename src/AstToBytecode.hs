@@ -146,6 +146,21 @@ astToBytecode' (OrAST x y) jmp functs =
         (_, yBytecode, jmp_2) = astToBytecode' y jmp_1 functs
     in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "|"], jmp_2)
 
+astToBytecode' (BitAndAST x y) jmp functs =
+    let (_, xBytecode, jmp_1) = astToBytecode' x jmp functs
+        (_, yBytecode, jmp_2) = astToBytecode' y jmp_1 functs
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "&"], jmp_2)
+
+astToBytecode' (BitOrAST x y) jmp functs =
+    let (_, xBytecode, jmp_1) = astToBytecode' x jmp functs
+        (_, yBytecode, jmp_2) = astToBytecode' y jmp_1 functs
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "|"], jmp_2)
+
+astToBytecode' (BitXorAST x y) jmp functs =
+    let (_, xBytecode, jmp_1) = astToBytecode' x jmp functs
+        (_, yBytecode, jmp_2) = astToBytecode' y jmp_1 functs
+    in (AST [], xBytecode ++ yBytecode ++ [BinaryOp "^"], jmp_2)
+
 -- FunTypeAST return_type
 astToBytecode' (FunAST name args (FunTypeAST return_type) scope) jmp functs = do
     let (_, scopeBytecode, jmp_2) = astToBytecode' scope jmp functs
