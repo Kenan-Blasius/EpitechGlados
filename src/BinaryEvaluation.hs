@@ -56,6 +56,7 @@ lenOp 0x0C = 1 -- DUP            ()
 lenOp 0x0D = 2 -- CALL           (int 1)
 lenOp 0x0E = 1 -- RETURN         ()
 lenOp 0x0F = 1 -- LOAD_PC        ()
+lenOp 0x10 = 1 -- INDEX          ()
 lenOp _ = 0
 
 -- * ---------------------------------------------- BINARY ----------------------------------------------
@@ -295,7 +296,7 @@ loadConst _ _ = trace "ERROR LOAD CONST" (IntType, MyInt 0)
 printValueInStack :: StackEntry -> String
 printValueInStack (IntType, MyInt x) = show x
 printValueInStack (FloatType, MyFloat x) = show x
-printValueInStack (CharType, MyChar x) = show x
+printValueInStack (CharType, MyChar x) = [x]
 printValueInStack (AddressType, MyInt x) = show x
 printValueInStack (StringType, MyString x) = trace ("string : " ++ show x) x
 printValueInStack x = show x
@@ -326,6 +327,19 @@ getVariableElementTypeFromStack ((_, MyFloat x):_) = MyFloat x
 getVariableElementTypeFromStack ((_, MyChar x):_) = MyChar x
 getVariableElementTypeFromStack _ = trace "Not a variable element, go next in stack" (MyInt 0)
 
+-- * ---------------------------------------------- GET INDEX ----------------------------------------------
+
+getCharIfOutOfBound :: Int -> String -> Char
+getCharIfOutOfBound x y
+    | x == -1 = y !! (length y - 1)
+    | x < 0 = '\0'
+    | x >= length y = '\0'
+    | otherwise = y !! x
+
+getIndex :: StackTable -> StackTable
+getIndex ((IntType, MyInt x) : (StringType, MyString y) : xs) = (CharType, MyChar (getCharIfOutOfBound x y)) : xs
+getIndex x = trace "ERROR GET INDEX" x
+
 -- * ---------------------------------------------- EVAL ----------------------------------------------
 
 -- ? stack is global, JUMP_NEW_SCOPE is useless ?
@@ -350,6 +364,7 @@ evalValue 0x0D (1:_) (x:xs) pc table = do
 evalValue 0x0D (60:_) _ _ _ = trace "EXIT"                                                         return ([], -1, [])
 evalValue 0x0E _ stack _ table = trace  "RETURN "                                                  return (deleteUntilAddressExceptOne stack 0, getLastAddressFromStack stack, table)
 evalValue 0x0F _ stack pc table = trace "LOAD_PC "                                                 return (((AddressType, (MyInt (pc + lenOp 0x0F + lenOp 0x0A))) : stack), pc + lenOp 0x0F, table) -- pc + LOAD_PC + JUMP_NEW_SCOPE
+evalValue 0x10 _ stack pc table = trace "INDEX "                                                   return (getIndex stack, pc + lenOp 0x10, table)
 evalValue a b c d e = trace ("Unknown opcode: " ++ show a ++ " | values: " ++ show b ++ " | stack: " ++ show c ++ " | pc: " ++ show d ++ " | table: " ++ show e) return ([], -1, [])
 
 

@@ -86,10 +86,14 @@ astToBytecode' (AST [CharTypeAST, SymbolAST x]) jmp _ =   (AST [], [LoadVarBefor
 astToBytecode' (AST [StringTypeAST, SymbolAST x]) jmp _ = (AST [], [LoadVarBefore x StringType], jmp)
 astToBytecode' (AST [FloatTypeAST, SymbolAST x]) jmp _ =  (AST [], [LoadVarBefore x FloatType], jmp)
 
+-- can be a function call or a str[y]
 astToBytecode' (AST (SymbolAST x : y : xs)) jmp functs = do
     let (_, aBytecode, _) = astToBytecode' y jmp functs
     let (yAST, yBytecode, jmp_2) = astToBytecode' (AST xs) jmp functs
-    (yAST, (aBytecode ++ [LoadPC, CallUserFun x] ++ yBytecode), jmp_2)
+    if existsInList x functs then
+        (yAST, (aBytecode ++ [LoadPC, CallUserFun x] ++ yBytecode), jmp_2)
+    else
+        (yAST, ([LoadVarBefore x UnknownType] ++ aBytecode ++ [Index] ++ yBytecode), jmp_2)
 
 -- * (AST (x:xs))
 astToBytecode' (AST (x:xs)) jmp functs =

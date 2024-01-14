@@ -29,6 +29,8 @@ sizeOfHeader = 32 + 5 -- 32 for the header and 5 for the first jump
 -- DUP             0x0C
 -- CALL            0x0D
 -- RETURN          0x0E
+-- LOAD_PC         0x0F
+-- INDEX           0x10
 
 int8_ToBytes :: Int -> [Word8]
 int8_ToBytes x = [fromIntegral x]
@@ -71,6 +73,7 @@ getLengthOfOperation (FunEntryPoint _ _) = 0 -- because it's a reference, it's r
 getLengthOfOperation (CallUserFun _) = 5 -- because will be remplace by a (JumpNewScope)
 getLengthOfOperation LoadPC = 1
 getLengthOfOperation (StringToSave _) = 0 -- because it exist only in the compiler, to save the string in the binary file
+getLengthOfOperation Index = 1
 
 dataTypeToByte :: DataType -> Word8
 dataTypeToByte IntType = 0x01
@@ -164,6 +167,7 @@ toHexaInstruction Return =          [0x0E]
 toHexaInstruction (FunEntryPoint _ _) =     error "Error: toHexaInstruction: FunEntryPoint" -- it's a reference, it's removed from the bytecode
 toHexaInstruction (CallUserFun _) =         error "Error: toHexaInstruction: CallUserFun" -- it's a reference, it's removed from the bytecode
 toHexaInstruction LoadPC =          [0x0F]
+toHexaInstruction Index =           [0x10]
 toHexaInstruction x = error ("Error: toHexaInstruction: Unknown instruction: " ++ show x)
 
 -- * ------------------------------------------ HEADER -------------------------------------------- * --
