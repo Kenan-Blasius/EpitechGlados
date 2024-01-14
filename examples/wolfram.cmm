@@ -1,0 +1,101 @@
+// Wolfram epitech project in C--
+
+fun getValueFromSubString(string str, int rule) : char
+{
+    int tmp = 0;
+    if (str == "***") {
+        tmp = 128;
+    } else if (str == "** ") {
+        tmp = 64;
+    } else if (str == "* *") {
+        tmp = 32;
+    } else if (str == "*  ") {
+        tmp = 16;
+    } else if (str == " **") {
+        tmp = 8;
+    } else if (str == " * ") {
+        tmp = 4;
+    } else if (str == "  *") {
+        tmp = 2;
+    } else if (str == "   ") {
+        tmp = 1;
+    }
+
+    if (rule & tmp) {
+        return '*';
+    } else {
+        return ' ';
+    }
+}
+
+fun main() : int
+{
+    int lineSize = 50;
+    int ruleNb = 90; // 0 <= ruleNb <= 255
+    int lineNb = 20; // number of lines to draw, negative nb for infinite
+
+    if (ruleNb < 0 || ruleNb > 255)
+    {
+        print("Error: ruleNb must be between 0 and 255");
+        return 1;
+    }
+
+    // generate the first line
+    string previousLine = "";
+
+    for (int i = 0; i < lineSize; i++)
+    {
+        previousLine += ' ';
+    }
+
+    int middle = lineSize / 2;
+    if ((lineSize % 2) == 0) {
+        middle -= 1;
+    }
+
+    previousLine[middle] = '*';
+
+    // draw the first line
+    print("\"");
+    print(previousLine);
+    print("\"");
+    print("\n");
+
+    lineNb--;
+
+    // draw the other lines
+    while (lineNb > 0) {
+        string currentLine = "";
+
+        for (int i = 0; i < lineSize; i++)
+        {
+            string subString = "";
+            for (int j = -1; j < 2; j++)
+            {
+                if ((i - j) < 0 || (i - j) >= lineSize) {
+                    subString += ' ';
+                } else {
+                    subString += previousLine[i - j];
+                }
+            }
+            // reverse the substring
+            char tmp = subString[2];
+            subString[2] = subString[0];
+            subString[0] = tmp;
+
+            currentLine += getValueFromSubString(subString, ruleNb);
+        }
+
+        print("\"");
+        print(currentLine);
+        print("\"");
+        print("\n");
+        previousLine = currentLine;
+
+        if (lineNb > 0) {
+            lineNb--;
+        }
+    }
+
+    return 0;
+}
