@@ -91,6 +91,8 @@ binaryOpCall 124 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intTo
 binaryOpCall 94 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (ord x `xor` ord y))) : xs
 
 binaryOpCall 43 ((_, MyString y) : (_, MyString x) : xs) = (StringType, MyString (x ++ y)) : xs
+binaryOpCall 43 ((_, MyString y) : (_, MyChar x) : xs) = (StringType, MyString (x : y)) : xs
+binaryOpCall 43 ((_, MyChar y) : (_, MyString x) : xs) = (StringType, MyString (x ++ [y])) : xs
 
 binaryOpCall 45 ((_, MyInt y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x - intToFloat y)) : xs
 -- binaryOpCall 45 ((_, MyInt y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (x - ord y))) : xs -- todo
@@ -193,6 +195,8 @@ toNewVariable varId IntType CharType (MyChar x) = trace ("int to char " ++ show 
 toNewVariable varId CharType IntType (MyInt x) = trace ("char to int " ++ show x) $ (varId, CharType, MyChar (intToChar x))
 toNewVariable varId FloatType CharType (MyChar x) = trace ("float to char " ++ show x) $ (varId, FloatType, MyFloat (intToFloat (ord x)))
 toNewVariable varId CharType FloatType (MyFloat x) = trace ("char to float " ++ show x) $ (varId, CharType, MyChar (intToChar (round x)))
+-- todo : string to int, float, char
+toNewVariable varId CharType CharType (MyInt x) = trace ("int to char " ++ show x) $ (varId, CharType, MyChar (intToChar x))
 toNewVariable a b c d = error ("ERROR TO NEW VARIABLE " ++ show a ++ " | " ++ show b ++ " | " ++ show c ++ " | " ++ show d)
 
 

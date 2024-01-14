@@ -21,7 +21,11 @@ testEvaluationFunction =
             TestLabel "getLastAddressFromStack" testGetLastAddressFromStack,
             TestLabel "deleteUntilAddress" testDeleteUntilAddress,
             TestLabel "deleteUntilAddressExceptOne" testDeleteUntilAddressExceptOne,
-            TestLabel "bytesToInt" testBytesToInt
+            TestLabel "bytesToInt" testBytesToInt,
+            TestLabel "toStringFromHere" testToStringFromHere,
+            TestLabel "word8withAdresstoString" testWord8WithAddressToString,
+            TestLabel "loadConst" testLoadConst,
+            TestLabel "testEvalEachValue" testEvalEachValue
         ]
 
 testUnaryOpCall :: Test
@@ -586,3 +590,118 @@ testBytesToIntZero = TestCase $ do
     assertEqual "for: bytesToInt [0x00, 0x00, 0x00, 0x00]"
                 0
                 (bytesToInt [0x00, 0x00, 0x00, 0x00])
+
+
+
+-- * ----------------------------------------- toStringFromHere ----------------------------------------- * --
+
+
+
+testToStringFromHere :: Test
+testToStringFromHere =
+    TestList
+    [
+        testToStringFromHereEmpty,
+        testToStringFromHereHello
+    ]
+
+testToStringFromHereEmpty :: Test
+testToStringFromHereEmpty = TestCase $ do
+    let bytes = []
+    assertEqual "for: toStringFromHere" "" (toStringFromHere bytes)
+
+testToStringFromHereHello :: Test
+testToStringFromHereHello = TestCase $ do
+    let bytes = [0x48, 0x65, 0x6C, 0x6C, 0x6F]  -- Corresponding to "Hello"
+    assertEqual "for: toStringFromHere" "Hello" (toStringFromHere bytes)
+
+
+
+-- * ----------------------------------------- word8withAdresstoString ----------------------------------------- * --
+
+
+testWord8WithAddressToString :: Test
+testWord8WithAddressToString =
+    TestList
+    [
+        testWord8WithAddressToStringEmpty,
+        testWord8WithAddressToStringHello
+    ]
+
+testWord8WithAddressToStringEmpty :: Test
+testWord8WithAddressToStringEmpty = TestCase $ do
+    let bytes = []
+    assertEqual "for: word8withAdresstoString" "" (word8withAdresstoString bytes 0)
+
+
+testWord8WithAddressToStringHello :: Test
+testWord8WithAddressToStringHello = TestCase $ do
+    let bytes = [0x48, 0x65, 0x6C, 0x6C, 0x6F]  -- Corresponding to "Hello"
+    assertEqual "for: word8withAdresstoString" "Hello" (word8withAdresstoString bytes 0)
+
+
+
+-- * ----------------------------------------- loadConst ----------------------------------------- * --
+
+testLoadConst :: Test
+testLoadConst =
+    TestList
+    [
+        testLoadConstIntType,
+        testLoadConstFloatType,
+        testLoadConstAddressType,
+        testLoadConstCharType
+    ]
+
+testLoadConstIntType :: Test
+testLoadConstIntType = TestCase $ do
+    let bytes = reverse [0x01, 0x00, 0x00, 0x00, 0x01]  -- Corresponding to an IntType constant with value 1
+    assertEqual "for: loadConst (IntType)" (IntType, MyInt 1) (loadConst bytes 0)
+
+testLoadConstFloatType :: Test
+testLoadConstFloatType = TestCase $ do
+    let bytes = reverse [0x04, 0x00, 0x00, 0x00, 0x00]  -- Corresponding to a FloatType constant with value 1.0
+    assertEqual "for: loadConst (FloatType)" (FloatType, MyFloat 0.0) (loadConst bytes 0)
+
+testLoadConstAddressType :: Test
+testLoadConstAddressType = TestCase $ do
+    let bytes = reverse [0x05, 0x00, 0x00, 0x00, 0x01]  -- Corresponding to an AddressType constant with value 1
+    assertEqual "for: loadConst (AddressType)" (AddressType, MyInt 1) (loadConst bytes 0)
+
+testLoadConstCharType :: Test
+testLoadConstCharType = TestCase $ do
+    let bytes = [0x00, 0x00, 0x00, 0x48, 0x06]  -- Corresponding to a CharType constant with value 'H'
+    assertEqual "for: loadConst (CharType)" (CharType, MyChar 'H') (loadConst bytes 0)
+
+
+-- * ----------------------------------------- evalEachValue ----------------------------------------- * --
+
+testEvalEachValue :: Test
+testEvalEachValue =
+    TestList
+    [
+        testEvalEachValueEmpty,
+        testEvalEachValueSingle,
+        testEvalEachValueMultiple
+    ]
+
+testEvalEachValueEmpty :: Test
+testEvalEachValueEmpty = TestCase $ do
+    stack <- evalEachValue [] [] [] 0 []
+    let (varType, varElem) = head stack
+    assertEqual "for: evalEachValue [] [] [] 0 []" [] [varElem]
+
+testEvalEachValueSingle :: Test
+testEvalEachValueSingle = TestCase $ do
+    stack <- evalEachValue [0x01, 0x00, 0x00, 0x00] [0x01] [] 0 []
+    let (varType, varElem) = head stack
+    assertEqual "for: evalEachValue [0x01, 0x00, 0x00, 0x00] [0x01] [] 0 []" [MyInt 1] [varElem]
+
+testEvalEachValueMultiple :: Test
+testEvalEachValueMultiple = TestCase $ do
+    stack <- evalEachValue [0x09, 0x37, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x14, 0x14] [] [] 0 []
+    let (varType, varElem) = head stack
+    assertEqual "for: evalEachValue [0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00] [0x01, 0x01] [] 0 []" [MyInt 1, MyInt 1] [varElem]
+
+
+    -- stack <- evalEachValue [0x09, 0x37, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x14, 0x14] [] 0 []
