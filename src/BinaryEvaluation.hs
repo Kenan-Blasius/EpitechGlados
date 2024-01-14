@@ -198,6 +198,7 @@ toNewVariable varId FloatType CharType (MyChar x) = trace ("float to char " ++ s
 toNewVariable varId CharType FloatType (MyFloat x) = trace ("char to float " ++ show x) $ (varId, CharType, MyChar (intToChar (round x)))
 -- todo : string to int, float, char
 toNewVariable varId CharType CharType (MyInt x) = trace ("int to char " ++ show x) $ (varId, CharType, MyChar (intToChar x))
+toNewVariable varId IntType IntType (MyChar x) = trace ("char to int " ++ show x) $ (varId, IntType, MyInt (ord x))
 toNewVariable a b c d = error ("ERROR TO NEW VARIABLE " ++ show a ++ " | " ++ show b ++ " | " ++ show c ++ " | " ++ show d)
 
 

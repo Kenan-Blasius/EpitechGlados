@@ -9,6 +9,35 @@ fun strlen (string str) : int
     return i;
 }
 
+fun reverse (string str) : string
+{
+    int len = strlen(str);
+    string rev = "";
+    for (int i = 0; i < len; i++) {
+        rev += str[len - i - 1];
+    }
+    return rev;
+}
+
+fun str_first_n_char (string src, int n) : string
+{
+    string dest = "";
+    for (int i = 0; i < n; i++) {
+        dest += src[i];
+    }
+    return dest;
+}
+
+fun str_last_n_char (string src, int n) : string
+{
+    int len = strlen(src);
+    string dest = "";
+    for (int i = 0; i < n; i++) {
+        dest += src[len - n + i];
+    }
+    return dest;
+}
+
 fun main () : int
 {
     string canada🇨🇦 = "He🚑l😃, world!";
