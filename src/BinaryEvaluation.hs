@@ -1,6 +1,8 @@
 module BinaryEvaluation (evalEachValue, byteStringToWord8List, checkMagicNumber, headerSize, getLastIntFromStack,
     VariableId, VariableType (..), VariableElement (..), VariableEntry, VariableTable, StackEntry, StackTable,
-    intToFloat, word8ToInt, intToChar, lenOp, binaryOpCall, unaryOpCall,
+    intToFloat, word8ToInt, intToChar, lenOp, binaryOpCall, unaryOpCall, compareOpCall, getFromVariable, updateVariable,
+    new_VariableTable, deleteLastValueFromStack, getLastAddressFromStack, deleteUntilAddress, deleteUntilAddressExceptOne,
+    toNewVariable, bytesToInt, toStringFromHere, word8withAdresstoString, loadConst, printValueInStack, getNthValue,
     ) where
 
 import Debug.Trace
