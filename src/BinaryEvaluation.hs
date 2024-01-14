@@ -349,11 +349,10 @@ getIndex ((IntType, MyInt x) : (StringType, MyString y) : xs) = (CharType, MyCha
 getIndex x = trace "ERROR GET INDEX" x
 
 
-modifyIndexOfString :: String -> Int -> Char -> String
-modifyIndexOfString str index newChar
-  | index < 0 || index >= length str = str  -- No modification if index is out of bounds
-  | otherwise = let (before, after) = splitAt index str
-                in before ++ [newChar] ++ tail after
+modifyindexOfString :: String -> Int -> Char -> String
+modifyindexOfString [] _ _ = []
+modifyindexOfString (x:xs) 0 c = c : xs
+modifyindexOfString (x:xs) n c = x : modifyindexOfString xs (n - 1) c
 
 saveAtThisIndex :: StackTable -> StackTable
 saveAtThisIndex ((StringType, MyString x) : (IntType, MyInt index) : (CharType, MyChar c) : xs) = (StringType, MyString (modifyindexOfString x index c)) : xs
