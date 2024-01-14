@@ -1,6 +1,6 @@
 # Fonctionnalités - Les variables
 
-## [Tutoriel sur les variables](tutorials/variables.md)
+## [Tutoriel sur les variables](../tutorials/variables.md)
 
 ## Fonctionnalités
 

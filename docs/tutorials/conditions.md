@@ -76,6 +76,64 @@ if (a == 5) {
 }
 ```
 
+## Opérateurs logique
+
+Les opérateurs logiques permettent de combiner plusieurs conditions.
+
+### Opérateur ET
+
+L'opérateur ET permet de combiner deux conditions.
+
+```c
+if (condition1 && condition2) {
+    // Instructions
+}
+```
+
+Par exemple :
+
+```c
+if (a == 5 && b == 6) {
+    print("a est égal à 5 ET b est égal à 6");
+}
+```
+
+### Opérateur OU
+
+L'opérateur OU permet de combiner deux conditions.
+
+```c
+if (condition1 || condition2) {
+    // Instructions
+}
+```
+
+Par exemple :
+
+```c
+if (a == 5 || b == 6) {
+    print("a est égal à 5 OU b est égal à 6 OU les deux");
+}
+```
+
+### Opérateur NON
+
+L'opérateur NON permet d'inverser une condition.
+
+```c
+if (!condition) {
+    // Instructions
+}
+```
+
+Par exemple :
+
+```c
+if (!(a == 5)) {
+    print("a n'est pas égal à 5");
+}
+```
+
 ## Exercices
 
 ### Exercice 1

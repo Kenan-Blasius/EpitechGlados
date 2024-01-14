@@ -1,6 +1,6 @@
 # Fonctionnalités - Les opérateurs
 
-## [Tutoriel sur les opérateurs](tutorials/operators.md)
+## [Tutoriel sur les opérateurs](../tutorials/operators.md)
 
 ## Fonctionnalités
 
@@ -36,5 +36,5 @@ Les opérateurs logiques permettent de combiner plusieurs conditions.
 | Opérateur   | Description |
 | ----------- | ----------- |
 | `&&`        | ET          |
-| `\|\|`      | OU          |
+| `||`        | OU          |
 | `!`         | NON         |
