@@ -1,0 +1,19 @@
+// 13
+
+fun strlen (string str) : int
+{
+    int i = 0;
+    while (str[i] != '\0') {
+        i++;
+    }
+    return i;
+}
+
+fun main () : int
+{
+    string canada🇨🇦 = "He🚑l😃, world!";
+
+    int len = strlen(canada🇨🇦);
+
+    return len;
+}

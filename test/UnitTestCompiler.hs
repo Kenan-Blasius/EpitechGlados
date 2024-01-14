@@ -28,7 +28,8 @@ testCompilerFunction =
             TestLabel "compile, 11factorialWhileLoop" test11factorialWhileLoopAST,
             TestLabel "compile, 12gcd" test12gcdAST,
             TestLabel "compile, 14isPrime" test14isPrimeAST,
-            TestLabel "compile, 15complex" test15complexAST
+            TestLabel "compile, 15complex" test15complexAST,
+            TestLabel "compile, test16xfunctAST" test16xfunctAST
         ]
 
 testReturn :: Test
@@ -174,6 +175,14 @@ test14isPrimeAST =
 			let ast = AST [FunAST "isPrime" (AST [IntTypeAST,SymbolAST "n"]) (FunTypeAST (AST [AST [IntTypeAST]])) (AST [IfAST (LessThanEqualAST (AST [SymbolAST "n"]) (AST [IntAST 1])) (ReturnAST (AST [IntAST 0])) DeadLeafAST,ForAST (AssignAST (AST [IntTypeAST,SymbolAST "i"]) (AST [IntAST 2])) (DivideAST (LessThanEqualAST (AST [SymbolAST "i"]) (AST [SymbolAST "n"])) (AST [IntAST 2])) (IncrementAST (AST [SymbolAST "i"])) (IfAST (ModuloAST (AST [SymbolAST "n"]) (EqualAST (AST [SymbolAST "i"]) (AST [IntAST 0]))) (ReturnAST (AST [IntAST 0])) DeadLeafAST),ReturnAST (AST [IntAST 1])]),FunAST "main" DeadLeafAST (FunTypeAST (AST [IntTypeAST])) (AST [AssignAST (AST [IntTypeAST,SymbolAST "japon\127471\127477"]) (AST [SymbolAST "isPrime",AST [IntAST 5]]),ReturnAST (AST [SymbolAST "japon\127471\127477"])])]
 			in let (_, bytecode, _) = astToBytecode' ast 0 (getListOfFunctions ast)
 			in TestCase (assertEqual "compile, 14isPrime" (bytecode) ([FunEntryPoint "isPrime" IntType,StoreVarBefore "n" IntType,LoadVarBefore "n" UnknownType,LoadConst 1 IntType,CompareOp "a",JumpIfFalseBefore 1,LoadConst 0 IntType,Return,JumpRef 1,LoadConst 2 IntType,StoreVarBefore "i" IntType,JumpRef 4,LoadVarBefore "i" UnknownType,LoadVarBefore "n" UnknownType,CompareOp "a",LoadConst 2 IntType,BinaryOp "/",JumpIfFalseBefore 3,LoadVarBefore "n" UnknownType,LoadVarBefore "i" UnknownType,LoadConst 0 IntType,CompareOp "=",BinaryOp "%",JumpIfFalseBefore 2,LoadConst 0 IntType,Return,JumpRef 2,LoadVarBefore "i" UnknownType,LoadConst 1 IntType,BinaryOp "+",StoreVarBefore "i" UnknownType,JumpBefore 4,JumpRef 3,LoadConst 1 IntType,Return,Return,FunEntryPoint "main" IntType,LoadConst 5 IntType,LoadPC,CallUserFun "isPrime",StoreVarBefore "japon🇯🇵" IntType,LoadVarBefore "japon🇯🇵" UnknownType,Return,Return]))
+		]
+test16xfunctAST :: Test
+test16xfunctAST =
+	TestList
+		[
+			let ast = AST [FunAST "happend" (AST [IntTypeAST,SymbolAST "a"]) (FunTypeAST (AST [AST [IntTypeAST]])) (AST [TimesEqualAST (AST [SymbolAST "a"]) (AST [IntAST 7]),DivideEqualAST (AST [SymbolAST "a"]) (AST [IntAST 2]),MinusEqualAST (AST [SymbolAST "a"]) (AST [IntAST 3]),IfAST (NotAST (GreaterThanAST (AST [SymbolAST "a"]) (AST [IntAST 0]))) (AssignAST (AST [SymbolAST "a"]) (AST [IntAST 0])) (ElseIfAST (NotAST (LessThanAST (AST [SymbolAST "a"]) (AST [IntAST 0]))) (PlusEqualAST (AST [SymbolAST "a"]) (AST [IntAST 1])) DeadLeafAST),ReturnAST (AST [SymbolAST "a"])]),FunAST "main" DeadLeafAST (FunTypeAST (AST [IntTypeAST])) (AST [AssignAST (AST [IntTypeAST,SymbolAST "peru\127477\127466"]) (AST [SymbolAST "happend",AST [IntAST 9]]),IfAST (AndAST (GreaterThanEqualAST (AST [SymbolAST "peru\127477\127466"]) (AST [IntAST 29])) (LessThanEqualAST (AST [SymbolAST "peru\127477\127466"]) (AST [IntAST 31]))) (PlusEqualAST (AST [SymbolAST "peru\127477\127466"]) (AST [IntAST 0])) DeadLeafAST,AST [SymbolAST "exit",AST [SymbolAST "peru\127477\127466"]]])]
+			in let (_, bytecode, _) = astToBytecode' ast 0 (getListOfFunctions ast)
+			in TestCase (assertEqual "compile, 16xfunct" (bytecode) ([FunEntryPoint "happend" IntType,StoreVarBefore "a" IntType,LoadVarBefore "a" UnknownType,LoadConst 7 IntType,BinaryOp "*",StoreVarBefore "a" UnknownType,LoadVarBefore "a" UnknownType,LoadConst 2 IntType,BinaryOp "/",StoreVarBefore "a" UnknownType,LoadVarBefore "a" UnknownType,LoadConst 3 IntType,BinaryOp "-",StoreVarBefore "a" UnknownType,LoadVarBefore "a" UnknownType,LoadConst 0 IntType,CompareOp ">",UnaryOp "!",JumpIfFalseBefore 2,LoadConst 0 IntType,StoreVarBefore "a" UnknownType,JumpBefore 3,JumpRef 2,LoadVarBefore "a" UnknownType,LoadConst 0 IntType,CompareOp "<",UnaryOp "!",JumpIfFalseBefore 1,LoadVarBefore "a" UnknownType,LoadConst 1 IntType,BinaryOp "+",StoreVarBefore "a" UnknownType,JumpRef 1,JumpRef 3,LoadVarBefore "a" UnknownType,Return,Return,FunEntryPoint "main" IntType,LoadConst 9 IntType,LoadPC,CallUserFun "happend",StoreVarBefore "peru🇵🇪" IntType,LoadVarBefore "peru🇵🇪" UnknownType,LoadConst 29 IntType,CompareOp "b",LoadVarBefore "peru🇵🇪" UnknownType,LoadConst 31 IntType,CompareOp "a",BinaryOp "&",JumpIfFalseBefore 4,LoadVarBefore "peru🇵🇪" UnknownType,LoadConst 0 IntType,BinaryOp "+",StoreVarBefore "peru🇵🇪" UnknownType,JumpRef 4,LoadVarBefore "peru🇵🇪" UnknownType,Call 60,Return]))
 		]
 test10powerAST :: Test
 test10powerAST =

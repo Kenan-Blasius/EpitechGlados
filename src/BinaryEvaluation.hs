@@ -1,6 +1,8 @@
 module BinaryEvaluation (evalEachValue, byteStringToWord8List, checkMagicNumber, headerSize, getLastIntFromStack,
     VariableId, VariableType (..), VariableElement (..), VariableEntry, VariableTable, StackEntry, StackTable,
-    intToFloat, word8ToInt, intToChar, lenOp, binaryOpCall, unaryOpCall,
+    intToFloat, word8ToInt, intToChar, lenOp, binaryOpCall, unaryOpCall, compareOpCall, getFromVariable, updateVariable,
+    new_VariableTable, deleteLastValueFromStack, getLastAddressFromStack, deleteUntilAddress, deleteUntilAddressExceptOne,
+    toNewVariable, bytesToInt, toStringFromHere, word8withAdresstoString, loadConst, printValueInStack, getNthValue,
     ) where
 
 import Debug.Trace
@@ -54,6 +56,7 @@ lenOp 0x0C = 1 -- DUP            ()
 lenOp 0x0D = 2 -- CALL           (int 1)
 lenOp 0x0E = 1 -- RETURN         ()
 lenOp 0x0F = 1 -- LOAD_PC        ()
+lenOp 0x10 = 1 -- INDEX          ()
 lenOp _ = 0
 
 -- * ---------------------------------------------- BINARY ----------------------------------------------
@@ -89,6 +92,8 @@ binaryOpCall 124 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intTo
 binaryOpCall 94 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (ord x `xor` ord y))) : xs
 
 binaryOpCall 43 ((_, MyString y) : (_, MyString x) : xs) = (StringType, MyString (x ++ y)) : xs
+binaryOpCall 43 ((_, MyString y) : (_, MyChar x) : xs) = (StringType, MyString (x : y)) : xs
+binaryOpCall 43 ((_, MyChar y) : (_, MyString x) : xs) = (StringType, MyString (x ++ [y])) : xs
 
 binaryOpCall 45 ((_, MyInt y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x - intToFloat y)) : xs
 -- binaryOpCall 45 ((_, MyInt y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (x - ord y))) : xs -- todo
@@ -191,6 +196,8 @@ toNewVariable varId IntType CharType (MyChar x) = trace ("int to char " ++ show 
 toNewVariable varId CharType IntType (MyInt x) = trace ("char to int " ++ show x) $ (varId, CharType, MyChar (intToChar x))
 toNewVariable varId FloatType CharType (MyChar x) = trace ("float to char " ++ show x) $ (varId, FloatType, MyFloat (intToFloat (ord x)))
 toNewVariable varId CharType FloatType (MyFloat x) = trace ("char to float " ++ show x) $ (varId, CharType, MyChar (intToChar (round x)))
+-- todo : string to int, float, char
+toNewVariable varId CharType CharType (MyInt x) = trace ("int to char " ++ show x) $ (varId, CharType, MyChar (intToChar x))
 toNewVariable a b c d = error ("ERROR TO NEW VARIABLE " ++ show a ++ " | " ++ show b ++ " | " ++ show c ++ " | " ++ show d)
 
 
@@ -289,7 +296,7 @@ loadConst _ _ = trace "ERROR LOAD CONST" (IntType, MyInt 0)
 printValueInStack :: StackEntry -> String
 printValueInStack (IntType, MyInt x) = show x
 printValueInStack (FloatType, MyFloat x) = show x
-printValueInStack (CharType, MyChar x) = show x
+printValueInStack (CharType, MyChar x) = [x]
 printValueInStack (AddressType, MyInt x) = show x
 printValueInStack (StringType, MyString x) = trace ("string : " ++ show x) x
 printValueInStack x = show x
@@ -320,6 +327,19 @@ getVariableElementTypeFromStack ((_, MyFloat x):_) = MyFloat x
 getVariableElementTypeFromStack ((_, MyChar x):_) = MyChar x
 getVariableElementTypeFromStack _ = trace "Not a variable element, go next in stack" (MyInt 0)
 
+-- * ---------------------------------------------- GET INDEX ----------------------------------------------
+
+getCharIfOutOfBound :: Int -> String -> Char
+getCharIfOutOfBound x y
+    | x == -1 = y !! (length y - 1)
+    | x < 0 = '\0'
+    | x >= length y = '\0'
+    | otherwise = y !! x
+
+getIndex :: StackTable -> StackTable
+getIndex ((IntType, MyInt x) : (StringType, MyString y) : xs) = (CharType, MyChar (getCharIfOutOfBound x y)) : xs
+getIndex x = trace "ERROR GET INDEX" x
+
 -- * ---------------------------------------------- EVAL ----------------------------------------------
 
 -- ? stack is global, JUMP_NEW_SCOPE is useless ?
@@ -344,6 +364,7 @@ evalValue 0x0D (1:_) (x:xs) pc table = do
 evalValue 0x0D (60:_) _ _ _ = trace "EXIT"                                                         return ([], -1, [])
 evalValue 0x0E _ stack _ table = trace  "RETURN "                                                  return (deleteUntilAddressExceptOne stack 0, getLastAddressFromStack stack, table)
 evalValue 0x0F _ stack pc table = trace "LOAD_PC "                                                 return (((AddressType, (MyInt (pc + lenOp 0x0F + lenOp 0x0A))) : stack), pc + lenOp 0x0F, table) -- pc + LOAD_PC + JUMP_NEW_SCOPE
+evalValue 0x10 _ stack pc table = trace "INDEX "                                                   return (getIndex stack, pc + lenOp 0x10, table)
 evalValue a b c d e = trace ("Unknown opcode: " ++ show a ++ " | values: " ++ show b ++ " | stack: " ++ show c ++ " | pc: " ++ show d ++ " | table: " ++ show e) return ([], -1, [])
 
 
