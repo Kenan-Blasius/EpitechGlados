@@ -31,7 +31,7 @@ sizeOfHeader = 32 + 5 -- 32 for the header and 5 for the first jump
 -- RETURN          0x0E
 -- LOAD_PC         0x0F
 -- INDEX           0x10
--- SaveAt          0x11
+-- SAVE_AT         0x11
 
 int8_ToBytes :: Int -> [Word8]
 int8_ToBytes x = [fromIntegral x]

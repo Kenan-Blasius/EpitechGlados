@@ -37,11 +37,11 @@ La syntaxe du langage est décrite ici : [Syntaxe](syntax.md)
 
 Lancez `./glados <fichier>` pour compiler un fichier `.bin` puis `./eval <fichier.bin>` pour l'executer.
 
-## Syntaxe of Assembly
+## Syntaxe de l'Assembly
 
 ```py
 
-; Opcode Definitions
+; Définitions des types
 - LOAD_CONST      0x01
 - LOAD_VAR        0x02
 - STORE_VAR       0x03
@@ -56,35 +56,45 @@ Lancez `./glados <fichier>` pour compiler un fichier `.bin` puis `./eval <fichie
 - DUP             0x0C
 - CALL            0x0D
 - RETURN          0x0E
+- LOAD_PC         0x0F
+- INDEX           0x10
+- SAVE_AT         0x11
+
 ```
 
-1. **LOAD_CONST(index):** Load a constant value onto the stack. The `index` points to the position of the constant in a constant pool.
+1. **LOAD_CONST(index):** Charge une valeur constante sur la pile. L'`index` pointe vers la position de la constante dans un pool de constantes.
 
-2. **LOAD_VAR(name):** Load the value of a variable onto the stack. The `name` is the identifier of the variable.
+2. **LOAD_VAR(name):** Charge la valeur d'une variable sur la pile. Le `name` est l'identifiant de la variable.
 
-3. **STORE_VAR(name):** Store the value on top of the stack into the variable with the given `name`.
+3. **STORE_VAR(name):** Stocke la valeur en haut de la pile dans la variable avec le `name` donné.
 
-4. **BINARY_OP(operator):** Perform a binary operation on the top two values of the stack. The `operator` indicates the operation (addition, subtraction, multiplication, etc.).
+4. **BINARY_OP(operator):** Effectue une opération binaire sur les deux valeurs supérieures de la pile. L'`operator` indique l'opération (addition, soustraction, multiplication, etc.).
 
-5. **UNARY_OP(operator):** Perform a unary operation on the top value of the stack. The `operator` indicates the operation (negation, bitwise NOT, etc.).
+5. **UNARY_OP(operator):** Effectue une opération unaire sur la valeur supérieure de la pile. L'`operator` indique l'opération (négation, NOT bit à bit, etc.).
 
-6. **COMPARE_OP(operator):** Compare the top two values on the stack using the specified `operator` (equal, not equal, less than, greater than, etc.).
+6. **COMPARE_OP(operator):** Compare les deux valeurs supérieures de la pile en utilisant l'`operator` spécifié (égal, non égal, inférieur, supérieur, etc.).
 
-7. **JUMP_IF_TRUE(target):** Jump to the specified `target` instruction if the top value on the stack is true.
+7. **JUMP_IF_TRUE(target):** Saute à l'instruction `target` spécifiée si la valeur supérieure de la pile est vraie.
 
-8. **JUMP_IF_FALSE(target):** Jump to the specified `target` instruction if the top value on the stack is false.
+8. **JUMP_IF_FALSE(target):** Saute à l'instruction `target` spécifiée si la valeur supérieure de la pile est fausse.
 
-9. **JUMP(target):** Unconditional jump to the specified `target` instruction.
+9. **JUMP(target):** Saut inconditionnel vers l'instruction `target` spécifiée.
 
-10. **JUMP_NEW_SCOPE(target):** Unconditional jump to the specified `target` instruction, and create a new empty scope of variables.
+10. **JUMP_NEW_SCOPE(target):** Saut inconditionnel vers l'instruction `target` spécifiée et crée une nouvelle portée vide de variables.
 
-11. **POP:** Pop the top value from the stack.
+11. **POP:** Dépile la valeur supérieure de la pile.
 
-12. **DUP:** Duplicate the top value on the stack.
+12. **DUP:** Duplique la valeur supérieure de la pile.
 
-13. **CALL(func_name, num_args):** Call a function with the specified `func_name` and `num_args` arguments.
+13. **CALL(func_name, num_args):** Appelle une fonction avec le `func_name` et `num_args` spécifiés comme arguments.
 
-14. **RETURN:** Return from the current function.
+14. **RETURN:** Retourne de la fonction en cours.
+
+15. **LOAD_PC:** Charge le compteur de programme sur la pile.
+
+16. **INDEX:** Place dans la stack la valeur du string à l'index donné. L'index est le premier élément de la stack, la string est le deuxième.
+
+17. **SAVE_AT:** Sauvegarde dans la string à l'index donné la valeur donnée. Le string est le premier élément de la stack, l'index le deuxième, la valeur le troisième.
 
 ### Exemple
 
@@ -95,7 +105,7 @@ fun main (int spain🇪🇸) : int
 }
 ```
 
-Is converted to this AST:
+Est converti en AST:
 
 ```haskell
 -- AST
@@ -115,32 +125,32 @@ FunAST main
 |   |   |   IntAST 0
 ```
 
-Which is converted to this bytecode:
+Qui est converti en bytecode:
 
 ```py
 32 FunEntryPoint "main" IntType
-37 StoreVarBefore spain🇪🇸 IntType  # save the variable spain🇪🇸 in the scope
+37 StoreVarBefore spain🇪🇸 IntType  # sauvagarde de la variable spain🇪🇸
 43 LoadConst 0 IntType
 49 Return
-50 Return                          # double return in case of no main return
+50 Return                          # return deus fois si l'utilisateur ne fait pas de return depuis le main
 ```
 
-Become:
+Devient:
 
 ```py
-32 Jump 37                          # jump to the main function, the 32 first bytes are for the header
+32 Jump 37                          # saute dans la fonction main, les 32 premiers octets sont le header
 37 StoreVar 0 IntType
 43 LoadConst 0 IntType
 49 Return
 50 Return
 ```
 
-The final bytecode is:
+Le bytecode final est:
 
 ```py
-# the magic number
+# le magic number
 122,105,122,105,
-# the header: "This is the comment section\0"
+# Le header: "This is the comment section\0"
 84,104,105,115,32,105,115,32,116,104,101,32,99,111,109,109,101,110,116,32,115,101,99,116,105,111,110,0,
 
 9,37,0,0,0,  # Jump 37
@@ -169,7 +179,7 @@ fun main () : int
 }
 ```
 
-Is converted to this AST:
+Est converti en AST:
 
 ```haskell
 
@@ -226,7 +236,7 @@ AST
 |   |   |   |   |   SymbolAST corea
 ```
 
-Which is converted to this bytecode:
+Qui est converti en bytecode:
 
 ```py
 32 Jump 65
@@ -253,14 +263,14 @@ Which is converted to this bytecode:
 120 Return
 ```
 
-As we can see, the variable are stored as id, and the function are stored as id too.
+Comme on peut le voir, les variables sont stockées sous forme d'id, et les fonctions aussi.
 
-Become:
+Devient:
 
 ```py
-# the magic number
+# Le magic number
 122,105,122,105,
-# the header: "This is the comment section\0"
+# Le header: "This is the comment section\0"
 84,104,105,115,32,105,115,32,116,104,101,32,99,111,109,109,101,110,116,32,115,101,99,116,105,111,110,0,
 
 9,65,0,0,0,  # Jump 65
@@ -289,7 +299,7 @@ Become:
 -- LOAD_VAR 0x02
 -- STORE_VAR 0x03
 
-As we can see, the instructions `LoadConst`, `LoadVar` and `StoreVar` work like this:
+Comme on peut le voir, les instructions `LoadConst`, `LoadVar` et `StoreVar` fonctionnent comme ceci:
 
 ```py
 
@@ -298,9 +308,10 @@ First byte:
 0x02 # LOAD_VAR
 0x03 # STORE_VAR
 
-4 next bytes are the id of the variable or, the value of the constant
+4 octets suivants sont l id de la variable ou, la valeur de la constante
 
-1 next byte is the type of the variable
+1 octet suivant est le type de la variable
+
 ```
 
 <!-- ## TODO
@@ -354,13 +365,11 @@ socket (Syscall Number: -1): Create an endpoint for communication (varies betwee
 -->
 
 ```c
-all the syscalls
+Les syscalls
 
-// done
-exit (Syscall Number: 60): Terminate the process and return the exit status to the parent.
+exit (Syscall Number: 60): Termine le processus et retourne le status de sortie au parent.
 
-// done only for stdout
-write (Syscall Number: 1): Write data to a file descriptor (e.g., printing to stdout).
+write (Syscall Number: 1): Ecrire dans le stdout
 
 ```
 
