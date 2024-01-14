@@ -11,9 +11,9 @@ fun strlen (string str) : int
 
 fun main () : int
 {
-    string str = "He🚑l😃, world!";
+    string canada🇨🇦 = "He🚑l😃, world!";
 
-    int len = strlen(str);
+    int len = strlen(canada🇨🇦);
 
     return len;
 }
