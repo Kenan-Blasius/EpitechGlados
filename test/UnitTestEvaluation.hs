@@ -274,7 +274,13 @@ testLenOpLoadPc :: Test
 testLenOpLoadPc = TestCase $ assertEqual "for: lenOp 0x0F" 1 (lenOp 0x0F)
 
 testLenOpInvalid :: Test
-testLenOpInvalid = TestCase $ assertEqual "for: lenOp 0x10" 0 (lenOp 0x10)
+testLenOpInvalid = TestCase $ assertEqual "for: lenOp 0x10" 1 (lenOp 0x10)
+
+testLenOpIndex :: Test
+testLenOpIndex = TestCase $ assertEqual "for: lenOp 0x11" 1 (lenOp 0x11)
+
+testLenOpSaveAt :: Test
+testLenOpSaveAt = TestCase $ assertEqual "for: lenOp 0x12" 1 (lenOp 0x12)
 
 
 -- * ----------------------------------------- BinaryOpCall ----------------------------------------- * --
