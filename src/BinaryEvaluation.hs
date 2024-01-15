@@ -90,11 +90,6 @@ binaryOpCall 43 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x 
 binaryOpCall 45 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x - y)) : xs
 binaryOpCall 42 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x * y)) : xs
 binaryOpCall 47 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x / y)) : xs
--- todo
--- binaryOpCall 37 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x `mod'` y)) : xs -- no mod for float
--- binaryOpCall 38 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x .&. y)) : xs
--- binaryOpCall 124 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x .|. y)) : xs
--- binaryOpCall 94 ((_, MyFloat y) : (_, MyFloat x) : xs) = (FloatType, MyFloat (x `xor` y)) : xs
 
 binaryOpCall 43 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (ord x + ord y))) : xs
 binaryOpCall 45 ((_, MyChar y) : (_, MyChar x) : xs) = (CharType, MyChar (intToChar (ord x - ord y))) : xs
@@ -366,8 +361,8 @@ getVariableElementTypeFromStack _ = trace "Not a variable element, go next in st
 
 getCharIfOutOfBound :: Int -> String -> Char
 getCharIfOutOfBound x y
-    | x == -1 = y !! (length y - 1)
-    | x < 0 = '\0'
+    | x >= (- length y) && x < 0 = y !! (length y + x)
+    | x < 0 = y !! 0
     | x >= length y = '\0'
     | otherwise = y !! x
 
