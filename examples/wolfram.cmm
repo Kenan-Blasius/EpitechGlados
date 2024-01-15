@@ -28,11 +28,36 @@ fun getValueFromSubString(string str, int rule) : char
     }
 }
 
+fun getPrintLine(string line, int ogLineSize, int generatedLineNb) : string
+{
+    string printLine = "";
+    // skip genetratedLineNb chars
+    int i = 0;
+    while (i < generatedLineNb) {
+        i++;
+    }
+    i++;
+    // print ogLineSize chars
+    while (i <= (ogLineSize + generatedLineNb)) {
+        printLine += line[i];
+        i++;
+    }
+    return printLine;
+}
+
 fun main() : int
 {
     int lineSize = 50;
     int ruleNb = 90; // 0 <= ruleNb <= 255
     int lineNb = 20; // number of lines to draw, negative nb for infinite
+    int ogLineSize = lineSize;
+    int generatedLineNb = 0;
+
+    if (lineSize < 1)
+    {
+        print("Error: lineSize must be greater than 0");
+        return 1;
+    }
 
     if (ruleNb < 0 || ruleNb > 255)
     {
@@ -65,14 +90,14 @@ fun main() : int
 
     // draw the other lines
     while (lineNb > 0) {
-        string currentLine = "";
+        string currentLine = " ";
 
         for (int i = 0; i < lineSize; i++)
         {
             string subString = "";
             for (int j = -1; j < 2; j++)
             {
-                if ((i - j) < 0 || (i - j) >= lineSize) {
+                if ((i - j) < 0 || (i - j) >= (lineSize - 2)) {
                     subString += ' ';
                 } else {
                     subString += previousLine[i - j];
@@ -85,9 +110,12 @@ fun main() : int
 
             currentLine += getValueFromSubString(subString, ruleNb);
         }
+        currentLine += ' ';
+        lineSize += 2;
 
         print("\"");
-        print(currentLine);
+        string printLine = getPrintLine(currentLine, ogLineSize, generatedLineNb);
+        print(printLine);
         print("\"");
         print("\n");
         previousLine = currentLine;
@@ -95,6 +123,7 @@ fun main() : int
         if (lineNb > 0) {
             lineNb--;
         }
+        generatedLineNb++;
     }
 
     return 0;
