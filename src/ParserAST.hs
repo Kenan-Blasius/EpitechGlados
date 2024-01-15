@@ -288,6 +288,13 @@ sexprToAst' x | case splitAtValue LineSeparator x of
 sexprToAst' (ReturnToken : xs) = do
     ReturnAST (sexprToAst' xs)
 -- ! Symbol Tree
+sexprToAst' x | listOperatorsASTCheck [AssignToken] x =            binaryOperatorsAST AssignToken AssignAST x
+sexprToAst' x | listOperatorsASTCheck [PlusEqualToken] x =         binaryOperatorsAST PlusEqualToken PlusEqualAST x
+sexprToAst' x | listOperatorsASTCheck [MinusEqualToken] x =        binaryOperatorsAST MinusEqualToken MinusEqualAST x
+sexprToAst' x | listOperatorsASTCheck [TimesEqualToken] x =        binaryOperatorsAST TimesEqualToken TimesEqualAST x
+sexprToAst' x | listOperatorsASTCheck [DivideEqualToken] x =       binaryOperatorsAST DivideEqualToken DivideEqualAST x
+sexprToAst' x | listOperatorsASTCheck [ModuloEqualToken] x =       binaryOperatorsAST ModuloEqualToken ModuloEqualAST x
+
 sexprToAst' x | listOperatorsASTCheck [AndToken] x =               binaryOperatorsAST AndToken AndAST x
 sexprToAst' x | listOperatorsASTCheck [OrToken] x =                binaryOperatorsAST OrToken OrAST x
 
@@ -297,13 +304,6 @@ sexprToAst' x | listOperatorsASTCheck [LessThanToken] x =          binaryOperato
 sexprToAst' x | listOperatorsASTCheck [LessThanEqualToken] x =     binaryOperatorsAST LessThanEqualToken LessThanEqualAST x
 sexprToAst' x | listOperatorsASTCheck [GreaterThanToken] x =       binaryOperatorsAST GreaterThanToken GreaterThanAST x
 sexprToAst' x | listOperatorsASTCheck [GreaterThanEqualToken] x =  binaryOperatorsAST GreaterThanEqualToken GreaterThanEqualAST x
-
-sexprToAst' x | listOperatorsASTCheck [AssignToken] x =            binaryOperatorsAST AssignToken AssignAST x
-sexprToAst' x | listOperatorsASTCheck [PlusEqualToken] x =         binaryOperatorsAST PlusEqualToken PlusEqualAST x
-sexprToAst' x | listOperatorsASTCheck [MinusEqualToken] x =        binaryOperatorsAST MinusEqualToken MinusEqualAST x
-sexprToAst' x | listOperatorsASTCheck [TimesEqualToken] x =        binaryOperatorsAST TimesEqualToken TimesEqualAST x
-sexprToAst' x | listOperatorsASTCheck [DivideEqualToken] x =       binaryOperatorsAST DivideEqualToken DivideEqualAST x
-sexprToAst' x | listOperatorsASTCheck [ModuloEqualToken] x =       binaryOperatorsAST ModuloEqualToken ModuloEqualAST x
 
 sexprToAst' x | listOperatorsASTCheck [MinusToken] x =             pemdasTree x
 sexprToAst' x | listOperatorsASTCheck [PlusToken] x =              pemdasTree x
