@@ -66,6 +66,8 @@ nav:
 - Syntaxe:
   - syntax.md
   - raw-bnf.md
+- Assembly:
+  - assembly.md
 - Tutoriels:
   - tutorials.md
   - tutorials/variables.md
@@ -77,3 +79,4 @@ nav:
   - features.md
   - features/variables.md
   - features/operators.md
+  - features/strings.md

@@ -12,3 +12,4 @@ Nous vous conseillons de suivre les [tutoriels](tutorials.md) avant de lire ce d
 
 - [Fonctionnalités - Les variables](features/variables.md)
 - [Fonctionnalités - Les opérateurs](features/operators.md)
+- [Fonctionnalités - Le type string](features/strings.md)

@@ -38,3 +38,35 @@ Les opérateurs logiques permettent de combiner plusieurs conditions.
 | `&&`        | ET          |
 | `||`        | OU          |
 | `!`         | NON         |
+
+## Opérateurs binaires
+
+Les opérateurs binaires permettent de manipuler les bits d'un nombre.
+
+| Opérateur   | Description |
+| ----------- | ----------- |
+| `&`         | ET          |
+| `|`         | OU          |
+| `^`         | OU exclusif |
+
+### Opérateurs d'assignation
+
+Les opérateurs d'assignation permettent d'assigner une valeur à une variable.
+
+| Opérateur   | Description |
+| ----------- | ----------- |
+| `=`         | Assignation |
+| `+=`        | Addition    |
+| `-=`        | Soustraction |
+| `*=`        | Multiplication |
+| `/=`        | Division    |
+| `%=`        | Modulo      |
+
+### Opérateurs d'incrémentation et de décrémentation
+
+Les opérateurs d'incrémentation et de décrémentation permettent d'augmenter ou de diminuer la valeur d'une variable.
+
+| Opérateur   | Description |
+| ----------- | ----------- |
+| `++`        | Incrémentation |
+| `--`        | Décrémentation |
