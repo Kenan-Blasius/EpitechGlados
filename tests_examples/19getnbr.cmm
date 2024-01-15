@@ -1,0 +1,38 @@
+// 123
+
+fun strlen (string str) : int
+{
+    int i = 0;
+    while (str[i] != '\0') {
+        i++;
+    }
+    return i;
+}
+
+fun my_get_num (string str) : int
+{
+    int len = strlen(str);
+    int num = 0;
+    int i = 0;
+    if (str[0] == '-') {
+        i = 1;
+    }
+    for (; i < len; i++) {
+        num *= 10;
+        int a = (str[i]);
+        num += a - 48;
+    }
+    if (str[0] == '-') {
+        num = 0 - num;
+    }
+    return num;
+}
+
+fun main () : int
+{
+    string str = "123";
+
+    int num = my_get_num(str);
+
+    return num;
+}

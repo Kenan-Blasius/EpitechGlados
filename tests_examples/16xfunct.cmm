@@ -1,0 +1,26 @@
+// 29
+fun happend(int a) : (int)
+{
+    a *= 7;
+    a /= 2;
+    a -= 3;
+    if (!(a > 0)) {
+        a = 0;
+    } else if (!(a < 0)) {
+        a += 1;
+    }
+
+    return a;
+}
+
+
+fun main () : int
+{
+    int peru🇵🇪 = happend(9);
+
+    if (peru🇵🇪 >= 29 && peru🇵🇪 <= 31) {
+        peru🇵🇪 += 0;
+    }
+
+    exit(peru🇵🇪);
+}

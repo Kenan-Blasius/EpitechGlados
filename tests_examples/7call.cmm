@@ -1,0 +1,10 @@
+// 15
+
+fun main () : int
+{
+    int usa🇺🇸 = 15;
+
+    print(usa🇺🇸);
+
+    return usa🇺🇸;
+}

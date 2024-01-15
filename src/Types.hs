@@ -6,7 +6,8 @@ module Types (
     Environment,
     indent,
     printAST,
-    Bytecode (..)
+    Bytecode (..),
+    DataType(..)
 ) where
 
 import Control.Exception
@@ -44,6 +45,7 @@ data Token = OpenParenthesis
             | FloatTypeToken
             | CharTypeToken
             | StringTypeToken
+            | VoidTypeToken
             | OpenBracket
             | CloseBracket
             | OpenBraces
@@ -77,6 +79,9 @@ data Token = OpenParenthesis
             | ModuloToken
             | AndToken
             | OrToken
+            | BitAndToken
+            | BitOrToken
+            | BitXorToken
             | NotToken
             | EqualToken
             | NotEqualToken
@@ -103,6 +108,7 @@ instance Show Token where
     show FloatTypeToken = "FLOAT"
     show CharTypeToken = "CHAR"
     show StringTypeToken = "STRING"
+    show VoidTypeToken = "VOID"
     show OpenBracket = "OpenBRACKET"
     show CloseBracket = "CloseBRACKET"
     show OpenBraces = "OpenBRACES"
@@ -136,6 +142,9 @@ instance Show Token where
     show ModuloToken = "Modulo"
     show AndToken = "And"
     show OrToken = "Or"
+    show BitAndToken = "BitAnd"
+    show BitOrToken = "BitOr"
+    show BitXorToken = "BitXor"
     show NotToken = "Not"
     show EqualToken = "Equal"
     show NotEqualToken = "NotEqual"
@@ -161,6 +170,7 @@ instance Eq Token where
     FloatTypeToken == FloatTypeToken = True
     CharTypeToken == CharTypeToken = True
     StringTypeToken == StringTypeToken = True
+    VoidTypeToken == VoidTypeToken = True
     OpenBracket == OpenBracket = True
     CloseBracket == CloseBracket = True
     OpenBraces == OpenBraces = True
@@ -194,6 +204,9 @@ instance Eq Token where
     ModuloToken == ModuloToken = True
     AndToken == AndToken = True
     OrToken == OrToken = True
+    BitAndToken == BitAndToken = True
+    BitOrToken == BitOrToken = True
+    BitXorToken == BitXorToken = True
     NotToken == NotToken = True
     EqualToken == EqualToken = True
     NotEqualToken == NotEqualToken = True
@@ -211,16 +224,17 @@ data AST = AST [AST] -- list of AST
          | IfAST AST AST AST -- cond expr1 elseIfExpr/elseExpr
          | ElseIfAST AST AST AST -- cond expr elseIfExpr/elseExpr
          | ElseAST AST -- expr
-         | DefineAST String AST -- name expr
+        --  | DefineAST String AST -- name expr
          | ForAST AST AST AST AST -- init cond incr expr
          | WhileAST AST AST -- cond expr
          | FunTypeAST AST -- type
-         | FunAST String AST AST AST -- name returnType arg expr
+         | FunAST String AST AST AST -- name arg returnType expr
          | ReturnAST AST -- expr
          | IntTypeAST -- type
          | FloatTypeAST -- type
          | CharTypeAST -- type
          | StringTypeAST -- type
+         | VoidTypeAST -- type
          | LambdaClosure [String] AST Environment
          | IntAST Int -- value
          | FloatAST Float -- value
@@ -256,6 +270,12 @@ data AST = AST [AST] -- list of AST
          | AndAST AST AST -- left right
             -- ||
          | OrAST AST AST -- left right
+            -- &
+         | BitAndAST AST AST -- left right
+            -- |
+         | BitOrAST AST AST -- left right
+            -- ^
+         | BitXorAST AST AST -- left right
             -- +=
          | PlusEqualAST AST AST -- left right
             -- -=
@@ -281,16 +301,17 @@ instance Eq AST where
     IfAST cond1 expr1 elseIfExpr1 == IfAST cond2 expr2 elseIfExpr2 = cond1 == cond2 && expr1 == expr2 && elseIfExpr1 == elseIfExpr2
     ElseIfAST cond1 expr1 elseIfExpr1 == ElseIfAST cond2 expr2 elseIfExpr2 = cond1 == cond2 && expr1 == expr2 && elseIfExpr1 == elseIfExpr2
     ElseAST expr1 == ElseAST expr2 = expr1 == expr2
-    DefineAST name1 expr1 == DefineAST name2 expr2 = name1 == name2 && expr1 == expr2
+    -- DefineAST name1 expr1 == DefineAST name2 expr2 = name1 == name2 && expr1 == expr2
     ForAST init1 cond1 incr1 expr1 == ForAST init2 cond2 incr2 expr2 = init1 == init2 && cond1 == cond2 && incr1 == incr2 && expr1 == expr2
     WhileAST cond1 expr1 == WhileAST cond2 expr2 = cond1 == cond2 && expr1 == expr2
     FunTypeAST type1 == FunTypeAST type2 = type1 == type2
-    FunAST name1 type1 arg1 expr1 == FunAST name2 type2 arg2 expr2 = name1 == name2 && type1 == type2 && arg1 == arg2 && expr1 == expr2
+    FunAST name1 arg1 type1 expr1 == FunAST name2 arg2 type2 expr2 = name1 == name2 && arg1 == arg2 && type1 == type2 && expr1 == expr2
     ReturnAST expr1 == ReturnAST expr2 = expr1 == expr2
     IntTypeAST == IntTypeAST = True
     FloatTypeAST == FloatTypeAST = True
     CharTypeAST == CharTypeAST = True
     StringTypeAST == StringTypeAST = True
+    VoidTypeAST == VoidTypeAST = True
     LambdaClosure args1 body1 env1 == LambdaClosure args2 body2 env2 = args1 == args2 && body1 == body2 && env1 == env2
     IntAST x == IntAST y = x == y
     FloatAST x == FloatAST y = x == y
@@ -312,6 +333,9 @@ instance Eq AST where
     ModuloAST left1 right1 == ModuloAST left2 right2 = left1 == left2 && right1 == right2
     AndAST left1 right1 == AndAST left2 right2 = left1 == left2 && right1 == right2
     OrAST left1 right1 == OrAST left2 right2 = left1 == left2 && right1 == right2
+    BitAndAST left1 right1 == BitAndAST left2 right2 = left1 == left2 && right1 == right2
+    BitOrAST left1 right1 == BitOrAST left2 right2 = left1 == left2 && right1 == right2
+    BitXorAST left1 right1 == BitXorAST left2 right2 = left1 == left2 && right1 == right2
     PlusEqualAST left1 right1 == PlusEqualAST left2 right2 = left1 == left2 && right1 == right2
     MinusEqualAST left1 right1 == MinusEqualAST left2 right2 = left1 == left2 && right1 == right2
     TimesEqualAST left1 right1 == TimesEqualAST left2 right2 = left1 == left2 && right1 == right2
@@ -336,8 +360,8 @@ printAST = printASTIndented 0
         printASTIndented depth (IntAST value) = indent depth ++ "IntAST " ++ show value ++ "\n"
         printASTIndented depth (FloatAST value) = indent depth ++ "FloatAST " ++ show value ++ "\n"
         printASTIndented depth (SymbolAST name) = indent depth ++ "SymbolAST " ++ name ++ "\n"
-        printASTIndented depth (DefineAST name expr) =
-            indent depth ++ "DefineAST " ++ name ++ "\n" ++ printASTIndented (depth + 1) expr
+        -- printASTIndented depth (DefineAST name expr) =
+        --     indent depth ++ "DefineAST " ++ name ++ "\n" ++ printASTIndented (depth + 1) expr
         printASTIndented depth (IfAST cond expr1 elseIfExpr) =
             indent depth ++ "IfAST\n" ++
                 printASTIndented (depth + 1) cond ++
@@ -352,10 +376,10 @@ printAST = printASTIndented 0
                 indent (depth + 1) ++ "env: " ++ show env ++ "\n"
         printASTIndented depth (FunTypeAST typeAST) =
             indent depth ++ "FunTypeAST\n" ++ printASTIndented (depth + 1) typeAST
-        printASTIndented depth (FunAST name returnType arg expr) =
+        printASTIndented depth (FunAST name arg returnType expr) =
             indent depth ++ "FunAST " ++ name ++ "\n" ++
-                printASTIndented (depth + 1) returnType ++
                 printASTIndented (depth + 1) arg ++
+                printASTIndented (depth + 1) returnType ++
                 printASTIndented (depth + 1) expr
         printASTIndented depth (ElseAST expr) =
             indent depth ++ "ElseAST\n" ++ printASTIndented (depth + 1) expr
@@ -363,6 +387,7 @@ printAST = printASTIndented 0
         printASTIndented depth FloatTypeAST = indent depth ++ "FloatTypeAST\n"
         printASTIndented depth CharTypeAST = indent depth ++ "CharTypeAST\n"
         printASTIndented depth StringTypeAST = indent depth ++ "StringTypeAST\n"
+        printASTIndented depth VoidTypeAST = indent depth ++ "VoidTypeAST\n"
         printASTIndented depth (StringAST value) = indent depth ++ "StringAST " ++ value ++ "\n"
         printASTIndented depth (CharAST value) = indent depth ++ "CharAST '" ++ [value] ++ "'\n"
         printASTIndented depth (ForAST initer cond incr expr) =
@@ -439,6 +464,18 @@ printAST = printASTIndented 0
             indent depth ++ "OrAST\n" ++
                 printASTIndented (depth + 1) left ++
                 printASTIndented (depth + 1) right
+        printASTIndented depth (BitAndAST left right) =
+            indent depth ++ "BitAndAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (BitOrAST left right) =
+            indent depth ++ "BitOrAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
+        printASTIndented depth (BitXorAST left right) =
+            indent depth ++ "BitXorAST\n" ++
+                printASTIndented (depth + 1) left ++
+                printASTIndented (depth + 1) right
         printASTIndented depth (PlusEqualAST left right) =
             indent depth ++ "PlusEqualAST\n" ++
                 printASTIndented (depth + 1) left ++
@@ -479,12 +516,24 @@ instance Semigroup AST where
 
 
 
-data Bytecode = LoadConst Int
-              | LoadVar String
-              | StoreVar String
-              | BinaryOp String
-              | UnaryOp String
-              | CompareOp String
+data DataType =  IntType
+                | FloatType
+                | StringType
+                | CharType
+                | FunType
+                | VoidType
+                | BoolType
+                | UnknownType
+                deriving (Show, Eq)
+
+data Bytecode = LoadConst Int DataType
+              | LoadVarBefore String DataType
+              | StoreVarBefore String DataType
+              | LoadVar Int DataType
+              | StoreVar Int DataType
+              | BinaryOp String -- ? DataType
+              | UnaryOp String -- ? DataType
+              | CompareOp String -- ? DataType
               | JumpIfTrue Int
               | JumpIfFalse Int
               | Jump Int
@@ -497,45 +546,52 @@ data Bytecode = LoadConst Int
               | Dup
               | Call Int
               | Return
-              | FunEntryPoint String
+              | FunEntryPoint String DataType
               | CallUserFun String
               | LoadPC
+              | StringToSave String
+              | Index
+              | SaveAt
+            --   | BuildList Int
+            --   | ListAppend            -- No additional values needed
+            --   | ListConcat            -- No additional values needed
+            --   | ListSlice Int Int     -- Requires two Int values (start and end indices)
+            --   | ListLength            -- No additional values needed
+            --   | ListPop Int           -- Requires an Int value (index from which to pop)
+            --   | ListInsert Int        -- Requires two values - an Int (index) and a value to insert
             --  ? | PushFrame
             --  ? | PopFrame
             -- * Unused, but could be useful in the future
-            --   | BuildList Int
-            --   | Index
-            --   | Attribute String
-            --   | CreateObject Int
               deriving Eq
 
 instance Show Bytecode where
-    show (LoadConst x) =    "LOAD_CONST " ++ show x
-    show (LoadVar x) =      "LOAD_VAR " ++ x
-    show (StoreVar x) =     "STORE_VAR " ++ x
-    show (BinaryOp x) =     "BINARY_OP " ++ x
-    show (UnaryOp x) =      "UNARY_OP " ++ x
-    show (CompareOp x) =    "COMPARE_OP " ++ x
-    show (JumpIfTrue x) =   "JUMP_IF_TRUE " ++ show x
-    show (JumpIfFalse x) =  "JUMP_IF_FALSE " ++ show x
-    show (Jump x) =         "JUMP " ++ show x
-    show (JumpNewScope x) = "JUMP_NEW_SCOPE " ++ show x ++ " "
-    show (JumpIfTrueBefore x) =   "JUMP_IF_TRUE_BEFORE " ++ show x
-    show (JumpIfFalseBefore x) =  "JUMP_IF_FALSE_BEFORE " ++ show x
-    show (JumpBefore x) =         "JUMP_BEFORE " ++ show x
-    show (JumpRef x) =      "JUMP_REF " ++ show x
-    show Pop =              "POP"
-    show Dup =              "DUP"
-    show (Call x) =         "CALL " ++ show x
-    show Return =           "RETURN"
-    show (FunEntryPoint x) = "FUN_ENTRY_POINT " ++ show x
-    show (CallUserFun x) =  "CALL_USER_FUN " ++ show x
-    show LoadPC =           "LOAD_PC"
+    show (LoadConst x y) =    "LoadConst " ++ show x ++ " " ++ show y
+    show (LoadVarBefore x y) =  "LoadVarBefore \""  ++ x ++ "\" " ++ show y
+    show (StoreVarBefore x y) = "StoreVarBefore \"" ++ x ++ "\" " ++ show y
+    show (LoadVar x y) =      "LoadVar "  ++ show x ++ " " ++ show y
+    show (StoreVar x y) =     "StoreVar " ++ show x ++ " " ++ show y
+    show (BinaryOp x) =     "BinaryOp \""  ++ x ++ "\""
+    show (UnaryOp x) =      "UnaryOp \""   ++ x ++ "\""
+    show (CompareOp x) =    "CompareOp \"" ++ x ++ "\""
+    show (JumpIfTrue x) =   "JumpIfTrue "  ++ show x
+    show (JumpIfFalse x) =  "JumpIfFalse " ++ show x
+    show (Jump x) =         "Jump " ++ show x
+    show (JumpNewScope x) = "JumpNewScope " ++ show x ++ " "
+    show (JumpIfTrueBefore x) =   "JumpIfTrueBefore "  ++ show x
+    show (JumpIfFalseBefore x) =  "JumpIfFalseBefore " ++ show x
+    show (JumpBefore x) =         "JumpBefore " ++ show x
+    show (JumpRef x) =      "JumpRef " ++ show x
+    show Pop =              "Pop"
+    show Dup =              "Dup"
+    show (Call x) =         "Call " ++ show x
+    show Return =           "Return"
+    show (FunEntryPoint x y) = "FunEntryPoint " ++ show x ++ " " ++ show y
+    show (CallUserFun x) =  "CallUserFun " ++ show x
+    show LoadPC =           "LoadPC"
+    show (StringToSave x) = "StringToSave \"" ++ show x ++ "\""
+    show Index =            "INDEX"
+    show SaveAt =           "SAVE_AT"
     -- ? show PushFrame =        "PUSH_FRAME"
     -- ? show PopFrame =         "POP_FRAME"
-
     -- show (BuildList x) =    "BUILD_LIST " ++ show x
-    -- show Index =            "INDEX"
-    -- show (Attribute x) =    "ATTRIBUTE " ++ x
-    -- show (CreateObject x) = "CREATE_OBJECT " ++ show x
 

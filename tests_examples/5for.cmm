@@ -1,0 +1,13 @@
+// 25
+
+fun main () : int
+{
+    int mexico🇲🇽 = 15;
+
+    for (int i = 0; i < 5; i++)
+    {
+        mexico🇲🇽 += i;
+    }
+
+    return mexico🇲🇽;
+}

@@ -3,21 +3,33 @@
 ## Description
 
 GLaDOS est un projet de création de langage de programmation.
+
 Ce projet est divisé en 2 parties :
 
-- Un compilateur
-  - Un Parser qui transforme un fichier de code en AST
-  - Un compilateur qui transforme l'AST en bytecode puis en fichier binaire
-- Une machine virtuelle
-  - Un programme qui lit un fichier binaire et l'execute
+1. Un compilateur
+    1. Un Parser qui transforme un fichier de code en AST
+        1. Un lexer qui transforme un fichier de code en tokens
+        2. Un parser qui transforme les tokens en Sexpr
+        3. Un parser qui transforme les Sexpr en AST
+    2. Un compilateur qui transforme l'AST en bytecode puis en fichier binaire
+        1. Un compilateur qui transforme l'AST en bytecode
+        2. Un compilateur qui transforme le bytecode en fichier binaire
+2. Une machine virtuelle
+    1. Un programme qui lit un fichier binaire et l'execute
 
 ## Installation
 
-Clonez le repo et lancez `make re`.
+### A partir d'un binaire
+
+Téléchargez les binaires dans la section realease du repo.
+
+### A partir du code source
+
+Clonez le repo et lancez `make`.
 
 ## Syntaxe
 
-La syntaxe du langage est décrite dans ici : [Syntaxe](syntax.md)
+La syntaxe du langage est décrite ici : [Syntaxe](syntax.md)
 
 ## Utilisation
 

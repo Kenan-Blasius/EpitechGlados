@@ -5,24 +5,52 @@ import Types
 import AstToBytecode
 import BytecodeToBinary
 import Parser
+import ParserToken (getAbsolutePath)
 
 -- INFO: Main function
 main :: IO ()
 main = do
     args <- getArgs
-    case args of
-        [filename] -> do
-            -- putStrLn $ "Running file: " ++ filename
-            contents <- readFile filename
-            file <- return $ File (lines contents)
-            ast <- parser file filename
-            putStrLn $ show ast
-            putStrLn "-----------------"
-            let (_, bytecode, _) = astToBytecode' ast 0
-            putStrLn "-----------------"
-            print bytecode
-            putStrLn "-----------------"
-            bytecodeToBinary bytecode
+    argManager args 0
+    where
+        argManager :: [String] -> Int -> IO ()
+        argManager args n = case args of
+            (filename : "-o" : name : remainingArgs) -> do
+                -- putStrLn $ "Running file: " ++ filename
+                contents <- readFile filename
+                file <- return $ File (lines contents)
+                ast <- parser file filename
+                putStrLn "AST:"
+                putStrLn $ show ast
+                let (_, bytecode, _) = astToBytecode' ast 0 (getListOfFunctions ast)
+                putStrLn "Bytecode:"
+                putStrLn $ show bytecode
+                -- absoluteFilename <- getAbsolutePath filename
+                bytecodeToBinary bytecode name
 
-        _ -> do
-            putStrLn "No file given as an argument"
+                argManager remainingArgs (n + 1)
+
+            ("-o" : _ : remainingArgs) -> do
+                argManager remainingArgs (n)
+
+            (filename : remainingArgs) -> do
+                -- putStrLn $ "Running file: " ++ filename
+                contents <- readFile filename
+                file <- return $ File (lines contents)
+                ast <- parser file filename
+                putStrLn "AST:"
+                putStrLn $ show ast
+                let (_, bytecode, _) = astToBytecode' ast 0 (getListOfFunctions ast)
+                putStrLn "Bytecode:"
+                putStrLn $ show bytecode
+                absoluteFilename <- getAbsolutePath filename
+                bytecodeToBinary bytecode absoluteFilename
+
+                argManager remainingArgs (n + 1)
+
+            [] -> case n of
+                0 -> do
+                    putStrLn "No file given as an argument"
+                _ -> do
+                    putStrLn "Compilation finished!"
+

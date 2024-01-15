@@ -43,11 +43,11 @@ cleanFile (File (x:xs)) inComment = do
     where
         cleanLine :: String -> Bool -> (Bool, String)
         cleanLine [] isInComment = (isInComment, [])
-        cleanLine (y:ys) isInComment | isInComment == False && y == '/' && head ys == '/' = (isInComment, [])
-                                    | isInComment == False && y == '/' && head ys == '*' = (True, (snd (cleanLine (tail ys) True)))
-                                    | isInComment == True && y == '*' && head ys == '/' = (False, " " ++ (snd (cleanLine (tail ys) False)))
-                                    | isInComment == True = (isInComment, (snd (cleanLine ys isInComment)))
-                                    | otherwise = (isInComment, [y] ++ (snd (cleanLine ys isInComment)))
+        cleanLine (y:ys) isInComment | isInComment == False && (length ys) > 0 && y == '/' && head ys == '/' = (isInComment, [])
+                                     | isInComment == False && (length ys) > 0 && y == '/' && head ys == '*' = (True, (snd (cleanLine (tail ys) True)))
+                                     | isInComment == True  && (length ys) > 0 && y == '*' && head ys == '/' = (False, " " ++ (snd (cleanLine (tail ys) False)))
+                                     | isInComment == True                                                   = (isInComment, (snd (cleanLine ys isInComment)))
+                                     | otherwise                                                             = (isInComment, [y] ++ (snd (cleanLine ys isInComment)))
         getFileArray :: File -> [String]
         getFileArray (File y) = y
 
@@ -124,6 +124,7 @@ parseToken =
     <|> (parseKeyword "float" FloatTypeToken)
     <|> (parseKeyword "char" CharTypeToken)
     <|> (parseKeyword "string" StringTypeToken)
+    <|> (parseKeyword "void" VoidTypeToken)
     -- -- Comments
     -- <|> (parseKeyword "/*" CommentStart)
     -- <|> (parseKeyword "*/" CommentEnd)
@@ -145,6 +146,9 @@ parseToken =
     <|> (parseKeyword "%=" ModuloEqualToken)
     <|> (parseKeyword "&&" AndToken)
     <|> (parseKeyword "||" OrToken)
+    <|> (parseKeyword "&" BitAndToken)
+    <|> (parseKeyword "|" BitOrToken)
+    <|> (parseKeyword "^" BitXorToken)
     <|> (parseKeyword "==" EqualToken)
     <|> (parseKeyword "!=" NotEqualToken)
     <|> (parseKeyword "<=" LessThanEqualToken)
@@ -211,7 +215,7 @@ mergeSymbols [] _ = return []
 -- -- Once we found a InlineCommentStart we ignore all the rest of the line
 -- mergeSymbols (InlineCommentStart : _) _ = return []
 -- include a file
-mergeSymbols (IncludeToken : xs) filenames | head (filter (/= SpaceToken) xs) == StringToken str = do
+mergeSymbols (IncludeToken : xs) filenames | (length (filter (/= SpaceToken) xs)) > 0 && head (filter (/= SpaceToken) xs) == StringToken str = do
     filename <- getAbsolutePath str
     rest <- mergeSymbols (tail (dropWhile (/= StringToken str) xs)) (filename : filenames)
     if filename `elem` filenames then do
@@ -230,6 +234,7 @@ mergeSymbols (SymbolToken x : IntTypeToken : xs) filenames = mergeSymbols (Symbo
 mergeSymbols (SymbolToken x : FloatTypeToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "float") : xs) filenames
 mergeSymbols (SymbolToken x : CharTypeToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "char") : xs) filenames
 mergeSymbols (SymbolToken x : StringTypeToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "string") : xs) filenames
+mergeSymbols (SymbolToken x : VoidTypeToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "void") : xs) filenames
 mergeSymbols (SymbolToken x : IfToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "if") : xs) filenames
 mergeSymbols (SymbolToken x : ElseToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "else") : xs) filenames
 mergeSymbols (SymbolToken x : FunToken : xs) filenames = mergeSymbols (SymbolToken (x ++ "fun") : xs) filenames
@@ -242,6 +247,7 @@ mergeSymbols (IntTypeToken : SymbolToken x : xs) filenames = mergeSymbols (Symbo
 mergeSymbols (FloatTypeToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("float" ++ x) : xs) filenames
 mergeSymbols (CharTypeToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("char" ++ x) : xs) filenames
 mergeSymbols (StringTypeToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("string" ++ x) : xs) filenames
+mergeSymbols (VoidTypeToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("void" ++ x) : xs) filenames
 mergeSymbols (IfToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("if" ++ x) : xs) filenames
 mergeSymbols (ElseToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("else" ++ x) : xs) filenames
 mergeSymbols (FunToken : SymbolToken x : xs) filenames = mergeSymbols (SymbolToken ("fun" ++ x) : xs) filenames
@@ -251,7 +257,8 @@ mergeSymbols (ReturnToken : SymbolToken x : xs) filenames = mergeSymbols (Symbol
 mergeSymbols (IntToken x : SymbolToken y : xs) filenames = mergeSymbols (SymbolToken (show x ++ y) : xs) filenames
 
 -- merge else if to elif
-mergeSymbols (ElseToken : xs) filenames | (head (filter (/= SpaceToken) xs)) == IfToken = mergeSymbols (ElseIfToken : (tail (dropWhile (/= IfToken) xs))) filenames
+mergeSymbols (ElseToken : xs) filenames | (length (filter (/= SpaceToken) xs)) > 0 && (head (filter (/= SpaceToken) xs)) == IfToken = do
+    mergeSymbols (ElseIfToken : (tail (dropWhile (/= IfToken) xs))) filenames
 -- merge negative numbers (ex: - 123 -> -123)
 mergeSymbols (MinusToken : IntToken x : xs) filenames = mergeSymbols (IntToken (-x) : xs) filenames
 mergeSymbols (MinusToken : FloatToken x : xs) filenames = mergeSymbols (FloatToken (-x) : xs) filenames

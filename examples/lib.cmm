@@ -1,0 +1,126 @@
+// return the size of a string
+fun strlen (string str) : int
+{
+    int i = 0;
+    while (str[i] != '\0') {
+        i++;
+    }
+    return i;
+}
+
+// reverse a string
+fun reverse (string str) : string
+{
+    int len = strlen(str);
+    string rev = "";
+    for (int i = 0; i < len; i++) {
+        rev += str[len - i - 1];
+    }
+    return rev;
+}
+
+// get the n-th char of string, from the start
+fun str_first_n_char (string src, int n) : string
+{
+    string dest = "";
+    for (int i = 0; i < n; i++) {
+        dest += src[i];
+    }
+    return dest;
+}
+
+// get the n-th char of string, from the end
+fun str_last_n_char (string src, int n) : string
+{
+    int len = strlen(src);
+    string dest = "";
+    for (int i = 0; i < n; i++) {
+        dest += src[len - n + i];
+    }
+    return dest;
+}
+
+fun my_get_num (string str) : int
+{
+    int len = strlen(str);
+    int num = 0;
+    int i = 0;
+    if (str[0] == '-') {
+        i = 1;
+    }
+    for (; i < len; i++) {
+        num *= 10;
+        int a = (str[i]);
+        num += a - 48;
+    }
+    if (str[0] == '-') {
+        num = 0 - num;
+    }
+    return num;
+}
+
+// 3 (for input = "Hello")
+fun countVowels(string s) : (int)
+{
+    int count = 0;
+    for (int i = 0; i < strlen(s); i++) {
+        char c = s[i];
+        if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u') {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+
+fun strcmp(string s1, string s2) : (int)
+{
+    int i = 0;
+    while (s1[i] != '\0' && s2[i] != '\0') {
+        if (s1[i] != s2[i]) {
+            return 0;
+        }
+        i++;
+    }
+    if (s1[i] != s2[i]) {
+        return 0;
+    }
+    return 1;
+}
+
+fun strncmp(string s1, string s2, int n) : (int)
+{
+    int i = 0;
+    while (s1[i] != '\0' && s2[i] != '\0' && i < n) {
+        if (s1[i] != s2[i]) {
+            return 0;
+        }
+        i++;
+    }
+    return 1;
+}
+
+// 1 (for mainString = "Hello, World!" and subString = "World")
+fun substringSearch(string mainString, string subString) : (int)
+{
+    int mainLength = strlen(mainString);
+    int subLength = strlen(subString);
+
+    for (int i = 0; i <= (mainLength - subLength); i++) {
+        if (strncmp(mainString + i, subString, subLength)) {
+            return i; // Substring found
+        }
+    }
+    return -1; // Substring not found
+}
+
+// 1 (for input = "level")
+fun isPalindrome(string s) : (int)
+{
+    int length = strlen(s);
+    for (int i = 0; i < (length / 2); i++) {
+        if (s[i] != s[length - i - 1]) {
+            return 0; // Not a palindrome
+        }
+    }
+    return 1; // Palindrome
+}

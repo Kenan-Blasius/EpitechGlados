@@ -25,6 +25,9 @@ source-repository head
 
 library
   exposed-modules:
+      AstToBytecode
+      BinaryEvaluation
+      BytecodeToBinary
       Parser
       ParserAST
       ParserModule
@@ -46,7 +49,7 @@ library
   default-language: Haskell2010
 
 executable eval-exe
-  main-is: BinaryEvaluation.hs
+  main-is: BinaryEvaluationMain.hs
   other-modules:
       Paths_glados
   autogen-modules:
@@ -67,8 +70,6 @@ executable glados-exe
   main-is: Main.hs
   other-modules:
       Paths_glados
-      AstToBytecode
-      BytecodeToBinary
   autogen-modules:
       Paths_glados
   hs-source-dirs:

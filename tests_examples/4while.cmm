@@ -1,0 +1,13 @@
+// 0
+
+fun main () : int
+{
+    int indian🇮🇳 = 15;
+
+    while (indian🇮🇳 > 0)
+    {
+        indian🇮🇳--;
+    }
+
+    return indian🇮🇳;
+}

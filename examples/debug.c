@@ -1,6 +1,6 @@
-#include "factorial.our"
+#include "examples/factorial.c"
 
-fun debugTest (int a, char c, string s, float f) : (const my_int)
+fun debugTest (int a, char c, string s, float f) : my_int
 {
     print(a);
     print(c);
@@ -35,6 +35,8 @@ fun debugTest (int a, char c, string s, float f) : (const my_int)
     while (count < 10) {
         count = count + 1;
     }
+
+    return forme;
 }
 
 // it's a comment
@@ -45,7 +47,7 @@ fun debugTest (int a, char c, string s, float f) : (const my_int)
 * by the compiler more precisely by the parser
 * it's having some issue for now with the " and the ' characters inside the comment (it's fixed now)
 */
-fun factorialTest (int n, char c) /* lol this is a comment to try to break something */: (const my_int) // and this is an inline comment
+fun factorialTest (int n, char c) /* lol this is a comment to try to break something */: my_int // and this is an inline comment
 {
     print(n);
     if (n < 0) {

@@ -1,0 +1,16 @@
+// 10
+
+fun add (int a, int b) : (int)
+{
+    return a + b;
+}
+
+fun main () : int
+{
+    int south_corea🇰🇷 = 7;
+    int north_corea🇰🇵 = 3;
+
+    int corea = add(south_corea🇰🇷, north_corea🇰🇵);
+
+    return corea;
+}

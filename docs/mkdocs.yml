@@ -65,3 +65,18 @@ nav:
   - index.md
 - Syntaxe:
   - syntax.md
+  - raw-bnf.md
+- Assembly:
+  - assembly.md
+- Tutoriels:
+  - tutorials.md
+  - tutorials/variables.md
+  - tutorials/operators.md
+  - tutorials/conditions.md
+  - tutorials/loops.md
+  - tutorials/functions.md
+- Fonctionnalités:
+  - features.md
+  - features/variables.md
+  - features/operators.md
+  - features/strings.md

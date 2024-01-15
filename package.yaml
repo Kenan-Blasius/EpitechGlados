@@ -47,8 +47,6 @@ executables:
     source-dirs: app
     other-modules:
       - Paths_glados
-      - AstToBytecode
-      - BytecodeToBinary
     ghc-options:
       - -threaded
       - -rtsopts
@@ -57,7 +55,7 @@ executables:
       - glados
       - split
   eval-exe:
-    main: BinaryEvaluation.hs
+    main: BinaryEvaluationMain.hs
     source-dirs: app
     other-modules:
       - Paths_glados

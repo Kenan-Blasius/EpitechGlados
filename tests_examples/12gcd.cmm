@@ -1,0 +1,18 @@
+// 3
+fun gcd(int a, int b) : (int)
+{
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+
+fun main () : int
+{
+    int argentina🇦🇷 = gcd(9, 12);
+
+    return argentina🇦🇷;
+}

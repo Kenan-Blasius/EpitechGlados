@@ -1,0 +1,36 @@
+// 2
+
+fun add (int a) : int
+{
+    return a + 1;
+}
+
+fun sub(int a, int b) : int
+{
+    return a - b;
+}
+
+fun main () : int
+{
+    int vatican🇻🇦 = 3 == 2;
+    int monaco🇲🇨 = 4;
+
+    if (
+        add(1) == sub(vatican🇻🇦, monaco🇲🇨) // if 2 == -4
+    ) {
+        vatican🇻🇦 = 42;
+    } else if (
+        add(vatican🇻🇦) == add(0) // if 1 == 1
+    ) {
+        vatican🇻🇦 = sub(vatican🇻🇦, monaco🇲🇨); // vatican🇻🇦 = -4
+        while (monaco🇲🇨 < 10) {
+            vatican🇻🇦 = add(vatican🇻🇦); // vatican🇻🇦 = -3, -2, -1, 0, 1, 2
+            monaco🇲🇨++;
+        }
+    } else {
+        vatican🇻🇦 = 1;
+    }
+
+
+    return vatican🇻🇦;
+}

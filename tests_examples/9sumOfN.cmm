@@ -1,0 +1,18 @@
+// 15
+fun sumOfN(int n) : (int)
+{
+    int sum = 0;
+    for (int i = 1; i <= n; i++) {
+        sum = sum + i;
+    }
+    return sum;
+}
+
+fun main () : int
+{
+    int colombia🇨🇴 = 5;
+
+    colombia🇨🇴 = sumOfN(colombia🇨🇴);
+
+    return colombia🇨🇴;
+}
