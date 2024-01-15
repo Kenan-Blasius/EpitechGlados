@@ -1376,7 +1376,7 @@ sexprToAstTest =
             let result = sexprToAst sexpr
             let expected =
                     (IfAST
-                        (AndAST (NotAST (GreaterThanEqualAST (AST [IntAST 1]) (AST [IntAST 2]))) (EqualAST (AST [IntAST 1]) (AST [IntAST 2])))
+                        (AndAST (GreaterThanEqualAST (NotAST (AST [IntAST 1])) (AST [IntAST 2])) (EqualAST (AST [IntAST 1]) (AST [IntAST 2])))
                         (AssignAST (AST [SymbolAST "a"]) (AST [IntAST 42]))
                         (ElseIfAST
                             (OrAST (LessThanEqualAST (AST [IntAST 1]) (AST [IntAST 2])) (NotEqualAST (AST [IntAST 1]) (AST [IntAST 2])))
