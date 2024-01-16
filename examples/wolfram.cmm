@@ -45,11 +45,57 @@ fun getPrintLine(string line, int ogLineSize, int generatedLineNb) : string
     return printLine;
 }
 
+// return the size of a string
+fun strlen (string str) : int
+{
+    int i = 0;
+    while (str[i] != '\0') {
+        i++;
+    }
+    return i;
+}
+
+// return the number of a string
+fun my_get_num (string str) : int
+{
+    int len = strlen(str);
+    int num = 0;
+    int i = 0;
+    if (str[0] == '-') {
+        i = 1;
+    }
+    for (; i < len; i++) {
+        num *= 10;
+        int a = (str[i]);
+        num += a - 48;
+    }
+    if (str[0] == '-') {
+        num = 0 - num;
+    }
+    return num;
+}
+
 fun main() : int
 {
     int lineSize = 50;
     int ruleNb = 90; // 0 <= ruleNb <= 255
     int lineNb = 20; // number of lines to draw, negative nb for infinite
+
+    print("Enter the line size (default 50): \n");
+    string lineSizeStr = getline();
+    if (strlen(lineSizeStr) > 0) {
+        lineSize = my_get_num(lineSizeStr);
+    }
+    print("Enter the rule number (default 90): \n");
+    string ruleNbStr = getline();
+    if (strlen(ruleNbStr) > 0) {
+        ruleNb = my_get_num(ruleNbStr);
+    }
+    print("Enter the number of lines to draw (default 20): \n");
+    string lineNbStr = getline();
+    if (strlen(lineNbStr) > 0) {
+        lineNb = my_get_num(lineNbStr);
+    }
     int ogLineSize = lineSize;
     int generatedLineNb = 0;
 
