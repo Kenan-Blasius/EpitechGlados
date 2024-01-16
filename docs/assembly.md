@@ -328,17 +328,23 @@ socket (Syscall Number: -1): Create an endpoint for communication (varies betwee
 ## Les syscalls
 
 ```c
-print (Syscall Number: 1): Ecrire dans le stdout
+print (int value | char value | float value | string value)
+// Syscall Number: 1 : Ecrire dans le stdout
 
-getline (Syscall Number: 2): Lire une ligne depuis le stdin
+getline ()
+// Syscall Number: 2 : Lire une ligne depuis le stdin
 
-readFile (Syscall Number: 3): Lire un fichier
+readFile (string path)
+// Syscall Number: 3 : Lire un fichier
 
-writeInFile (Syscall Number: 4): Ecrire dans un fichier
+writeInFile (string path, string content)
+// Syscall Number: 4 : Ecrire dans un fichier
 
-appendInFile (Syscall Number: 5): Ecrire à la fin d`un fichier
+appendInFile (string path, string content)
+// Syscall Number: 5 : Ecrire à la fin d`un fichier
 
-exit (Syscall Number: 60): Termine le processus et retourne le status de sortie au parent.
+exit (int status)
+// Syscall Number: 60 : Termine le processus et retourne le status de sortie au parent.
 ```
 
 ### Exemple of syscall usage
