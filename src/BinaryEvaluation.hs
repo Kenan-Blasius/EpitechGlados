@@ -15,6 +15,8 @@ import Data.List (genericTake)
 import Data.Char
 import Data.Int (Int32)
 import Unsafe.Coerce
+import System.IO
+import System.Directory
 
 type VariableId = Int
 data VariableType = IntType | StringType | BoolType | CharType | FloatType | AddressType deriving (Show, Eq)
@@ -398,10 +400,43 @@ evalValue 0x09 values stack _ table = trace ("JUMP "          ++ show (bytesToIn
 evalValue 0x0A values stack _ table = trace  ("JUMP_NEW_SCOPE " ++ show (bytesToInt values))       return(stack, bytesToInt values, table)
 evalValue 0x0B _ stack pc table = trace  "POP "                                                    return(tail stack, pc + lenOp 0x0B, table)
 evalValue 0x0C _ (s:stack) pc table = trace  "DUP "                                                return(s : s : stack, pc + lenOp 0x0C, table)
--- * x == 1, print -- x == 60, exit
+-- * x == 1 print
 evalValue 0x0D (1:_) (x:xs) pc table = do
     putStr (printValueInStack x)
     return (xs, pc + lenOp 0x0D, table)
+-- * x == 2 getline
+evalValue 0x0D (2:_) stack pc table = do
+    line <- getLine
+    return ((StringType, MyString line) : stack, pc + lenOp 0x0D, table)
+-- * x == 3 readFile (from file name on stack)
+evalValue 0x0D (3:_) stack pc table = do
+    let fileName = printValueInStack (head stack)
+    fileExists <- doesFileExist fileName
+    if not fileExists then do
+        putStrLn ("File " ++ fileName ++ " doesn't exist")
+        return (stack, pc + lenOp 0x0D, table)
+    else do
+        handle <- openFile fileName ReadMode
+        contents <- hGetContents handle
+        return ((StringType, MyString contents) : stack, pc + lenOp 0x0D, table)
+-- * x == 4 writeInFile (from file name on stack)
+evalValue 0x0D (4:_) stack pc table = do
+    let content = printValueInStack (head stack)
+    let fileName = printValueInStack (head (tail stack))
+    writeFile fileName content
+    return (tail (tail stack), pc + lenOp 0x0D, table)
+-- * x == 5 appendInFile (from file name on stack)
+evalValue 0x0D (5:_) stack pc table = do
+    let content = printValueInStack (head stack)
+    let fileName = printValueInStack (head (tail stack))
+    fileExists <- doesFileExist fileName
+    if not fileExists then do
+        putStrLn ("File " ++ fileName ++ " doesn't exist")
+        return (stack, pc + lenOp 0x0D, table)
+    else do
+        appendFile fileName content
+        return (tail (tail stack), pc + lenOp 0x0D, table)
+-- * x == 60 exit
 evalValue 0x0D (60:_) _ _ _ = trace "EXIT"                                                         return ([], -1, [])
 evalValue 0x0E _ stack _ table = trace  "RETURN "                                                  return (deleteUntilAddressExceptOne stack 0, getLastAddressFromStack stack, table)
 evalValue 0x0F _ stack pc table = trace "LOAD_PC "                                                 return (((AddressType, (MyInt (pc + lenOp 0x0F + lenOp 0x0A))) : stack), pc + lenOp 0x0F, table) -- pc + LOAD_PC + JUMP_NEW_SCOPE

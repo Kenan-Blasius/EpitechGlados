@@ -1,10 +1,8 @@
-
 # Syntaxe de l'Assembly
 
 ## Opérations
 
 ```py
-
 ; Définitions des types
 - LOAD_CONST      0x01
 - LOAD_VAR        0x02
@@ -23,7 +21,6 @@
 - LOAD_PC         0x0F
 - INDEX           0x10
 - SAVE_AT         0x11
-
 ```
 
 1. **LOAD_CONST(index):** Charge une valeur constante sur la pile. L'`index` pointe vers la position de la constante dans un pool de constantes.
@@ -148,7 +145,6 @@ fun main () : int
 Est converti en AST:
 
 ```haskell
-
 AST
 |   FunAST add
 |   |   AST
@@ -261,23 +257,22 @@ Devient:
 14           # Return
 ```
 
--- LOAD_CONST 0x01
--- LOAD_VAR 0x02
--- STORE_VAR 0x03
-
 Comme on peut le voir, les instructions `LoadConst`, `LoadVar` et `StoreVar` fonctionnent comme ceci:
 
 ```py
-
 First byte:
-0x01 # LOAD_CONST
-0x02 # LOAD_VAR
-0x03 # STORE_VAR
+0x01 # LoadConst
+0x02 # LoadVar
+0x03 # StoreVar
 
 4 octets suivants sont l id de la variable ou, la valeur de la constante
+0x00, 0x00, 0x00, 0x00 # 0
 
 1 octet suivant est le type de la variable
-
+0x01 # IntType
+0x02 # FloatType
+0x03 # StringType
+0x04 # BoolType
 ```
 
 <!-- ## TODO
@@ -330,11 +325,58 @@ getgid (Syscall Number: 104): Get the group ID.
 socket (Syscall Number: -1): Create an endpoint for communication (varies between operating systems).
 -->
 
+## Les syscalls
+
 ```c
-Les syscalls
+print (int value | char value | float value | string value)
+// Syscall Number: 1 : Ecrire dans le stdout
 
-exit (Syscall Number: 60): Termine le processus et retourne le status de sortie au parent.
+getline ()
+// Syscall Number: 2 : Lire une ligne depuis le stdin
 
-write (Syscall Number: 1): Ecrire dans le stdout
+readFile (string path)
+// Syscall Number: 3 : Lire un fichier
 
+writeInFile (string path, string content)
+// Syscall Number: 4 : Ecrire dans un fichier
+
+appendInFile (string path, string content)
+// Syscall Number: 5 : Ecrire à la fin d`un fichier
+
+exit (int status)
+// Syscall Number: 60 : Termine le processus et retourne le status de sortie au parent.
+```
+
+### Exemple of syscall usage
+
+```c
+fun main () : int
+{
+    print("\tUser 1:\n");
+    print("Enter a name:\n");
+    string name = getline();
+
+    print("Enter an age:\n");
+    string age = getline();
+
+    print("Enter a car:\n");
+    string car = getline();
+
+    writeInFile("file.json", "[\n\t{\n\t\t\"name\": \"" + name + "\",\n\t\t\"age\": \"" + age + "\",\n\t\t\"car\": \"" + car + "\"\n\t}");
+
+
+    print("\tUser 2:\n");
+    print("Enter a name:\n");
+    string name = getline();
+
+    print("Enter an age:\n");
+    string age = getline();
+
+    print("Enter a car:\n");
+    string car = getline();
+
+    appendInFile("file.json", ",\n\t{\n\t\t\"name\": \"" + name + "\",\n\t\t\"age\": \"" + age + "\",\n\t\t\"car\": \"" + car + "\"\n\t}\n]\n");
+
+    return 0;
+}
 ```
