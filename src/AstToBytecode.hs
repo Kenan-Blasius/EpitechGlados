@@ -71,6 +71,16 @@ getNextJmp (x:y:xs) | x > y = getNextJmp (x:xs)
 
 -- * ----------------------------------- AST TO BYTECODE ------------------------------------------ * --
 
+-- getType :: AST -> DataType
+-- getType (AST []) = error "ERROR getType empty"
+-- getType (IntTypeAST) = IntType
+-- getType (CharTypeAST) = CharType
+-- getType (StringTypeAST) = StringType
+-- getType (FloatTypeAST) = FloatType
+-- getType (VoidTypeAST) = VoidType
+-- getType (AST (x:_)) = getType x
+-- getType x = error ("ERROR getType " ++ show x)
+
 --             AST      id_jmp  list_of_functions -> (AST, [Bytecode], id_jmp)
 astToBytecode' :: AST -> Int -> [String] -> (AST, [Bytecode], Int)
 astToBytecode' (AST []) jmp _ = (AST [], [], jmp)
@@ -82,6 +92,8 @@ astToBytecode' (AST [SymbolAST "print", x]) jmp functs =
 astToBytecode' (AST [SymbolAST "exit", x]) jmp functs =
     let (xAST, xBytecode, jmp_1) = astToBytecode' (AST [x]) jmp functs
     in (xAST, xBytecode ++ [Call 60], jmp_1)
+astToBytecode' (AST [SymbolAST "getline"]) jmp _ =
+    (AST [], [Call 2], jmp)
 
 
 astToBytecode' (AST [IntTypeAST, SymbolAST x]) jmp _ =    (AST [], [LoadVarBefore x IntType], jmp)
